@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pecos Grant — Deal Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a;
+    --dark: #111111;
+    --card: #181818;
+    --border: #2a2a2a;
+    --gold: #c9a84c;
+    --gold-light: #e8c96a;
+    --red: #e03c3c;
+    --green: #2ecc71;
+    --yellow: #f0b429;
+    --white: #f0ede8;
+    --muted: #666;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* Header */
+  .header {
+    background: var(--dark);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: var(--gold);
+  }
+
+  .logo span {
+    color: var(--white);
+    opacity: 0.4;
+    font-size: 14px;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 2px;
+    display: block;
+    margin-top: -4px;
+  }
+
+  .badge {
+    background: var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 6px 12px;
+    border-radius: 2px;
+    text-transform: uppercase;
+  }
+
+  /* Main layout */
+  .main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 700px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  /* Section titles */
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+  }
+
+  /* Inputs */
+  .field {
+    margin-bottom: 16px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .field input {
+    width: 100%;
+    background: var(--black);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--white);
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .field input:focus {
+    border-color: var(--gold);
+  }
+
+  .field input::placeholder {
+    color: #333;
+  }
+
+  /* Rehab selector */
+  .rehab-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .rehab-btn {
+    background: var(--black);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 14px 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+
+  .rehab-btn:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  .rehab-btn.active {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--black);
+    font-weight: 700;
+  }
+
+  .rehab-btn .type {
+    font-size: 13px;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 4px;
+    color: inherit;
+  }
+
+  .rehab-btn .desc {
+    font-size: 9px;
+    opacity: 0.7;
+    line-height: 1.4;
+  }
+
+  /* Analyze button */
+  .analyze-btn {
+    width: 100%;
+    background: var(--gold);
+    border: none;
+    border-radius: 3px;
+    color: var(--black);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+
+  .analyze-btn:hover {
+    background: var(--gold-light);
+    transform: translateY(-1px);
+  }
+
+  .analyze-btn:active {
+    transform: translateY(0);
+  }
+
+  /* Results */
+  .results {
+    display: none;
+    margin-top: 24px;
+  }
+
+  .results.show {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Verdict banner */
+  .verdict {
+    border-radius: 4px;
+    padding: 24px 28px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .verdict.go { background: rgba(46, 204, 113, 0.12); border: 1px solid rgba(46, 204, 113, 0.3); }
+  .verdict.maybe { background: rgba(240, 180, 41, 0.1); border: 1px solid rgba(240, 180, 41, 0.3); }
+  .verdict.no { background: rgba(224, 60, 60, 0.1); border: 1px solid rgba(224, 60, 60, 0.3); }
+
+  .verdict-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 3px;
+  }
+
+  .verdict.go .verdict-text { color: var(--green); }
+  .verdict.maybe .verdict-text { color: var(--yellow); }
+  .verdict.no .verdict-text { color: var(--red); }
+
+  .verdict-sub {
+    font-size: 13px;
+    color: var(--muted);
+    max-width: 400px;
+    line-height: 1.5;
+  }
+
+  /* Numbers grid */
+  .numbers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 600px) {
+    .numbers { grid-template-columns: 1fr 1fr; }
+  }
+
+  .num-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 18px 16px;
+  }
+
+  .num-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .num-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--white);
+  }
+
+  .num-value.green { color: var(--green); }
+  .num-value.red { color: var(--red); }
+  .num-value.yellow { color: var(--yellow); }
+  .num-value.gold { color: var(--gold); }
+
+  /* Deal breakdown */
+  .breakdown {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+
+  .breakdown-row:last-child {
+    border-bottom: none;
+    padding-top: 14px;
+    margin-top: 4px;
+  }
+
+  .breakdown-row .label {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .breakdown-row .value {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--white);
+  }
+
+  .breakdown-row.total .label {
+    color: var(--white);
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .breakdown-row.total .value {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  /* Recommendation box */
+  .rec-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    border-radius: 0 4px 4px 0;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+
+  .rec-box .rec-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .rec-box .rec-text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #bbb;
+  }
+
+  .rec-box .rec-text strong {
+    color: var(--white);
+  }
+
+  /* Max offer highlight */
+  .max-offer-box {
+    background: rgba(201, 168, 76, 0.08);
+    border: 1px solid rgba(201, 168, 76, 0.3);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .max-offer-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+
+  .max-offer-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    letter-spacing: 2px;
+    color: var(--gold-light);
+  }
+
+  .max-offer-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Reset */
+  .reset-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .reset-btn:hover {
+    border-color: var(--muted);
+    color: var(--white);
+  }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 32px 0;
+  }
+
+  /* Warning flags */
+  .flags {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .flag {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: #bbb;
+    line-height: 1.5;
+  }
+
+  .flag-icon {
+    font-size: 14px;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    Pecos Grant
+    <span>DEAL ANALYZER v1.0</span>
+  </div>
+  <div class="badge">Springfield, MO Market</div>
+</div>
+
+<div class="main">
+
+  <div class="grid">
+
+    <!-- INPUT PANEL -->
+    <div>
+      <div class="section-label">Property Info</div>
+      <div class="card">
+
+        <div class="field">
+          <label>Address (optional)</label>
+          <input type="text" id="address" placeholder="123 Main St, Springfield MO">
+        </div>
+
+        <div class="field">
+          <label>List Price ($)</label>
+          <input type="number" id="listPrice" placeholder="85000">
+        </div>
+
+        <div class="field">
+          <label>Your Offer Price ($)</label>
+          <input type="number" id="offerPrice" placeholder="70000">
+        </div>
+
+        <div class="field">
+          <label>Sqft</label>
+          <input type="number" id="sqft" placeholder="1200">
+        </div>
+
+        <div class="field">
+          <label>Beds / Baths</label>
+          <input type="text" id="bedBath" placeholder="3 bed / 2 bath">
+        </div>
+
+        <div class="field">
+          <label>Zestimate ($) — if available</label>
+          <input type="number" id="zestimate" placeholder="110000">
+        </div>
+
+      </div>
+    </div>
+
+    <!-- REHAB PANEL -->
+    <div>
+      <div class="section-label">Rehab Level</div>
+      <div class="card">
+
+        <div class="rehab-grid">
+          <button class="rehab-btn" data-level="1" onclick="selectRehab(1)">
+            <span class="type">1 — COSMETIC</span>
+            <span class="desc">Paint, floors, kitchen & bath refresh. Roof & HVAC already good.</span>
+          </button>
+          <button class="rehab-btn" data-level="2" onclick="selectRehab(2)">
+            <span class="type">2 — MID</span>
+            <span class="desc">Cosmetic PLUS roof OR HVAC needed. Not both.</span>
+          </button>
+          <button class="rehab-btn" data-level="3" onclick="selectRehab(3)">
+            <span class="type">3 — FULL</span>
+            <span class="desc">Needs everything. Roof, HVAC, cosmetic, possibly structural.</span>
+          </button>
+        </div>
+
+        <div class="field" style="margin-top:8px;">
+          <label>Or Enter Your Own Rehab Cost ($)</label>
+          <input type="number" id="rehabOverride" placeholder="Leave blank to use level estimate">
+        </div>
+
+        <div class="field">
+          <label>After Repair Value — ARV ($)</label>
+          <input type="number" id="arv" placeholder="e.g. 185000 — what it sells for fixed up">
+        </div>
+
+        <div class="field">
+          <label>Sqft of livable space after rehab</label>
+          <input type="number" id="arvSqft" placeholder="e.g. 1648">
+        </div>
+
+        <button class="analyze-btn" onclick="analyze()">RUN THE NUMBERS</button>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results" id="results">
+    <div class="divider"></div>
+    <div class="section-label">Deal Analysis</div>
+
+    <!-- Verdict -->
+    <div class="verdict" id="verdictBox">
+      <div>
+        <div class="verdict-text" id="verdictText"></div>
+        <div class="verdict-sub" id="verdictSub"></div>
+      </div>
+      <button class="reset-btn" onclick="reset()">↩ NEW DEAL</button>
+    </div>
+
+    <!-- Max offer -->
+    <div class="max-offer-box">
+      <div>
+        <div class="max-offer-label">Max Offer Price (65% Rule)</div>
+        <div class="max-offer-sub">ARV × 0.65 − Rehab — don't go over this</div>
+      </div>
+      <div>
+        <div class="max-offer-value" id="maxOffer">—</div>
+      </div>
+    </div>
+
+    <!-- Key numbers -->
+    <div class="numbers">
+      <div class="num-card">
+        <div class="num-label">Total In</div>
+        <div class="num-value" id="totalIn">—</div>
+      </div>
+      <div class="num-card">
+        <div class="num-label">Sell Price (ARV)</div>
+        <div class="num-value gold" id="arvDisplay">—</div>
+      </div>
+      <div class="num-card">
+        <div class="num-label">Gross Profit</div>
+        <div class="num-value" id="grossProfit">—</div>
+      </div>
+      <div class="num-card">
+        <div class="num-label">Agent Fees (6%)</div>
+        <div class="num-value red" id="agentFees">—</div>
+      </div>
+      <div class="num-card">
+        <div class="num-label">Closing Costs (2%)</div>
+        <div class="num-value red" id="closingCosts">—</div>
+      </div>
+      <div class="num-card">
+        <div class="num-label">Net Profit</div>
+        <div class="num-value" id="netProfit">—</div>
+      </div>
+    </div>
+
+    <!-- Full breakdown -->
+    <div class="breakdown">
+      <div class="section-label" style="margin-bottom:12px;">Full Breakdown</div>
+      <div class="breakdown-row">
+        <span class="label">Offer / Purchase Price</span>
+        <span class="value" id="bOffer">—</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="label">Estimated Rehab</span>
+        <span class="value" id="bRehab">—</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="label">Rehab Contingency (10%)</span>
+        <span class="value" id="bContingency">—</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="label">Holding Costs (~3 months)</span>
+        <span class="value" id="bHolding">—</span>
+      </div>
+      <div class="breakdown-row total">
+        <span class="label">Total All-In Cost</span>
+        <span class="value" id="bTotal">—</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="label">ARV (Sale Price)</span>
+        <span class="value gold" id="bArv">—</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="label">Agent Fees (6%)</span>
+        <span class="value" id="bAgent">—</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="label">Closing Costs (2%)</span>
+        <span class="value" id="bClosing">—</span>
+      </div>
+      <div class="breakdown-row total">
+        <span class="label">NET PROFIT</span>
+        <span class="value" id="bNet">—</span>
+      </div>
+    </div>
+
+    <!-- Flags -->
+    <div class="flags" id="flagsBox"></div>
+
+    <!-- Recommendation -->
+    <div class="rec-box" id="recBox">
+      <div class="rec-title">Recommendation</div>
+      <div class="rec-text" id="recText">—</div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  let rehabLevel = 0;
+
+  const REHAB_PER_SQFT = {
+    1: { low: 8, high: 11,  label: 'Cosmetic' },
+    2: { low: 18, high: 24, label: 'Mid-Level' },
+    3: { low: 28, high: 36, label: 'Full Rehab' }
+  };
+
+  function selectRehab(level) {
+    rehabLevel = level;
+    document.querySelectorAll('.rehab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`[data-level="${level}"]`).classList.add('active');
+  }
+
+  function fmt(n) {
+    return '$' + Math.round(n).toLocaleString();
+  }
+
+  function analyze() {
+    const offer    = parseFloat(document.getElementById('offerPrice').value) || 0;
+    const sqft     = parseFloat(document.getElementById('sqft').value) || 0;
+    const arvInput = parseFloat(document.getElementById('arv').value) || 0;
+    const rehabOvr = parseFloat(document.getElementById('rehabOverride').value) || 0;
+    const zest     = parseFloat(document.getElementById('zestimate').value) || 0;
+
+    if (!offer || !arvInput) {
+      alert('Enter at least an offer price and ARV to run the numbers.');
+      return;
+    }
+
+    // Rehab calculation
+    let rehabLow, rehabHigh, rehabMid;
+    if (rehabOvr > 0) {
+      rehabLow = rehabHigh = rehabMid = rehabOvr;
+    } else if (rehabLevel > 0 && sqft > 0) {
+      const r = REHAB_PER_SQFT[rehabLevel];
+      rehabLow  = sqft * r.low;
+      rehabHigh = sqft * r.high;
+      rehabMid  = (rehabLow + rehabHigh) / 2;
+    } else if (rehabLevel > 0) {
+      // default sqft assumption
+      const defaultSqft = 1200;
+      const r = REHAB_PER_SQFT[rehabLevel];
+      rehabLow  = defaultSqft * r.low;
+      rehabHigh = defaultSqft * r.high;
+      rehabMid  = (rehabLow + rehabHigh) / 2;
+    } else {
+      rehabMid = rehabLow = rehabHigh = 0;
+    }
+
+    const contingency = rehabMid * 0.10;
+    const holding     = offer * 0.01 * 3; // ~1%/mo hard money x 3 months
+    const totalIn     = offer + rehabMid + contingency + holding;
+
+    const arv         = arvInput;
+    const agentFees   = arv * 0.06;
+    const closing     = arv * 0.02;
+    const netProfit   = arv - totalIn - agentFees - closing;
+    const grossProfit = arv - totalIn;
+    const maxOffer    = arv * 0.65 - rehabMid;
+
+    // Verdict
+    let verdict, verdictClass, verdictSub, rec;
+
+    if (netProfit >= 25000 && offer <= maxOffer) {
+      verdict = '✓ PURSUE THIS DEAL';
+      verdictClass = 'go';
+      verdictSub = `Net profit of ${fmt(netProfit)} with ${fmt(netProfit / totalIn * 100).replace('$','')}% ROI. Offer price is under your max. This one has legs.`;
+      rec = `<strong>Make the offer.</strong> At ${fmt(offer)} you're within your max offer price of ${fmt(maxOffer)}. Net profit of ${fmt(netProfit)} clears your $25k minimum. Move fast — send a cash offer, fast close, as-is.`;
+    } else if (netProfit >= 15000 && offer <= maxOffer * 1.05) {
+      verdict = '⚠ MAYBE — NEGOTIATE DOWN';
+      verdictClass = 'maybe';
+      verdictSub = `Profit is ${fmt(netProfit)} — below your $25k minimum. You need to get the price down to make this worth the risk.`;
+      rec = `<strong>Don't walk away yet.</strong> You need to buy this at <strong>${fmt(maxOffer)}</strong> or below to hit your $25k profit target. If the seller has been sitting 60+ days, make a lowball offer. Worst they can say is no.`;
+    } else {
+      verdict = '✗ PASS ON THIS ONE';
+      verdictClass = 'no';
+      verdictSub = `The numbers don't work at ${fmt(offer)}. You'd net ${fmt(netProfit)} — not worth your time and capital.`;
+      rec = `<strong>Pass.</strong> At ${fmt(offer)} this deal doesn't work. You'd need to buy at <strong>${fmt(maxOffer)}</strong> to make the $25k minimum — that's ${fmt(offer - maxOffer)} below asking. ${offer - maxOffer > 20000 ? 'That gap is too large unless the seller is extremely desperate.' : 'Watch it — if the seller drops the price or it sits another 60 days, revisit.'}`;
+    }
+
+    // Flags
+    let flags = [];
+    if (zest > 0 && offer > zest) flags.push({ icon: '🔴', text: `<strong>Listed over Zestimate</strong> — you're paying ${fmt(offer - zest)} above estimated market value before repairs.` });
+    if (zest > 0 && offer < zest * 0.85) flags.push({ icon: '🟢', text: `<strong>Below Zestimate</strong> — you're buying ${fmt(zest - offer)} under estimated market value. Instant equity.` });
+    if (rehabMid > offer * 0.4) flags.push({ icon: '⚠️', text: `<strong>Heavy rehab relative to purchase price</strong> — rehab is ${Math.round(rehabMid/offer*100)}% of purchase price. Make sure your scope is locked in tight before committing.` });
+    if (contingency + holding > 5000) flags.push({ icon: '📋', text: `<strong>Hidden costs add up</strong> — ${fmt(contingency + holding)} in contingency + holding costs. Always budget these in.` });
+    if (offer > maxOffer) flags.push({ icon: '🔴', text: `<strong>Offer exceeds max</strong> — your offer of ${fmt(offer)} is ${fmt(offer - maxOffer)} over the 65% rule max offer of ${fmt(maxOffer)}. You are overpaying for this flip.` });
+
+    // Render
+    const vBox = document.getElementById('verdictBox');
+    vBox.className = `verdict ${verdictClass}`;
+    document.getElementById('verdictText').textContent = verdict;
+    document.getElementById('verdictSub').textContent = verdictSub;
+
+    document.getElementById('maxOffer').textContent = fmt(maxOffer);
+
+    const np = document.getElementById('netProfit');
+    np.textContent = fmt(netProfit);
+    np.className = `num-value ${netProfit >= 25000 ? 'green' : netProfit >= 0 ? 'yellow' : 'red'}`;
+
+    document.getElementById('totalIn').textContent = fmt(totalIn);
+    document.getElementById('arvDisplay').textContent = fmt(arv);
+    document.getElementById('grossProfit').textContent = fmt(grossProfit);
+    document.getElementById('agentFees').textContent = fmt(agentFees);
+    document.getElementById('closingCosts').textContent = fmt(closing);
+
+    document.getElementById('bOffer').textContent = fmt(offer);
+    document.getElementById('bRehab').textContent = rehabOvr > 0 ? fmt(rehabOvr) : `${fmt(rehabLow)} – ${fmt(rehabHigh)} (using ${fmt(rehabMid)})`;
+    document.getElementById('bContingency').textContent = fmt(contingency);
+    document.getElementById('bHolding').textContent = fmt(holding);
+    document.getElementById('bTotal').textContent = fmt(totalIn);
+    document.getElementById('bArv').textContent = fmt(arv);
+    document.getElementById('bAgent').textContent = `-${fmt(agentFees)}`;
+    document.getElementById('bClosing').textContent = `-${fmt(closing)}`;
+    const bNet = document.getElementById('bNet');
+    bNet.textContent = fmt(netProfit);
+    bNet.style.color = netProfit >= 25000 ? 'var(--green)' : netProfit >= 0 ? 'var(--yellow)' : 'var(--red)';
+
+    const flagsBox = document.getElementById('flagsBox');
+    flagsBox.innerHTML = flags.map(f => `
+      <div class="flag">
+        <span class="flag-icon">${f.icon}</span>
+        <span>${f.text}</span>
+      </div>
+    `).join('');
+
+    document.getElementById('recText').innerHTML = rec;
+
+    document.getElementById('results').classList.add('show');
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function reset() {
+    document.getElementById('results').classList.remove('show');
+    document.querySelectorAll('input').forEach(i => i.value = '');
+    document.querySelectorAll('.rehab-btn').forEach(b => b.classList.remove('active'));
+    rehabLevel = 0;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>

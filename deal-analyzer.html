@@ -542,8 +542,8 @@ async function fetchComps(){
   const sqft   =document.getElementById('sqft').value.trim();
   const beds   =bedRaw.match(/\d+/)?bedRaw.match(/\d+/)[0]:'';
 
-  if(!address){alert('Enter an address first.');return;}
-
+  if(!address) return;
+  
   const btn   =document.getElementById('fetchCompsBtn');
   const status=document.getElementById('fetchStatus');
   btn.disabled=true;
@@ -999,8 +999,17 @@ function reset(){
   document.getElementById('fetchCompsBtn').disabled=false;
   window.scrollTo({top:0,behavior:'smooth'});
 }
+// Auto fetch comps when typing address
+document.getElementById('address').addEventListener('input', function(){
+  const address = this.value.trim();
+  if (!address) return;
 
-// ── INIT ──
+  clearTimeout(window._autoCompsTimer);
+  window._autoCompsTimer = setTimeout(() => {
+    fetchComps();
+  }, 700); // wait 0.7s after typing stops
+});
+  // ── INIT ──
 toggleFinanceFields();
 checkBackend();
 </script>

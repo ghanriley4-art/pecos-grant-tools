@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,812 +8,1001 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --black: #0a0a0a;
-    --dark: #111111;
-    --card: #181818;
-    --border: #2a2a2a;
-    --gold: #c9a84c;
-    --gold-light: #e8c96a;
-    --red: #e03c3c;
-    --green: #2ecc71;
-    --yellow: #f0b429;
-    --white: #f0ede8;
-    --muted: #666;
+    --black:#0a0a0a; --dark:#111111; --card:#161616; --card2:#1c1c1c;
+    --border:#252525; --border2:#2e2e2e;
+    --gold:#c9a84c; --gold-light:#e8c96a; --gold-dim:rgba(201,168,76,0.10);
+    --red:#e03c3c; --green:#2ecc71; --yellow:#f0b429; --blue:#4a9eff;
+    --white:#f0ede8; --muted:#555; --muted2:#777;
   }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--black);color:var(--white);font-family:'DM Sans',sans-serif;min-height:100vh;}
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  /* ── HEADER ── */
+  .header{background:var(--dark);border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;color:var(--gold);display:flex;align-items:center;gap:14px;}
+  .logo-divider{width:1px;height:28px;background:var(--border2);}
+  .logo-sub{color:var(--muted2);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;line-height:1.4;}
+  .logo-sub span{color:var(--gold);display:block;}
+  .header-right{display:flex;align-items:center;gap:10px;}
+  .badge{background:var(--border);color:var(--muted2);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;padding:5px 10px;border-radius:2px;text-transform:uppercase;}
+  .badge.green{background:rgba(46,204,113,0.1);color:var(--green);border:1px solid rgba(46,204,113,0.2);}
+  .badge.red{background:rgba(224,60,60,0.1);color:var(--red);border:1px solid rgba(224,60,60,0.2);}
 
-  body {
-    background: var(--black);
-    color: var(--white);
-    font-family: 'DM Sans', sans-serif;
-    min-height: 100vh;
-    padding: 0;
-  }
+  /* ── NAV ── */
+  .nav-tabs{background:var(--dark);border-bottom:1px solid var(--border);padding:0 32px;display:flex;}
+  .nav-tab{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:14px 20px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;background:none;border-left:none;border-right:none;border-top:none;}
+  .nav-tab:hover{color:var(--white);}
+  .nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
 
-  /* Header */
-  .header {
-    background: var(--dark);
-    border-bottom: 1px solid var(--border);
-    padding: 20px 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
+  .main{max-width:1100px;margin:0 auto;padding:36px 24px;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;animation:fadeIn 0.25s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
-  .logo {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    letter-spacing: 3px;
-    color: var(--gold);
-  }
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media(max-width:780px){.grid-2{grid-template-columns:1fr;}}
 
-  .logo span {
-    color: var(--white);
-    opacity: 0.4;
-    font-size: 14px;
-    font-family: 'Space Mono', monospace;
-    letter-spacing: 2px;
-    display: block;
-    margin-top: -4px;
-  }
+  .section-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+  .section-label::after{content:'';flex:1;height:1px;background:var(--border);}
 
-  .badge {
-    background: var(--border);
-    color: var(--muted);
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 2px;
-    padding: 6px 12px;
-    border-radius: 2px;
-    text-transform: uppercase;
-  }
+  .card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:22px;}
 
-  /* Main layout */
-  .main {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 40px 24px;
-  }
+  /* ── FIELDS ── */
+  .field{margin-bottom:14px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{display:block;font-size:10px;font-family:'Space Mono',monospace;letter-spacing:1.5px;color:var(--muted2);text-transform:uppercase;margin-bottom:7px;}
+  .field input,.field select{width:100%;background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:15px;padding:11px 13px;outline:none;transition:border-color 0.15s;-webkit-appearance:none;appearance:none;}
+  .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23555' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer;}
+  .field select option{background:#161616;}
+  .field input:focus,.field select:focus{border-color:var(--gold);}
+  .field input::placeholder{color:#2a2a2a;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 
-  .grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-  }
+  /* ── REHAB ── */
+  .rehab-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;}
+  .rehab-btn{background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--muted2);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;padding:13px 8px;cursor:pointer;text-align:center;transition:all 0.15s;}
+  .rehab-btn:hover{border-color:var(--gold);color:var(--gold);}
+  .rehab-btn.active{background:var(--gold);border-color:var(--gold);color:var(--black);font-weight:700;}
+  .rehab-btn .type{font-size:12px;font-weight:700;display:block;margin-bottom:4px;}
+  .rehab-btn .desc{font-size:9px;opacity:0.7;line-height:1.4;}
 
-  @media (max-width: 700px) {
-    .grid { grid-template-columns: 1fr; }
-  }
+  /* ── BUTTONS ── */
+  .analyze-btn{width:100%;background:var(--gold);border:none;border-radius:3px;color:var(--black);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;padding:17px;cursor:pointer;transition:all 0.2s;margin-top:6px;}
+  .analyze-btn:hover{background:var(--gold-light);transform:translateY(-1px);}
+  .analyze-btn:active{transform:translateY(0);}
+  .reset-btn{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted2);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;padding:9px 18px;cursor:pointer;transition:all 0.2s;}
+  .reset-btn:hover{border-color:var(--muted2);color:var(--white);}
 
-  /* Section titles */
-  .section-label {
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: var(--gold);
-    text-transform: uppercase;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  /* ── COMPS UI ── */
+  .comps-fetch-row{display:flex;align-items:center;gap:8px;padding:12px 14px;background:#0d0d0d;border:1px solid var(--border);border-radius:3px;margin-top:12px;}
+  .fetch-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted2);text-transform:uppercase;flex:1;}
+  .fetch-btn{background:var(--border);border:1px solid var(--border2);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+  .fetch-btn:hover{border-color:var(--gold);color:var(--gold);}
+  .fetch-btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .fetch-status{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;padding:6px 2px;margin-top:6px;display:none;}
+  .fetch-status.loading{color:var(--yellow);display:block;}
+  .fetch-status.success{color:var(--green);display:block;}
+  .fetch-status.error{color:var(--red);display:block;}
 
-  .section-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
+  /* ── COMP CARDS ── */
+  .comp-cards{display:flex;flex-direction:column;gap:5px;margin-top:10px;}
+  .comp-card{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--border);border-radius:3px;padding:9px 12px;animation:fadeIn 0.3s ease;}
+  @media(max-width:600px){.comp-card{grid-template-columns:1fr 1fr;}}
+  .cc-addr{color:var(--white);font-size:12px;line-height:1.3;}
+  .cc-val{font-family:'Space Mono',monospace;font-size:11px;color:var(--gold);}
+  .cc-meta{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted2);}
+  .cc-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0;}
+  .cc-del:hover{color:var(--red);}
+  .comp-avg-row{padding:10px 12px;background:var(--gold-dim);border:1px solid rgba(201,168,76,0.2);border-radius:3px;margin-top:4px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;}
+  .avg-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase;}
+  .avg-vals{font-family:'Space Mono',monospace;font-size:12px;color:var(--white);display:flex;gap:14px;}
+  .arv-suggest{margin-top:8px;padding:10px 14px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:3px;font-size:12px;line-height:1.6;color:#88bfff;}
+  .arv-suggest strong{color:var(--blue);}
+  .use-arv-btn{display:inline-block;margin-top:6px;background:rgba(74,158,255,0.15);border:1px solid rgba(74,158,255,0.3);border-radius:3px;color:var(--blue);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;padding:5px 10px;cursor:pointer;transition:all 0.15s;}
+  .use-arv-btn:hover{background:rgba(74,158,255,0.25);}
 
-  /* Cards */
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 24px;
-  }
+  /* ── RESULTS ── */
+  .results{display:none;margin-top:28px;}
+  .results.show{display:block;animation:fadeIn 0.35s ease;}
 
-  /* Inputs */
-  .field {
-    margin-bottom: 16px;
-  }
+  /* ── SCORE GAUGE ── */
+  .score-section{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:24px 28px;margin-bottom:20px;}
+  @media(max-width:600px){.score-section{grid-template-columns:1fr;}}
+  .score-gauge{position:relative;width:110px;height:110px;flex-shrink:0;}
+  .score-gauge svg{transform:rotate(-90deg);}
+  .score-number{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;line-height:1;}
+  .score-lbl{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-family:'Space Mono',monospace;font-size:8px;letter-spacing:1.5px;color:var(--muted2);white-space:nowrap;}
+  .score-verdict{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;margin-bottom:6px;}
+  .score-verdict.fire{color:var(--green);}
+  .score-verdict.good{color:#7ecb8d;}
+  .score-verdict.marginal{color:var(--yellow);}
+  .score-verdict.pass{color:var(--red);}
+  .score-sub{font-size:13px;color:var(--muted2);line-height:1.6;max-width:480px;}
+  .score-bars{display:flex;flex-direction:column;gap:7px;margin-top:14px;}
+  .score-bar-row{display:flex;align-items:center;gap:10px;}
+  .score-bar-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted2);width:110px;text-transform:uppercase;flex-shrink:0;}
+  .score-bar-track{flex:1;height:4px;background:var(--border2);border-radius:2px;overflow:hidden;}
+  .score-bar-fill{height:100%;border-radius:2px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1);}
+  .score-bar-val{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted2);width:28px;text-align:right;flex-shrink:0;}
 
-  .field label {
-    display: block;
-    font-size: 11px;
-    font-family: 'Space Mono', monospace;
-    letter-spacing: 1.5px;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
+  /* ── MAX OFFER ── */
+  .max-offer-box{background:var(--gold-dim);border:1px solid rgba(201,168,76,0.25);border-radius:4px;padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  .max-offer-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;}
+  .max-offer-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+  .max-offer-value{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:2px;color:var(--gold-light);}
 
-  .field input {
-    width: 100%;
-    background: var(--black);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--white);
-    font-family: 'Space Mono', monospace;
-    font-size: 16px;
-    padding: 12px 14px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
+  /* ── NUMBER CARDS ── */
+  .numbers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+  @media(max-width:600px){.numbers{grid-template-columns:1fr 1fr;}}
+  .num-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:16px;}
+  .num-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:7px;}
+  .num-value{font-family:'Space Mono',monospace;font-size:19px;font-weight:700;color:var(--white);}
+  .num-value.green{color:var(--green);}.num-value.red{color:var(--red);}.num-value.yellow{color:var(--yellow);}.num-value.gold{color:var(--gold);}
+  .num-sub{font-size:10px;color:var(--muted);margin-top:4px;}
 
-  .field input:focus {
-    border-color: var(--gold);
-  }
+  /* ── COMPS RESULTS TABLE ── */
+  .comps-results-section{margin-bottom:20px;}
+  .comps-results-table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .comps-results-table th{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--card2);}
+  .comps-results-table td{font-family:'Space Mono',monospace;font-size:12px;padding:10px 12px;border-bottom:1px solid var(--border);color:var(--white);}
+  .comps-results-table tr:last-child td{border-bottom:none;}
+  .comps-results-table .avg-row td{background:var(--gold-dim);color:var(--gold);font-weight:700;border-top:1px solid rgba(201,168,76,0.25);}
+  .arv-confidence{margin-top:10px;padding:12px 14px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:3px;font-size:12px;color:#88bfff;line-height:1.6;}
+  .arv-confidence strong{color:var(--blue);}
 
-  .field input::placeholder {
-    color: #333;
-  }
+  /* ── BREAKDOWN ── */
+  .breakdown{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:22px;margin-bottom:20px;}
+  .breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);}
+  .breakdown-row:last-child{border-bottom:none;padding-top:13px;}
+  .breakdown-row .label{color:var(--muted2);font-size:13px;}
+  .breakdown-row .value{font-family:'Space Mono',monospace;font-size:13px;color:var(--white);}
+  .breakdown-row.total .label{color:var(--white);font-weight:600;font-size:14px;}
+  .breakdown-row.total .value{font-size:15px;font-weight:700;}
 
-  /* Rehab selector */
-  .rehab-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 16px;
-  }
+  /* ── STRATEGY TABS ── */
+  .strategy-tabs{display:flex;margin-bottom:16px;border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .strategy-tab{flex:1;background:var(--card);border:none;color:var(--muted2);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;padding:13px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;border-right:1px solid var(--border);}
+  .strategy-tab:last-child{border-right:none;}
+  .strategy-tab.active{background:var(--gold-dim);color:var(--gold);}
+  .strategy-tab:hover:not(.active){color:var(--white);background:var(--card2);}
+  .strategy-panel{display:none;}
+  .strategy-panel.active{display:block;animation:fadeIn 0.2s ease;}
+  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:600px){.compare-grid{grid-template-columns:1fr;}}
+  .compare-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:18px;}
+  .compare-card-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--gold);margin-bottom:12px;}
+  .compare-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .compare-row:last-child{border-bottom:none;font-weight:600;}
+  .compare-row .clabel{color:var(--muted2);}
+  .compare-row .cval{font-family:'Space Mono',monospace;font-size:12px;}
 
-  .rehab-btn {
-    background: var(--black);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--muted);
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 1px;
-    padding: 14px 8px;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.15s;
-  }
+  /* ── FLAGS ── */
+  .flags{display:flex;flex-direction:column;gap:7px;margin-bottom:20px;}
+  .flag{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#aaa;line-height:1.5;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:3px;}
+  .flag-icon{font-size:14px;margin-top:1px;flex-shrink:0;}
 
-  .rehab-btn:hover {
-    border-color: var(--gold);
-    color: var(--gold);
-  }
+  /* ── REC BOX ── */
+  .rec-box{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:0 4px 4px 0;padding:18px 22px;margin-bottom:20px;}
+  .rec-title{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:9px;}
+  .rec-text{font-size:14px;line-height:1.7;color:#bbb;}
+  .rec-text strong{color:var(--white);}
 
-  .rehab-btn.active {
-    background: var(--gold);
-    border-color: var(--gold);
-    color: var(--black);
-    font-weight: 700;
-  }
+  .divider{height:1px;background:var(--border);margin:24px 0;}
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .section-header .section-label{margin-bottom:0;flex:1;}
 
-  .rehab-btn .type {
-    font-size: 13px;
-    font-weight: 700;
-    display: block;
-    margin-bottom: 4px;
-    color: inherit;
-  }
+  /* ── SAVED DEALS ── */
+  .saved-list{display:flex;flex-direction:column;gap:10px;}
+  .saved-deal{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .saved-deal-address{font-size:14px;font-weight:500;color:var(--white);}
+  .saved-deal-meta{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;}
+  .saved-deal-profit{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;}
+  .saved-deal-actions{display:flex;gap:6px;align-items:center;}
+  .saved-deal-btn{background:var(--border);border:none;border-radius:3px;color:var(--muted2);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;padding:7px 12px;cursor:pointer;transition:all 0.15s;text-transform:uppercase;}
+  .saved-deal-btn:hover{color:var(--white);background:var(--border2);}
+  .saved-deal-btn.danger:hover{color:var(--red);}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px;}
+  .empty-icon{font-size:36px;margin-bottom:12px;}
+  .stage-select{background:var(--border);border:none;color:var(--muted2);font-family:'Space Mono',monospace;font-size:9px;padding:6px 8px;border-radius:3px;cursor:pointer;}
 
-  .rehab-btn .desc {
-    font-size: 9px;
-    opacity: 0.7;
-    line-height: 1.4;
-  }
-
-  /* Analyze button */
-  .analyze-btn {
-    width: 100%;
-    background: var(--gold);
-    border: none;
-    border-radius: 3px;
-    color: var(--black);
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 20px;
-    letter-spacing: 3px;
-    padding: 18px;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-top: 8px;
-  }
-
-  .analyze-btn:hover {
-    background: var(--gold-light);
-    transform: translateY(-1px);
-  }
-
-  .analyze-btn:active {
-    transform: translateY(0);
-  }
-
-  /* Results */
-  .results {
-    display: none;
-    margin-top: 24px;
-  }
-
-  .results.show {
-    display: block;
-    animation: fadeIn 0.3s ease;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* Verdict banner */
-  .verdict {
-    border-radius: 4px;
-    padding: 24px 28px;
-    margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .verdict.go { background: rgba(46, 204, 113, 0.12); border: 1px solid rgba(46, 204, 113, 0.3); }
-  .verdict.maybe { background: rgba(240, 180, 41, 0.1); border: 1px solid rgba(240, 180, 41, 0.3); }
-  .verdict.no { background: rgba(224, 60, 60, 0.1); border: 1px solid rgba(224, 60, 60, 0.3); }
-
-  .verdict-text {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 32px;
-    letter-spacing: 3px;
-  }
-
-  .verdict.go .verdict-text { color: var(--green); }
-  .verdict.maybe .verdict-text { color: var(--yellow); }
-  .verdict.no .verdict-text { color: var(--red); }
-
-  .verdict-sub {
-    font-size: 13px;
-    color: var(--muted);
-    max-width: 400px;
-    line-height: 1.5;
-  }
-
-  /* Numbers grid */
-  .numbers {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-
-  @media (max-width: 600px) {
-    .numbers { grid-template-columns: 1fr 1fr; }
-  }
-
-  .num-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 18px 16px;
-  }
-
-  .num-label {
-    font-family: 'Space Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 2px;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-
-  .num-value {
-    font-family: 'Space Mono', monospace;
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--white);
-  }
-
-  .num-value.green { color: var(--green); }
-  .num-value.red { color: var(--red); }
-  .num-value.yellow { color: var(--yellow); }
-  .num-value.gold { color: var(--gold); }
-
-  /* Deal breakdown */
-  .breakdown {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 24px;
-    margin-bottom: 24px;
-  }
-
-  .breakdown-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 14px;
-  }
-
-  .breakdown-row:last-child {
-    border-bottom: none;
-    padding-top: 14px;
-    margin-top: 4px;
-  }
-
-  .breakdown-row .label {
-    color: var(--muted);
-    font-size: 13px;
-  }
-
-  .breakdown-row .value {
-    font-family: 'Space Mono', monospace;
-    font-size: 13px;
-    color: var(--white);
-  }
-
-  .breakdown-row.total .label {
-    color: var(--white);
-    font-weight: 600;
-    font-size: 14px;
-  }
-
-  .breakdown-row.total .value {
-    font-size: 16px;
-    font-weight: 700;
-  }
-
-  /* Recommendation box */
-  .rec-box {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--gold);
-    border-radius: 0 4px 4px 0;
-    padding: 20px 24px;
-    margin-bottom: 24px;
-  }
-
-  .rec-box .rec-title {
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--gold);
-    text-transform: uppercase;
-    margin-bottom: 10px;
-  }
-
-  .rec-box .rec-text {
-    font-size: 14px;
-    line-height: 1.7;
-    color: #bbb;
-  }
-
-  .rec-box .rec-text strong {
-    color: var(--white);
-  }
-
-  /* Max offer highlight */
-  .max-offer-box {
-    background: rgba(201, 168, 76, 0.08);
-    border: 1px solid rgba(201, 168, 76, 0.3);
-    border-radius: 4px;
-    padding: 20px 24px;
-    margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .max-offer-label {
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: var(--gold);
-    text-transform: uppercase;
-  }
-
-  .max-offer-value {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 42px;
-    letter-spacing: 2px;
-    color: var(--gold-light);
-  }
-
-  .max-offer-sub {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 4px;
-  }
-
-  /* Reset */
-  .reset-btn {
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--muted);
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 1px;
-    padding: 10px 20px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .reset-btn:hover {
-    border-color: var(--muted);
-    color: var(--white);
-  }
-
-  /* Divider */
-  .divider {
-    height: 1px;
-    background: var(--border);
-    margin: 32px 0;
-  }
-
-  /* Warning flags */
-  .flags {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 24px;
-  }
-
-  .flag {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    font-size: 13px;
-    color: #bbb;
-    line-height: 1.5;
-  }
-
-  .flag-icon {
-    font-size: 14px;
-    margin-top: 1px;
-    flex-shrink: 0;
-  }
+  /* ── PIPELINE ── */
+  .pipeline-cols{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+  @media(max-width:900px){.pipeline-cols{grid-template-columns:1fr 1fr;}}
+  .pipeline-col{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:14px;min-height:180px;}
+  .pipeline-col-title{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+  .p-count{background:var(--border2);color:var(--muted2);border-radius:2px;padding:2px 6px;font-size:9px;}
+  .pipeline-card{background:var(--card2);border:1px solid var(--border2);border-radius:3px;padding:10px 12px;margin-bottom:8px;transition:border-color 0.15s;}
+  .pipeline-card:hover{border-color:var(--gold);}
+  .pc-addr{color:var(--white);font-size:12px;margin-bottom:4px;line-height:1.3;}
+  .pc-profit{font-family:'Space Mono',monospace;font-size:11px;}
 </style>
 </head>
 <body>
 
+<!-- HEADER -->
 <div class="header">
   <div class="logo">
     Pecos Grant
-    <span>DEAL ANALYZER v1.0</span>
+    <div class="logo-divider"></div>
+    <div class="logo-sub"><span>DEAL ANALYZER</span>v2.1</div>
   </div>
-  <div class="badge">Springfield, MO Market</div>
+  <div class="header-right">
+    <div class="badge">Springfield, MO</div>
+    <div class="badge" id="backendStatus">● CONNECTING</div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="switchTab('analyzer')">Analyzer</button>
+  <button class="nav-tab" onclick="switchTab('saved')">Saved Deals</button>
+  <button class="nav-tab" onclick="switchTab('pipeline')">Pipeline</button>
 </div>
 
 <div class="main">
 
-  <div class="grid">
+<!-- ═══════════════════════ ANALYZER ═══════════════════════ -->
+<div class="tab-panel active" id="tab-analyzer">
+  <div class="grid-2">
 
-    <!-- INPUT PANEL -->
+    <!-- LEFT: Property + Comps -->
     <div>
       <div class="section-label">Property Info</div>
       <div class="card">
-
         <div class="field">
-          <label>Address (optional)</label>
+          <label>Address</label>
           <input type="text" id="address" placeholder="123 Main St, Springfield MO">
         </div>
-
+        <div class="field-row">
+          <div class="field"><label>List Price ($)</label><input type="number" id="listPrice" placeholder="85000"></div>
+          <div class="field"><label>Your Offer ($)</label><input type="number" id="offerPrice" placeholder="70000"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Sqft</label><input type="number" id="sqft" placeholder="1200"></div>
+          <div class="field"><label>Beds / Baths</label><input type="text" id="bedBath" placeholder="3 / 2"></div>
+        </div>
         <div class="field">
-          <label>List Price ($)</label>
-          <input type="number" id="listPrice" placeholder="85000">
+          <label>ARV — After Repair Value ($)</label>
+          <input type="number" id="arv" placeholder="185000">
         </div>
 
-        <div class="field">
-          <label>Your Offer Price ($)</label>
-          <input type="number" id="offerPrice" placeholder="70000">
+        <!-- AUTO COMPS -->
+        <div style="margin-top:16px;">
+          <div class="section-label" style="font-size:9px;">Comparable Sales</div>
+          <div class="comps-fetch-row">
+            <div class="fetch-label">Auto-pull recently sold from Zillow</div>
+            <button class="fetch-btn" id="fetchCompsBtn" onclick="fetchComps()">⚡ FETCH COMPS</button>
+          </div>
+          <div id="fetchStatus" class="fetch-status"></div>
+          <div id="compCardsList"></div>
+          <div id="compArvSuggest" style="display:none;"></div>
         </div>
-
-        <div class="field">
-          <label>Sqft</label>
-          <input type="number" id="sqft" placeholder="1200">
-        </div>
-
-        <div class="field">
-          <label>Beds / Baths</label>
-          <input type="text" id="bedBath" placeholder="3 bed / 2 bath">
-        </div>
-
-        <div class="field">
-          <label>Zestimate ($) — if available</label>
-          <input type="number" id="zestimate" placeholder="110000">
-        </div>
-
       </div>
     </div>
 
-    <!-- REHAB PANEL -->
+    <!-- RIGHT: Rehab + Financing + BRRRR -->
     <div>
       <div class="section-label">Rehab Level</div>
       <div class="card">
-
         <div class="rehab-grid">
           <button class="rehab-btn" data-level="1" onclick="selectRehab(1)">
             <span class="type">1 — COSMETIC</span>
-            <span class="desc">Paint, floors, kitchen & bath refresh. Roof & HVAC already good.</span>
+            <span class="desc">Paint, floors, kitchen & bath. Roof & HVAC good.</span>
           </button>
           <button class="rehab-btn" data-level="2" onclick="selectRehab(2)">
             <span class="type">2 — MID</span>
-            <span class="desc">Cosmetic PLUS roof OR HVAC needed. Not both.</span>
+            <span class="desc">Cosmetic + roof OR HVAC. Not both.</span>
           </button>
           <button class="rehab-btn" data-level="3" onclick="selectRehab(3)">
             <span class="type">3 — FULL</span>
-            <span class="desc">Needs everything. Roof, HVAC, cosmetic, possibly structural.</span>
+            <span class="desc">Everything. Roof, HVAC, cosmetic, structural.</span>
           </button>
         </div>
-
-        <div class="field" style="margin-top:8px;">
-          <label>Or Enter Your Own Rehab Cost ($)</label>
-          <input type="number" id="rehabOverride" placeholder="Leave blank to use level estimate">
+        <div class="field">
+          <label>Custom Rehab Cost ($)</label>
+          <input type="number" id="rehabOverride" placeholder="Overrides level estimate">
         </div>
 
-        <div class="field">
-          <label>After Repair Value — ARV ($)</label>
-          <input type="number" id="arv" placeholder="e.g. 185000 — what it sells for fixed up">
+        <div class="divider" style="margin:16px 0;"></div>
+        <div class="section-label" style="font-size:9px;">Financing</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Type</label>
+            <select id="financingType" onchange="toggleFinanceFields()">
+              <option value="cash">Cash</option>
+              <option value="hard">Hard Money</option>
+              <option value="conv">Conventional</option>
+              <option value="private">Private Lender</option>
+            </select>
+          </div>
+          <div class="field"><label>Hold Months</label><input type="number" id="holdingMonths" value="3"></div>
+        </div>
+        <div id="loanFields" style="display:none;">
+          <div class="field-row">
+            <div class="field"><label>Rate (% / yr)</label><input type="number" id="loanRate" value="12"></div>
+            <div class="field"><label>Points (%)</label><input type="number" id="loanPoints" value="2"></div>
+          </div>
         </div>
 
-        <div class="field">
-          <label>Sqft of livable space after rehab</label>
-          <input type="number" id="arvSqft" placeholder="e.g. 1648">
+        <div class="divider" style="margin:16px 0;"></div>
+        <div class="section-label" style="font-size:9px;">BRRRR / Rental</div>
+        <div class="field-row">
+          <div class="field"><label>Monthly Rent ($)</label><input type="number" id="monthlyRent" placeholder="1100"></div>
+          <div class="field"><label>Refi LTV (%)</label><input type="number" id="refiLtv" value="75"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Refi Rate (%)</label><input type="number" id="refiRate" value="7.5"></div>
+          <div class="field"><label>Refi Term (yrs)</label><input type="number" id="refiTerm" value="30"></div>
         </div>
 
         <button class="analyze-btn" onclick="analyze()">RUN THE NUMBERS</button>
-
       </div>
     </div>
-
   </div>
 
-  <!-- RESULTS -->
+  <!-- ═══════ RESULTS ═══════ -->
   <div class="results" id="results">
     <div class="divider"></div>
-    <div class="section-label">Deal Analysis</div>
-
-    <!-- Verdict -->
-    <div class="verdict" id="verdictBox">
-      <div>
-        <div class="verdict-text" id="verdictText"></div>
-        <div class="verdict-sub" id="verdictSub"></div>
-      </div>
+    <div class="section-header">
+      <div class="section-label">Deal Score</div>
       <button class="reset-btn" onclick="reset()">↩ NEW DEAL</button>
     </div>
 
-    <!-- Max offer -->
+    <!-- SCORE -->
+    <div class="score-section">
+      <div class="score-gauge">
+        <svg width="110" height="110" viewBox="0 0 110 110">
+          <circle cx="55" cy="55" r="46" fill="none" stroke="#1e1e1e" stroke-width="8"/>
+          <circle cx="55" cy="55" r="46" fill="none" stroke="#c9a84c" stroke-width="8"
+            stroke-dasharray="289" stroke-dashoffset="289" id="scoreCircle" stroke-linecap="round"/>
+        </svg>
+        <div class="score-number" id="scoreNumber">0</div>
+        <div class="score-lbl">/ 100</div>
+      </div>
+      <div>
+        <div class="score-verdict" id="scoreVerdict">—</div>
+        <div class="score-sub" id="scoreSub">—</div>
+        <div class="score-bars" id="scoreBars"></div>
+      </div>
+    </div>
+
+    <!-- MAX OFFER -->
     <div class="max-offer-box">
       <div>
-        <div class="max-offer-label">Max Offer Price (65% Rule)</div>
-        <div class="max-offer-sub">ARV × 0.65 − Rehab — don't go over this</div>
+        <div class="max-offer-label">Max Offer (65% Rule)</div>
+        <div class="max-offer-sub">ARV × 0.65 − Rehab — never exceed this</div>
       </div>
-      <div>
-        <div class="max-offer-value" id="maxOffer">—</div>
-      </div>
+      <div class="max-offer-value" id="maxOffer">—</div>
     </div>
 
-    <!-- Key numbers -->
+    <!-- KEY NUMBERS -->
     <div class="numbers">
-      <div class="num-card">
-        <div class="num-label">Total In</div>
-        <div class="num-value" id="totalIn">—</div>
-      </div>
-      <div class="num-card">
-        <div class="num-label">Sell Price (ARV)</div>
-        <div class="num-value gold" id="arvDisplay">—</div>
-      </div>
-      <div class="num-card">
-        <div class="num-label">Gross Profit</div>
-        <div class="num-value" id="grossProfit">—</div>
-      </div>
-      <div class="num-card">
-        <div class="num-label">Agent Fees (6%)</div>
-        <div class="num-value red" id="agentFees">—</div>
-      </div>
-      <div class="num-card">
-        <div class="num-label">Closing Costs (2%)</div>
-        <div class="num-value red" id="closingCosts">—</div>
-      </div>
-      <div class="num-card">
-        <div class="num-label">Net Profit</div>
-        <div class="num-value" id="netProfit">—</div>
-      </div>
+      <div class="num-card"><div class="num-label">Total All-In</div><div class="num-value" id="totalIn">—</div></div>
+      <div class="num-card"><div class="num-label">ARV</div><div class="num-value gold" id="arvDisplay">—</div></div>
+      <div class="num-card"><div class="num-label">Net Profit</div><div class="num-value" id="netProfit">—</div><div class="num-sub" id="roiDisplay">—</div></div>
+      <div class="num-card"><div class="num-label">$/sqft (Buy)</div><div class="num-value" id="ppsf">—</div></div>
+      <div class="num-card"><div class="num-label">$/sqft (ARV)</div><div class="num-value gold" id="arvpsf">—</div></div>
+      <div class="num-card"><div class="num-label">Equity Spread</div><div class="num-value" id="equitySpread">—</div><div class="num-sub" id="equityPct">—</div></div>
     </div>
 
-    <!-- Full breakdown -->
+    <!-- COMPS RESULTS -->
+    <div id="compsResultsSection" style="display:none;" class="comps-results-section">
+      <div class="section-label">Comps vs Your ARV</div>
+      <table class="comps-results-table">
+        <thead><tr><th>Address</th><th>Sold Price</th><th>Sqft</th><th>$/sqft</th><th>Days Ago</th></tr></thead>
+        <tbody id="compsResultsBody"></tbody>
+      </table>
+      <div class="arv-confidence" id="arvConfidence"></div>
+    </div>
+
+    <!-- BREAKDOWN -->
+    <div class="section-label">Cost Breakdown</div>
     <div class="breakdown">
-      <div class="section-label" style="margin-bottom:12px;">Full Breakdown</div>
-      <div class="breakdown-row">
-        <span class="label">Offer / Purchase Price</span>
-        <span class="value" id="bOffer">—</span>
+      <div class="breakdown-row"><span class="label">Purchase Price</span><span class="value" id="bOffer">—</span></div>
+      <div class="breakdown-row"><span class="label">Estimated Rehab</span><span class="value" id="bRehab">—</span></div>
+      <div class="breakdown-row"><span class="label">Rehab Contingency (10%)</span><span class="value" id="bContingency">—</span></div>
+      <div class="breakdown-row"><span class="label">Financing Costs</span><span class="value" id="bFinancing">—</span></div>
+      <div class="breakdown-row"><span class="label">Holding Costs</span><span class="value" id="bHolding">—</span></div>
+      <div class="breakdown-row total"><span class="label">Total All-In</span><span class="value" id="bTotal">—</span></div>
+      <div class="breakdown-row"><span class="label">ARV (Sale Price)</span><span class="value gold" id="bArv">—</span></div>
+      <div class="breakdown-row"><span class="label">Agent Fees (6%)</span><span class="value" id="bAgent">—</span></div>
+      <div class="breakdown-row"><span class="label">Closing Costs (2%)</span><span class="value" id="bClosing">—</span></div>
+      <div class="breakdown-row total"><span class="label">NET PROFIT</span><span class="value" id="bNet">—</span></div>
+    </div>
+
+    <!-- STRATEGY -->
+    <div class="section-label">Strategy Comparison</div>
+    <div class="strategy-tabs">
+      <button class="strategy-tab active" onclick="switchStrategy('flip')">Flip</button>
+      <button class="strategy-tab" onclick="switchStrategy('brrrr')">BRRRR</button>
+    </div>
+    <div class="strategy-panel active" id="strategy-flip">
+      <div class="compare-grid">
+        <div class="compare-card">
+          <div class="compare-card-title">Flip Summary</div>
+          <div class="compare-row"><span class="clabel">Total In</span><span class="cval" id="f-totalIn">—</span></div>
+          <div class="compare-row"><span class="clabel">Net Profit</span><span class="cval" id="f-netProfit">—</span></div>
+          <div class="compare-row"><span class="clabel">ROI</span><span class="cval" id="f-roi">—</span></div>
+          <div class="compare-row"><span class="clabel">Annualized ROI</span><span class="cval" id="f-annualRoi">—</span></div>
+          <div class="compare-row"><span class="clabel">Equity Multiple</span><span class="cval" id="f-emx">—</span></div>
+        </div>
+        <div class="compare-card">
+          <div class="compare-card-title">Financing</div>
+          <div class="compare-row"><span class="clabel">Type</span><span class="cval" id="f-finType">—</span></div>
+          <div class="compare-row"><span class="clabel">Interest Cost</span><span class="cval" id="f-interest">—</span></div>
+          <div class="compare-row"><span class="clabel">Points / Fees</span><span class="cval" id="f-points">—</span></div>
+          <div class="compare-row"><span class="clabel">Hold Period</span><span class="cval" id="f-hold">—</span></div>
+          <div class="compare-row"><span class="clabel">Total Fin. Cost</span><span class="cval" id="f-finTotal">—</span></div>
+        </div>
       </div>
-      <div class="breakdown-row">
-        <span class="label">Estimated Rehab</span>
-        <span class="value" id="bRehab">—</span>
-      </div>
-      <div class="breakdown-row">
-        <span class="label">Rehab Contingency (10%)</span>
-        <span class="value" id="bContingency">—</span>
-      </div>
-      <div class="breakdown-row">
-        <span class="label">Holding Costs (~3 months)</span>
-        <span class="value" id="bHolding">—</span>
-      </div>
-      <div class="breakdown-row total">
-        <span class="label">Total All-In Cost</span>
-        <span class="value" id="bTotal">—</span>
-      </div>
-      <div class="breakdown-row">
-        <span class="label">ARV (Sale Price)</span>
-        <span class="value gold" id="bArv">—</span>
-      </div>
-      <div class="breakdown-row">
-        <span class="label">Agent Fees (6%)</span>
-        <span class="value" id="bAgent">—</span>
-      </div>
-      <div class="breakdown-row">
-        <span class="label">Closing Costs (2%)</span>
-        <span class="value" id="bClosing">—</span>
-      </div>
-      <div class="breakdown-row total">
-        <span class="label">NET PROFIT</span>
-        <span class="value" id="bNet">—</span>
+    </div>
+    <div class="strategy-panel" id="strategy-brrrr">
+      <div id="brrrrNoRent" style="text-align:center;padding:30px;color:var(--muted);font-size:13px;">Enter monthly rent above to see BRRRR analysis.</div>
+      <div id="brrrrContent" style="display:none;">
+        <div class="compare-grid">
+          <div class="compare-card">
+            <div class="compare-card-title">BRRRR Numbers</div>
+            <div class="compare-row"><span class="clabel">ARV</span><span class="cval" id="b-arv">—</span></div>
+            <div class="compare-row"><span class="clabel">Refi Amount</span><span class="cval" id="b-refi">—</span></div>
+            <div class="compare-row"><span class="clabel">Cash Left In Deal</span><span class="cval" id="b-cashIn">—</span></div>
+            <div class="compare-row"><span class="clabel">Monthly PITI</span><span class="cval" id="b-piti">—</span></div>
+            <div class="compare-row"><span class="clabel">Monthly Cash Flow</span><span class="cval" id="b-cashflow">—</span></div>
+          </div>
+          <div class="compare-card">
+            <div class="compare-card-title">Rental Returns</div>
+            <div class="compare-row"><span class="clabel">Gross Rent Yield</span><span class="cval" id="b-gry">—</span></div>
+            <div class="compare-row"><span class="clabel">Cash-on-Cash ROI</span><span class="cval" id="b-coc">—</span></div>
+            <div class="compare-row"><span class="clabel">Annual Cash Flow</span><span class="cval" id="b-annualCF">—</span></div>
+            <div class="compare-row"><span class="clabel">Cap Rate (est.)</span><span class="cval" id="b-cap">—</span></div>
+            <div class="compare-row"><span class="clabel">Verdict</span><span class="cval" id="b-verdict">—</span></div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Flags -->
-    <div class="flags" id="flagsBox"></div>
+    <div class="flags" id="flagsBox" style="margin-top:20px;"></div>
 
-    <!-- Recommendation -->
-    <div class="rec-box" id="recBox">
+    <div class="rec-box">
       <div class="rec-title">Recommendation</div>
       <div class="rec-text" id="recText">—</div>
     </div>
 
+    <div style="text-align:right;margin-top:-8px;margin-bottom:20px;">
+      <button class="analyze-btn" style="width:auto;padding:12px 28px;font-size:15px;" onclick="saveDeal()">💾 SAVE DEAL</button>
+    </div>
   </div>
-
 </div>
 
+<!-- ═══════════════════════ SAVED ═══════════════════════ -->
+<div class="tab-panel" id="tab-saved">
+  <div class="section-label">Saved Deals</div>
+  <div id="savedList"></div>
+</div>
+
+<!-- ═══════════════════════ PIPELINE ═══════════════════════ -->
+<div class="tab-panel" id="tab-pipeline">
+  <div class="section-label">Deal Pipeline</div>
+  <div class="pipeline-cols" id="pipelineCols"></div>
+</div>
+
+</div><!-- /main -->
+
 <script>
-  let rehabLevel = 0;
+// ════════════════════════════════════════════
+// CONFIG — your Railway URL
+// ════════════════════════════════════════════
+const BACKEND_URL = 'https://worker-production-8f13.up.railway.app';
 
-  const REHAB_PER_SQFT = {
-    1: { low: 8, high: 11,  label: 'Cosmetic' },
-    2: { low: 18, high: 24, label: 'Mid-Level' },
-    3: { low: 28, high: 36, label: 'Full Rehab' }
-  };
+// ════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════
+let rehabLevel   = 0;
+let fetchedComps = [];
+let savedDeals   = JSON.parse(localStorage.getItem('pecos_deals') || '[]');
+let lastResult   = null;
 
-  function selectRehab(level) {
-    rehabLevel = level;
-    document.querySelectorAll('.rehab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector(`[data-level="${level}"]`).classList.add('active');
+const REHAB_PER_SQFT = {
+  1:{low:8,  high:11, label:'Cosmetic'},
+  2:{low:18, high:24, label:'Mid-Level'},
+  3:{low:28, high:36, label:'Full Rehab'}
+};
+const PIPELINE_STAGES = ['Lead','Analyzing','Offer Made','Under Contract','Closed'];
+
+// ════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════
+function fmt(n){
+  if(n===null||n===undefined||isNaN(n))return'—';
+  return(n<0?'-$':'$')+Math.round(Math.abs(n)).toLocaleString();
+}
+function fmtPct(n){return(!isFinite(n)||isNaN(n))?'—':n.toFixed(1)+'%';}
+function fmtX(n){return isNaN(n)?'—':n.toFixed(2)+'x';}
+function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+
+// ════════════════════════════════════════════
+// BACKEND HEALTH
+// ════════════════════════════════════════════
+async function checkBackend(){
+  const el=document.getElementById('backendStatus');
+  try{
+    const r=await fetch(BACKEND_URL+'/health',{signal:AbortSignal.timeout(6000)});
+    if(r.ok){el.textContent='● LIVE';el.className='badge green';}
+    else throw new Error();
+  }catch{
+    el.textContent='● OFFLINE';el.className='badge red';
   }
+}
 
-  function fmt(n) {
-    return '$' + Math.round(n).toLocaleString();
-  }
+// ════════════════════════════════════════════
+// FETCH COMPS
+// ════════════════════════════════════════════
+async function fetchComps(){
+  const address=document.getElementById('address').value.trim();
+  const bedRaw =document.getElementById('bedBath').value.trim();
+  const sqft   =document.getElementById('sqft').value.trim();
+  const beds   =bedRaw.match(/\d+/)?bedRaw.match(/\d+/)[0]:'';
 
-  function analyze() {
-    const offer    = parseFloat(document.getElementById('offerPrice').value) || 0;
-    const sqft     = parseFloat(document.getElementById('sqft').value) || 0;
-    const arvInput = parseFloat(document.getElementById('arv').value) || 0;
-    const rehabOvr = parseFloat(document.getElementById('rehabOverride').value) || 0;
-    const zest     = parseFloat(document.getElementById('zestimate').value) || 0;
+  if(!address){alert('Enter an address first.');return;}
 
-    if (!offer || !arvInput) {
-      alert('Enter at least an offer price and ARV to run the numbers.');
+  const btn   =document.getElementById('fetchCompsBtn');
+  const status=document.getElementById('fetchStatus');
+  btn.disabled=true;
+  btn.textContent='⏳ FETCHING...';
+  status.className='fetch-status loading';
+  status.textContent='Pulling recently sold comps from Zillow...';
+
+  try{
+    const params=new URLSearchParams({address});
+    if(beds)params.set('beds',beds);
+    if(sqft)params.set('sqft',sqft);
+
+    const resp=await fetch(`${BACKEND_URL}/comps?${params}`,{signal:AbortSignal.timeout(20000)});
+    if(!resp.ok){
+      const err=await resp.json().catch(()=>({}));
+      throw new Error(err.error||`Server error ${resp.status}`);
+    }
+    const data=await resp.json();
+
+    if(!data.comps||!data.comps.length){
+      status.className='fetch-status error';
+      status.textContent='⚠ No recent sold comps found. Try a nearby city name or ZIP code.';
+      btn.disabled=false;btn.textContent='⚡ FETCH COMPS';
       return;
     }
 
-    // Rehab calculation
-    let rehabLow, rehabHigh, rehabMid;
-    if (rehabOvr > 0) {
-      rehabLow = rehabHigh = rehabMid = rehabOvr;
-    } else if (rehabLevel > 0 && sqft > 0) {
-      const r = REHAB_PER_SQFT[rehabLevel];
-      rehabLow  = sqft * r.low;
-      rehabHigh = sqft * r.high;
-      rehabMid  = (rehabLow + rehabHigh) / 2;
-    } else if (rehabLevel > 0) {
-      // default sqft assumption
-      const defaultSqft = 1200;
-      const r = REHAB_PER_SQFT[rehabLevel];
-      rehabLow  = defaultSqft * r.low;
-      rehabHigh = defaultSqft * r.high;
-      rehabMid  = (rehabLow + rehabHigh) / 2;
-    } else {
-      rehabMid = rehabLow = rehabHigh = 0;
-    }
+    fetchedComps=data.comps;
+    renderCompCards(data.comps,data.summary);
+    status.className='fetch-status success';
+    status.textContent=`✓ ${data.comps.length} comps loaded${data.cached?' (cached)':''} — avg sold: ${fmt(data.summary.avgPrice)}`;
+    btn.textContent='↻ REFRESH';btn.disabled=false;
 
-    const contingency = rehabMid * 0.10;
-    const holding     = offer * 0.01 * 3; // ~1%/mo hard money x 3 months
-    const totalIn     = offer + rehabMid + contingency + holding;
+  }catch(err){
+    status.className='fetch-status error';
+    status.textContent='✗ '+err.message;
+    btn.disabled=false;btn.textContent='⚡ FETCH COMPS';
+  }
+}
 
-    const arv         = arvInput;
-    const agentFees   = arv * 0.06;
-    const closing     = arv * 0.02;
-    const netProfit   = arv - totalIn - agentFees - closing;
-    const grossProfit = arv - totalIn;
-    const maxOffer    = arv * 0.65 - rehabMid;
-
-    // Verdict
-    let verdict, verdictClass, verdictSub, rec;
-
-    if (netProfit >= 25000 && offer <= maxOffer) {
-      verdict = '✓ PURSUE THIS DEAL';
-      verdictClass = 'go';
-      verdictSub = `Net profit of ${fmt(netProfit)} with ${fmt(netProfit / totalIn * 100).replace('$','')}% ROI. Offer price is under your max. This one has legs.`;
-      rec = `<strong>Make the offer.</strong> At ${fmt(offer)} you're within your max offer price of ${fmt(maxOffer)}. Net profit of ${fmt(netProfit)} clears your $25k minimum. Move fast — send a cash offer, fast close, as-is.`;
-    } else if (netProfit >= 15000 && offer <= maxOffer * 1.05) {
-      verdict = '⚠ MAYBE — NEGOTIATE DOWN';
-      verdictClass = 'maybe';
-      verdictSub = `Profit is ${fmt(netProfit)} — below your $25k minimum. You need to get the price down to make this worth the risk.`;
-      rec = `<strong>Don't walk away yet.</strong> You need to buy this at <strong>${fmt(maxOffer)}</strong> or below to hit your $25k profit target. If the seller has been sitting 60+ days, make a lowball offer. Worst they can say is no.`;
-    } else {
-      verdict = '✗ PASS ON THIS ONE';
-      verdictClass = 'no';
-      verdictSub = `The numbers don't work at ${fmt(offer)}. You'd net ${fmt(netProfit)} — not worth your time and capital.`;
-      rec = `<strong>Pass.</strong> At ${fmt(offer)} this deal doesn't work. You'd need to buy at <strong>${fmt(maxOffer)}</strong> to make the $25k minimum — that's ${fmt(offer - maxOffer)} below asking. ${offer - maxOffer > 20000 ? 'That gap is too large unless the seller is extremely desperate.' : 'Watch it — if the seller drops the price or it sits another 60 days, revisit.'}`;
-    }
-
-    // Flags
-    let flags = [];
-    if (zest > 0 && offer > zest) flags.push({ icon: '🔴', text: `<strong>Listed over Zestimate</strong> — you're paying ${fmt(offer - zest)} above estimated market value before repairs.` });
-    if (zest > 0 && offer < zest * 0.85) flags.push({ icon: '🟢', text: `<strong>Below Zestimate</strong> — you're buying ${fmt(zest - offer)} under estimated market value. Instant equity.` });
-    if (rehabMid > offer * 0.4) flags.push({ icon: '⚠️', text: `<strong>Heavy rehab relative to purchase price</strong> — rehab is ${Math.round(rehabMid/offer*100)}% of purchase price. Make sure your scope is locked in tight before committing.` });
-    if (contingency + holding > 5000) flags.push({ icon: '📋', text: `<strong>Hidden costs add up</strong> — ${fmt(contingency + holding)} in contingency + holding costs. Always budget these in.` });
-    if (offer > maxOffer) flags.push({ icon: '🔴', text: `<strong>Offer exceeds max</strong> — your offer of ${fmt(offer)} is ${fmt(offer - maxOffer)} over the 65% rule max offer of ${fmt(maxOffer)}. You are overpaying for this flip.` });
-
-    // Render
-    const vBox = document.getElementById('verdictBox');
-    vBox.className = `verdict ${verdictClass}`;
-    document.getElementById('verdictText').textContent = verdict;
-    document.getElementById('verdictSub').textContent = verdictSub;
-
-    document.getElementById('maxOffer').textContent = fmt(maxOffer);
-
-    const np = document.getElementById('netProfit');
-    np.textContent = fmt(netProfit);
-    np.className = `num-value ${netProfit >= 25000 ? 'green' : netProfit >= 0 ? 'yellow' : 'red'}`;
-
-    document.getElementById('totalIn').textContent = fmt(totalIn);
-    document.getElementById('arvDisplay').textContent = fmt(arv);
-    document.getElementById('grossProfit').textContent = fmt(grossProfit);
-    document.getElementById('agentFees').textContent = fmt(agentFees);
-    document.getElementById('closingCosts').textContent = fmt(closing);
-
-    document.getElementById('bOffer').textContent = fmt(offer);
-    document.getElementById('bRehab').textContent = rehabOvr > 0 ? fmt(rehabOvr) : `${fmt(rehabLow)} – ${fmt(rehabHigh)} (using ${fmt(rehabMid)})`;
-    document.getElementById('bContingency').textContent = fmt(contingency);
-    document.getElementById('bHolding').textContent = fmt(holding);
-    document.getElementById('bTotal').textContent = fmt(totalIn);
-    document.getElementById('bArv').textContent = fmt(arv);
-    document.getElementById('bAgent').textContent = `-${fmt(agentFees)}`;
-    document.getElementById('bClosing').textContent = `-${fmt(closing)}`;
-    const bNet = document.getElementById('bNet');
-    bNet.textContent = fmt(netProfit);
-    bNet.style.color = netProfit >= 25000 ? 'var(--green)' : netProfit >= 0 ? 'var(--yellow)' : 'var(--red)';
-
-    const flagsBox = document.getElementById('flagsBox');
-    flagsBox.innerHTML = flags.map(f => `
-      <div class="flag">
-        <span class="flag-icon">${f.icon}</span>
-        <span>${f.text}</span>
+function renderCompCards(comps,summary){
+  document.getElementById('compCardsList').innerHTML=`
+    <div class="comp-cards">
+      ${comps.map((c,i)=>`
+        <div class="comp-card">
+          <div><div class="cc-addr">${c.address}</div>
+          <div class="cc-meta">${[c.beds?c.beds+'bd':'',c.baths?c.baths+'ba':'',c.sqft?c.sqft.toLocaleString()+' sf':''].filter(Boolean).join(' · ')}</div></div>
+          <div class="cc-val">${fmt(c.price)}</div>
+          <div class="cc-meta">${c.ppsf?fmt(c.ppsf)+'/sf':'—'}</div>
+          <div class="cc-meta">${c.daysAgo?c.daysAgo+'d ago':'—'}</div>
+          <button class="cc-del" onclick="removeComp(${i})">✕</button>
+        </div>`).join('')}
+    </div>
+    <div class="comp-avg-row">
+      <div class="avg-label">Comp Average</div>
+      <div class="avg-vals">
+        <span>${fmt(summary.avgPrice)}</span>
+        ${summary.avgPpsf?`<span>${fmt(summary.avgPpsf)}/sf</span>`:''}
+        <span>${comps.length} comps</span>
       </div>
-    `).join('');
+    </div>`;
+  const arvVal=parseFloat(document.getElementById('arv').value)||0;
+  renderArvSuggest(summary,arvVal);
+}
 
-    document.getElementById('recText').innerHTML = rec;
+function renderArvSuggest(summary,arvVal){
+  const el=document.getElementById('compArvSuggest');
+  if(!summary||!summary.avgPrice){el.style.display='none';return;}
+  const dev=arvVal?((arvVal-summary.avgPrice)/summary.avgPrice*100):null;
+  let html=`<div class="arv-suggest"><strong>Comp Avg: ${fmt(summary.avgPrice)}</strong>`;
+  if(dev!==null){
+    const dir=dev>0?'above':'below';
+    const color=Math.abs(dev)>10?'#e03c3c':'#4a9eff';
+    html+=` — your ARV of ${fmt(arvVal)} is <strong style="color:${color}">${Math.abs(dev).toFixed(1)}% ${dir}</strong> comp avg.`;
+    if(dev>10)html+=' Consider lowering your ARV to be safe.';
+  }else{html+=' — enter your ARV above to compare.';}
+  html+=`<br><button class="use-arv-btn" onclick="useCompAvg(${summary.avgPrice})">← Use ${fmt(summary.avgPrice)} as ARV</button></div>`;
+  el.innerHTML=html;el.style.display='block';
+}
 
-    document.getElementById('results').classList.add('show');
-    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+function removeComp(i){
+  fetchedComps.splice(i,1);
+  if(!fetchedComps.length){
+    document.getElementById('compCardsList').innerHTML='';
+    document.getElementById('compArvSuggest').style.display='none';
+    return;
+  }
+  const s=buildSummary(fetchedComps);
+  renderCompCards(fetchedComps,s);
+}
+
+function buildSummary(comps){
+  const prices=comps.map(c=>c.price).filter(Boolean);
+  const ppsfs =comps.map(c=>c.ppsf).filter(Boolean);
+  return{
+    avgPrice:prices.length?Math.round(prices.reduce((a,b)=>a+b,0)/prices.length):null,
+    avgPpsf :ppsfs.length ?Math.round(ppsfs.reduce((a,b)=>a+b,0)/ppsfs.length):null,
+    count:comps.length
+  };
+}
+
+function useCompAvg(avg){
+  const el=document.getElementById('arv');
+  el.value=avg;el.style.borderColor='var(--gold)';
+  setTimeout(()=>el.style.borderColor='',1500);
+  renderArvSuggest(buildSummary(fetchedComps),avg);
+}
+
+// ════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════
+function switchTab(tab){
+  document.querySelectorAll('.nav-tab').forEach((t,i)=>
+    t.classList.toggle('active',['analyzer','saved','pipeline'][i]===tab));
+  document.querySelectorAll('.tab-panel').forEach(p=>
+    p.classList.toggle('active',p.id==='tab-'+tab));
+  if(tab==='saved')renderSaved();
+  if(tab==='pipeline')renderPipeline();
+}
+function switchStrategy(s){
+  document.querySelectorAll('.strategy-tab').forEach((t,i)=>
+    t.classList.toggle('active',['flip','brrrr'][i]===s));
+  document.querySelectorAll('.strategy-panel').forEach(p=>
+    p.classList.toggle('active',p.id==='strategy-'+s));
+}
+function selectRehab(level){
+  rehabLevel=level;
+  document.querySelectorAll('.rehab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`[data-level="${level}"]`).classList.add('active');
+}
+function toggleFinanceFields(){
+  document.getElementById('loanFields').style.display=
+    document.getElementById('financingType').value==='cash'?'none':'block';
+}
+
+// ════════════════════════════════════════════
+// DEAL SCORE
+// ════════════════════════════════════════════
+function calcScore(offer,maxOffer,netProfit,totalIn,arv,rehabMid){
+  let score=0;const criteria=[];
+  const or=offer/maxOffer;
+  const mPts=or<=0.9?25:or<=1.0?18:or<=1.05?8:0;
+  score+=mPts;criteria.push({label:'Offer vs Max',pts:mPts,max:25});
+  const pPts=netProfit>=40000?25:netProfit>=25000?18:netProfit>=15000?10:netProfit>=0?4:0;
+  score+=pPts;criteria.push({label:'Net Profit',pts:pPts,max:25});
+  const roi=netProfit/totalIn*100;
+  const rPts=roi>=25?20:roi>=18?15:roi>=12?9:roi>=0?3:0;
+  score+=rPts;criteria.push({label:'ROI %',pts:rPts,max:20});
+  const rr=rehabMid/offer;
+  const rhPts=rr<0.2?15:rr<0.35?10:rr<0.5?5:0;
+  score+=rhPts;criteria.push({label:'Rehab Risk',pts:rhPts,max:15});
+  let cPts=7;
+  if(fetchedComps.length>0){
+    const avg=fetchedComps.reduce((a,c)=>a+c.price,0)/fetchedComps.length;
+    const dev=Math.abs(arv-avg)/avg;
+    cPts=dev<0.05&&fetchedComps.length>=3?15:dev<0.10&&fetchedComps.length>=2?11:dev<0.15?7:2;
+  }
+  score+=cPts;criteria.push({label:'Comps Support',pts:cPts,max:15});
+  return{score:Math.min(100,Math.round(score)),criteria};
+}
+
+function renderScore(score,criteria){
+  const circ=document.getElementById('scoreCircle');
+  const C=289;circ.style.strokeDashoffset=C;
+  setTimeout(()=>{
+    circ.style.transition='stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)';
+    circ.style.strokeDashoffset=C-(score/100)*C;
+  },100);
+  let color,cls,verdict,sub;
+  if(score>=75){color='var(--green)';cls='fire';verdict='🔥 FIRE DEAL';sub=`Score ${score}/100 — Hits on all cylinders. Pull the trigger.`;}
+  else if(score>=55){color='#7ecb8d';cls='good';verdict='✓ SOLID DEAL';sub=`Score ${score}/100 — Numbers work. Make the offer.`;}
+  else if(score>=35){color='var(--yellow)';cls='marginal';verdict='⚠ MARGINAL';sub=`Score ${score}/100 — Needs better terms. Negotiate down.`;}
+  else{color='var(--red)';cls='pass';verdict='✗ PASS';sub=`Score ${score}/100 — Doesn't pencil at current price.`;}
+  circ.style.stroke=color;
+  document.getElementById('scoreNumber').textContent=score;
+  document.getElementById('scoreNumber').style.color=color;
+  document.getElementById('scoreVerdict').textContent=verdict;
+  document.getElementById('scoreVerdict').className='score-verdict '+cls;
+  document.getElementById('scoreSub').textContent=sub;
+  document.getElementById('scoreBars').innerHTML=criteria.map(c=>{
+    const pct=Math.round(c.pts/c.max*100);
+    const bc=pct>=75?'var(--green)':pct>=40?'var(--yellow)':'var(--red)';
+    return`<div class="score-bar-row">
+      <div class="score-bar-label">${c.label}</div>
+      <div class="score-bar-track"><div class="score-bar-fill" style="width:0%;background:${bc}" data-target="${pct}"></div></div>
+      <div class="score-bar-val">${c.pts}/${c.max}</div>
+    </div>`;
+  }).join('');
+  setTimeout(()=>{
+    document.querySelectorAll('.score-bar-fill').forEach(b=>{
+      b.style.transition='width 0.8s cubic-bezier(0.4,0,0.2,1)';
+      b.style.width=b.dataset.target+'%';
+    });
+  },200);
+}
+
+// ════════════════════════════════════════════
+// ANALYZE
+// ════════════════════════════════════════════
+function analyze(){
+  const offer      =parseFloat(document.getElementById('offerPrice').value)||0;
+  const sqft       =parseFloat(document.getElementById('sqft').value)||0;
+  const arvInput   =parseFloat(document.getElementById('arv').value)||0;
+  const rehabOvr   =parseFloat(document.getElementById('rehabOverride').value)||0;
+  const finType    =document.getElementById('financingType').value;
+  const holdMos    =parseFloat(document.getElementById('holdingMonths').value)||3;
+  const loanRate   =parseFloat(document.getElementById('loanRate').value)||12;
+  const loanPts    =parseFloat(document.getElementById('loanPoints').value)||2;
+  const monthlyRent=parseFloat(document.getElementById('monthlyRent').value)||0;
+  const refiLtv    =(parseFloat(document.getElementById('refiLtv').value)||75)/100;
+  const refiRate   =(parseFloat(document.getElementById('refiRate').value)||7.5)/100;
+  const refiTerm   =parseFloat(document.getElementById('refiTerm').value)||30;
+
+  if(!offer||!arvInput){alert('Enter at least an offer price and ARV.');return;}
+
+  // Rehab
+  let rehabLow=0,rehabHigh=0,rehabMid=0;
+  if(rehabOvr>0){rehabLow=rehabHigh=rehabMid=rehabOvr;}
+  else if(rehabLevel>0){
+    const s=sqft||1200;const r=REHAB_PER_SQFT[rehabLevel];
+    rehabLow=s*r.low;rehabHigh=s*r.high;rehabMid=(rehabLow+rehabHigh)/2;
   }
 
-  function reset() {
-    document.getElementById('results').classList.remove('show');
-    document.querySelectorAll('input').forEach(i => i.value = '');
-    document.querySelectorAll('.rehab-btn').forEach(b => b.classList.remove('active'));
-    rehabLevel = 0;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const contingency=rehabMid*0.10;
+  let interestCost=0,pointsCost=0,finLabel='Cash';
+  if(finType!=='cash'){
+    interestCost=offer*(loanRate/100)*(holdMos/12);
+    pointsCost=offer*(loanPts/100);
+    finLabel={hard:'Hard Money',conv:'Conventional',private:'Private Lender'}[finType];
   }
+  const finCost     =interestCost+pointsCost;
+  const holdingCosts=offer*0.005*holdMos;
+  const totalIn     =offer+rehabMid+contingency+finCost+holdingCosts;
+  const arv         =arvInput;
+  const agentFees   =arv*0.06;
+  const closing     =arv*0.02;
+  const netProfit   =arv-totalIn-agentFees-closing;
+  const maxOffer    =arv*0.65-rehabMid;
+  const roi         =netProfit/totalIn*100;
+  const annualRoi   =roi/holdMos*12;
+  const equitySpread=arv-totalIn;
+  const ppsf        =sqft?offer/sqft:null;
+  const arvpsf      =sqft?arv/sqft:null;
+
+  const{score,criteria}=calcScore(offer,maxOffer,netProfit,totalIn,arv,rehabMid);
+
+  // BRRRR
+  let brrrr=null;
+  if(monthlyRent>0){
+    const refiAmt=arv*refiLtv;
+    const cashLeft=Math.max(0,totalIn-refiAmt);
+    const r=refiRate/12,n=refiTerm*12;
+    const mortgage=refiAmt*(r*Math.pow(1+r,n))/(Math.pow(1+r,n)-1);
+    const piti=mortgage+arv*0.0013/12;
+    const cashflow=monthlyRent-piti;
+    brrrr={refiAmt,cashLeft,piti,cashflow,annualCF:cashflow*12,
+      grY:(monthlyRent*12)/arv*100,
+      cocRoi:cashLeft>0?(cashflow*12/cashLeft)*100:999,
+      capRate:(monthlyRent*0.55*12)/arv*100};
+  }
+
+  // Comps results
+  if(fetchedComps.length>0){
+    document.getElementById('compsResultsSection').style.display='block';
+    const avg=Math.round(fetchedComps.reduce((a,c)=>a+c.price,0)/fetchedComps.length);
+    const avgP=fetchedComps.filter(c=>c.ppsf).length
+      ?Math.round(fetchedComps.filter(c=>c.ppsf).reduce((a,c)=>a+c.ppsf,0)/fetchedComps.filter(c=>c.ppsf).length):null;
+    document.getElementById('compsResultsBody').innerHTML=
+      fetchedComps.map(c=>`<tr><td>${c.address}</td><td>${fmt(c.price)}</td><td>${c.sqft?c.sqft.toLocaleString():'—'}</td><td>${c.ppsf?fmt(c.ppsf):'—'}</td><td>${c.daysAgo?c.daysAgo+'d':'—'}</td></tr>`).join('')+
+      `<tr class="avg-row"><td>AVG (${fetchedComps.length} comps)</td><td>${fmt(avg)}</td><td>—</td><td>${avgP?fmt(avgP):'—'}</td><td>—</td></tr>`;
+    const dev=Math.abs(arv-avg)/avg*100;
+    const conf=fetchedComps.length>=3&&dev<10?'HIGH':fetchedComps.length>=2&&dev<15?'MEDIUM':'LOW';
+    const cc=conf==='HIGH'?'var(--green)':conf==='MEDIUM'?'var(--yellow)':'var(--red)';
+    document.getElementById('arvConfidence').innerHTML=
+      `<strong>ARV Confidence: <span style="color:${cc}">${conf}</span></strong> — `+
+      `${fetchedComps.length} comp${fetchedComps.length>1?'s':''}, avg ${fmt(avg)}. `+
+      `Your ARV of ${fmt(arv)} is ${dev.toFixed(1)}% ${arv>avg?'above':'below'} avg.`+
+      (avgP&&sqft?` Implied: ${sqft.toLocaleString()}sf × ${fmt(avgP)}/sf = <strong>${fmt(avgP*sqft)}</strong>.`:'');
+  }else{document.getElementById('compsResultsSection').style.display='none';}
+
+  // Flags
+  const flags=[];
+  if(offer>maxOffer)flags.push({icon:'🔴',text:`<strong>Over max offer</strong> — ${fmt(offer)} is ${fmt(offer-maxOffer)} above the 65% rule max of ${fmt(maxOffer)}.`});
+  if(rehabMid>offer*0.4)flags.push({icon:'⚠️',text:`<strong>Heavy rehab</strong> — ${Math.round(rehabMid/offer*100)}% of purchase price. Get hard bids before committing.`});
+  if(netProfit<25000&&netProfit>=0)flags.push({icon:'⚠️',text:`<strong>Below $25k threshold</strong> — ${fmt(netProfit)} net doesn't hit your minimum.`});
+  if(netProfit<0)flags.push({icon:'🔴',text:`<strong>Negative profit</strong> — you'd lose ${fmt(Math.abs(netProfit))} on this deal.`});
+  if(fetchedComps.length>0){
+    const avg=fetchedComps.reduce((a,c)=>a+c.price,0)/fetchedComps.length;
+    if(arv>avg*1.10)flags.push({icon:'⚠️',text:`<strong>ARV above comps</strong> — ${fmt(arv)} is ${Math.round((arv/avg-1)*100)}% above comp avg of ${fmt(avg)}.`});
+    if(arv<=avg*1.03)flags.push({icon:'🟢',text:`<strong>ARV well-supported</strong> — comps avg ${fmt(avg)}, your ARV of ${fmt(arv)} is conservative.`});
+  }
+  if(!fetchedComps.length)flags.push({icon:'📋',text:`<strong>No comps loaded</strong> — hit "Fetch Comps" to validate your ARV against real sold data.`});
+
+  // Rec
+  let recText;
+  if(netProfit>=25000&&offer<=maxOffer)
+    recText=`<strong>Make the offer.</strong> ${fmt(offer)} is under max of ${fmt(maxOffer)}. Net profit ${fmt(netProfit)} at ${fmtPct(roi)} ROI. Cash offer, fast close, as-is.`;
+  else if(netProfit>=15000&&offer<=maxOffer*1.05)
+    recText=`<strong>Negotiate down.</strong> Buy at <strong>${fmt(maxOffer)}</strong> or below to hit your $25k target. If it's been sitting 60+ days, make the lowball.`;
+  else
+    recText=`<strong>Pass.</strong> Need to buy at <strong>${fmt(maxOffer)}</strong> — that's ${fmt(offer-maxOffer)} below asking. ${offer-maxOffer>20000?'Gap is too large.':'Watch it — revisit if price drops.'}`;
+
+  // Render
+  renderScore(score,criteria);
+  set('maxOffer',fmt(maxOffer));
+  set('totalIn',fmt(totalIn));
+  set('arvDisplay',fmt(arv));
+  const npEl=document.getElementById('netProfit');
+  npEl.textContent=fmt(netProfit);
+  npEl.className=`num-value ${netProfit>=25000?'green':netProfit>=0?'yellow':'red'}`;
+  set('roiDisplay',fmtPct(roi)+' ROI');
+  set('ppsf',ppsf?fmt(ppsf)+'/sf':'—');
+  set('arvpsf',arvpsf?fmt(arvpsf)+'/sf':'—');
+  const esEl=document.getElementById('equitySpread');
+  esEl.textContent=fmt(equitySpread);
+  esEl.className=`num-value ${equitySpread>0?'green':'red'}`;
+  set('equityPct',fmtPct(equitySpread/arv*100)+' of ARV');
+  set('bOffer',fmt(offer));
+  set('bRehab',rehabOvr>0?fmt(rehabOvr):`${fmt(rehabLow)} – ${fmt(rehabHigh)}`);
+  set('bContingency',fmt(contingency));
+  set('bFinancing',finType==='cash'?'$0 (cash)':fmt(finCost));
+  set('bHolding',fmt(holdingCosts));
+  set('bTotal',fmt(totalIn));
+  set('bArv',fmt(arv));
+  set('bAgent','-'+fmt(agentFees));
+  set('bClosing','-'+fmt(closing));
+  const bNetEl=document.getElementById('bNet');
+  bNetEl.textContent=fmt(netProfit);
+  bNetEl.style.color=netProfit>=25000?'var(--green)':netProfit>=0?'var(--yellow)':'var(--red)';
+  set('f-totalIn',fmt(totalIn));
+  const fnEl=document.getElementById('f-netProfit');
+  fnEl.textContent=fmt(netProfit);
+  fnEl.style.color=netProfit>=25000?'var(--green)':netProfit>=0?'var(--yellow)':'var(--red)';
+  set('f-roi',fmtPct(roi));
+  set('f-annualRoi',fmtPct(annualRoi));
+  set('f-emx',fmtX(arv/totalIn));
+  set('f-finType',finLabel);
+  set('f-interest',fmt(interestCost));
+  set('f-points',fmt(pointsCost));
+  set('f-hold',holdMos+' months');
+  set('f-finTotal',fmt(finCost));
+  if(brrrr){
+    document.getElementById('brrrrNoRent').style.display='none';
+    document.getElementById('brrrrContent').style.display='block';
+    set('b-arv',fmt(arv));
+    set('b-refi',fmt(brrrr.refiAmt)+' ('+Math.round(refiLtv*100)+'% LTV)');
+    const ciEl=document.getElementById('b-cashIn');
+    ciEl.textContent=fmt(brrrr.cashLeft);
+    ciEl.style.color=brrrr.cashLeft<5000?'var(--green)':brrrr.cashLeft<20000?'var(--yellow)':'var(--white)';
+    set('b-piti',fmt(brrrr.piti)+'/mo');
+    const cfEl=document.getElementById('b-cashflow');
+    cfEl.textContent=fmt(brrrr.cashflow)+'/mo';
+    cfEl.style.color=brrrr.cashflow>0?'var(--green)':'var(--red)';
+    set('b-gry',fmtPct(brrrr.grY));
+    set('b-coc',brrrr.cashLeft<1000?'∞ (infinite)':fmtPct(brrrr.cocRoi));
+    const acfEl=document.getElementById('b-annualCF');
+    acfEl.textContent=fmt(brrrr.annualCF)+'/yr';
+    acfEl.style.color=brrrr.annualCF>0?'var(--green)':'var(--red)';
+    set('b-cap',fmtPct(brrrr.capRate));
+    const bvEl=document.getElementById('b-verdict');
+    bvEl.textContent=brrrr.cashflow>200?'✓ Cash flows well':brrrr.cashflow>0?'⚠ Marginal':'✗ Negative cash flow';
+    bvEl.style.color=brrrr.cashflow>200?'var(--green)':brrrr.cashflow>0?'var(--yellow)':'var(--red)';
+  }else{
+    document.getElementById('brrrrNoRent').style.display='block';
+    document.getElementById('brrrrContent').style.display='none';
+  }
+  document.getElementById('flagsBox').innerHTML=flags.map(f=>`<div class="flag"><span class="flag-icon">${f.icon}</span><span>${f.text}</span></div>`).join('');
+  document.getElementById('recText').innerHTML=recText;
+  lastResult={
+    id:Date.now(),
+    address:document.getElementById('address').value||'Unnamed',
+    offer,arv,netProfit,roi,score,totalIn,maxOffer,rehab:rehabMid,
+    bedBath:document.getElementById('bedBath').value,
+    stage:'Lead',savedAt:new Date().toLocaleDateString()
+  };
+  document.getElementById('results').classList.add('show');
+  setTimeout(()=>document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'}),50);
+}
+
+// ════════════════════════════════════════════
+// SAVE / PIPELINE
+// ════════════════════════════════════════════
+function saveDeal(){
+  if(!lastResult){alert('Run the numbers first.');return;}
+  const idx=savedDeals.findIndex(d=>d.id===lastResult.id);
+  if(idx>=0)savedDeals[idx]=lastResult;else savedDeals.unshift(lastResult);
+  localStorage.setItem('pecos_deals',JSON.stringify(savedDeals));
+  alert('Deal saved! ✓');
+}
+function renderSaved(){
+  const el=document.getElementById('savedList');
+  if(!savedDeals.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div>No saved deals yet.<br>Run the analyzer and hit Save Deal.</div>`;
+    return;
+  }
+  el.innerHTML=`<div class="saved-list">${savedDeals.map((d,i)=>{
+    const c=d.netProfit>=25000?'var(--green)':d.netProfit>=0?'var(--yellow)':'var(--red)';
+    return`<div class="saved-deal">
+      <div>
+        <div class="saved-deal-address">${d.address}</div>
+        <div class="saved-deal-meta">Offer: ${fmt(d.offer)} · ARV: ${fmt(d.arv)} · Score: ${d.score}/100 · ${d.savedAt}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="saved-deal-profit" style="color:${c}">${fmt(d.netProfit)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.stage||'Lead'}</div>
+      </div>
+      <div class="saved-deal-actions">
+        <select class="stage-select" onchange="updateStage(${i},this.value)">
+          ${PIPELINE_STAGES.map(s=>`<option ${d.stage===s?'selected':''} value="${s}">${s}</option>`).join('')}
+        </select>
+        <button class="saved-deal-btn danger" onclick="deleteDeal(${i})">✕</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+function updateStage(i,stage){
+  savedDeals[i].stage=stage;
+  localStorage.setItem('pecos_deals',JSON.stringify(savedDeals));
+}
+function deleteDeal(i){
+  if(!confirm('Delete this deal?'))return;
+  savedDeals.splice(i,1);
+  localStorage.setItem('pecos_deals',JSON.stringify(savedDeals));
+  renderSaved();
+}
+function renderPipeline(){
+  document.getElementById('pipelineCols').innerHTML=PIPELINE_STAGES.map(stage=>{
+    const deals=savedDeals.filter(d=>(d.stage||'Lead')===stage);
+    return`<div class="pipeline-col">
+      <div class="pipeline-col-title">${stage}<span class="p-count">${deals.length}</span></div>
+      ${deals.map(d=>{
+        const c=d.netProfit>=25000?'var(--green)':d.netProfit>=0?'var(--yellow)':'var(--red)';
+        return`<div class="pipeline-card"><div class="pc-addr">${d.address}</div><div class="pc-profit" style="color:${c}">${fmt(d.netProfit)} net</div></div>`;
+      }).join('')||`<div style="color:var(--muted);font-size:11px;font-family:'Space Mono',monospace">—</div>`}
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════
+// RESET
+// ════════════════════════════════════════════
+function reset(){
+  document.getElementById('results').classList.remove('show');
+  document.querySelectorAll('input[type=number],input[type=text]').forEach(i=>{
+    if(!['holdingMonths','loanRate','loanPoints','refiLtv','refiRate','refiTerm'].includes(i.id))i.value='';
+  });
+  document.querySelectorAll('.rehab-btn').forEach(b=>b.classList.remove('active'));
+  rehabLevel=0;fetchedComps=[];lastResult=null;
+  document.getElementById('compCardsList').innerHTML='';
+  document.getElementById('compArvSuggest').style.display='none';
+  document.getElementById('fetchStatus').className='fetch-status';
+  document.getElementById('fetchStatus').textContent='';
+  document.getElementById('fetchCompsBtn').textContent='⚡ FETCH COMPS';
+  document.getElementById('fetchCompsBtn').disabled=false;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── INIT ──
+toggleFinanceFields();
+checkBackend();
 </script>
 </body>
 </html>

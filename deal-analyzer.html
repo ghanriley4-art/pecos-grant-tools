@@ -207,6 +207,36 @@
   /* ── PIPELINE ── */
   .pipeline-cols{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
   @media(max-width:900px){.pipeline-cols{grid-template-columns:1fr 1fr;}}
+  @media(max-width:600px){.pipeline-cols{grid-template-columns:1fr;}}
+
+  /* ── MOBILE OVERRIDES ── */
+  @media(max-width:600px){
+    .header{padding:12px 16px;}
+    .logo{font-size:20px;gap:10px;}
+    .logo-sub{display:none;}
+    .badge{font-size:8px;padding:4px 7px;}
+    .nav-tabs{padding:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+    .nav-tabs::-webkit-scrollbar{display:none;}
+    .nav-tab{padding:12px 14px;font-size:9px;letter-spacing:1px;white-space:nowrap;}
+    .main{padding:16px 12px;}
+    .grid-2{grid-template-columns:1fr;}
+    .field-row{grid-template-columns:1fr;}
+    .rehab-grid{grid-template-columns:1fr 1fr 1fr;}
+    .rehab-btn .desc{display:none;}
+    .numbers{grid-template-columns:1fr 1fr;}
+    .compare-grid{grid-template-columns:1fr;}
+    .score-section{grid-template-columns:1fr;gap:16px;}
+    .saved-deal{flex-direction:column;align-items:flex-start;}
+    .saved-deal-actions{width:100%;justify-content:flex-end;}
+    .nbhd-filter-row{grid-template-columns:1fr 1fr !important;}
+    .nbhd-filter-row button{grid-column:1/-1;}
+    #nbhd-stats-grid{grid-template-columns:1fr 1fr !important;}
+    .nbhd-market-grid{grid-template-columns:1fr !important;}
+    .analyze-btn{font-size:17px;padding:15px;}
+    .max-offer-value{font-size:30px;}
+    .comp-card{grid-template-columns:1fr 1fr;}
+    .pdf-btn{width:100%;margin-top:8px;}
+  }
   .pipeline-col{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:14px;min-height:180px;}
   .pipeline-col-title{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
   .p-count{background:var(--border2);color:var(--muted2);border-radius:2px;padding:2px 6px;font-size:9px;}
@@ -469,6 +499,7 @@
 
     <div style="text-align:right;margin-top:-8px;margin-bottom:20px;">
       <button class="analyze-btn" style="width:auto;padding:12px 28px;font-size:15px;" onclick="saveDeal()">💾 SAVE DEAL</button>
+      <button class="reset-btn pdf-btn" onclick="generatePDF(lastResult)" style="margin-top:8px;width:100%;">📄 GENERATE OFFER SHEET PDF</button>
     </div>
   </div>
 </div>
@@ -495,7 +526,7 @@
 
   <!-- SEARCH -->
   <div class="card" style="margin-bottom:20px;">
-    <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:end;">
+    <div class="nbhd-filter-row" style="display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:end;">
       <div class="field" style="margin-bottom:0;">
         <label>ZIP Code, City, or Full Address</label>
         <input type="text" id="nbhd-input" placeholder="412 Elm St Springfield MO — or — 65807 — or — springfield-mo" onkeydown="if(event.key==='Enter')profileNeighborhood()">
@@ -531,7 +562,7 @@
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;" id="nbhd-stats-grid"></div>
 
     <!-- MARKET HEALTH -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+    <div class="nbhd-market-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
       <div class="card">
         <div class="section-label" style="font-size:9px;">Market Health</div>
         <div id="nbhd-health"></div>
@@ -1055,6 +1086,7 @@ function renderSaved(){
         <select class="stage-select" onchange="updateStage(${i},this.value)">
           ${PIPELINE_STAGES.map(s=>`<option ${d.stage===s?'selected':''} value="${s}">${s}</option>`).join('')}
         </select>
+        <button class="saved-deal-btn" onclick="generatePDF(savedDeals[${i}])">PDF</button>
         <button class="saved-deal-btn danger" onclick="deleteDeal(${i})">✕</button>
       </div>
     </div>`;
@@ -1330,6 +1362,140 @@ function deleteProfile(i) {
 toggleFinanceFields();
 checkBackend();
 renderSavedProfiles();
+
+// ════════════════════════════════════════════
+// PDF OFFER SHEET GENERATOR
+// ════════════════════════════════════════════
+function generatePDF(deal) {
+  if (!deal) { alert('Run the numbers first.'); return; }
+
+  const date    = new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+  const roiPct  = deal.arv > 0 ? ((deal.netProfit / deal.totalIn) * 100).toFixed(1) : '—';
+  const margin  = deal.arv > 0 ? ((deal.netProfit / deal.arv) * 100).toFixed(1) : '—';
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Offer Sheet — ${deal.address}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Arial',sans-serif;background:#fff;color:#111;padding:40px;max-width:720px;margin:0 auto;}
+  .header{border-bottom:3px solid #c9a84c;padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .brand{font-size:28px;font-weight:900;letter-spacing:3px;color:#111;}
+  .brand span{color:#c9a84c;}
+  .doc-title{font-size:11px;letter-spacing:2px;color:#888;text-transform:uppercase;text-align:right;}
+  .doc-date{font-size:12px;color:#555;margin-top:3px;text-align:right;}
+  .address-block{background:#f8f6f2;border-left:4px solid #c9a84c;padding:14px 18px;margin-bottom:24px;border-radius:0 4px 4px 0;}
+  .address-block h2{font-size:18px;font-weight:700;color:#111;margin-bottom:4px;}
+  .address-block p{font-size:12px;color:#666;}
+  .section{margin-bottom:20px;}
+  .section-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c9a84c;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e0d8;}
+  .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0ede8;font-size:13px;}
+  .row:last-child{border-bottom:none;}
+  .row .label{color:#555;}
+  .row .value{font-weight:600;color:#111;font-family:monospace;}
+  .row.total{background:#f8f6f2;margin:0 -8px;padding:10px 8px;border-radius:3px;}
+  .row.total .label{font-weight:700;color:#111;font-size:14px;}
+  .row.total .value{font-size:15px;color:#c9a84c;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .verdict-box{padding:16px 20px;border-radius:4px;margin-bottom:20px;display:flex;align-items:center;gap:14px;}
+  .verdict-box.fire{background:#e8f8ef;border:1px solid #2ecc71;}
+  .verdict-box.good{background:#fef9ec;border:1px solid #f0b429;}
+  .verdict-box.pass{background:#fef0f0;border:1px solid #e03c3c;}
+  .verdict-score{font-size:36px;font-weight:900;font-family:monospace;}
+  .verdict-score.fire{color:#27ae60;}
+  .verdict-score.good{color:#e67e22;}
+  .verdict-score.pass{color:#e03c3c;}
+  .verdict-text h3{font-size:15px;font-weight:700;margin-bottom:3px;}
+  .verdict-text p{font-size:12px;color:#666;line-height:1.5;}
+  .flags{display:flex;flex-direction:column;gap:5px;}
+  .flag{font-size:12px;color:#444;padding:6px 10px;background:#f8f8f8;border-radius:3px;border-left:2px solid #ddd;}
+  .footer{margin-top:32px;padding-top:16px;border-top:1px solid #e5e0d8;display:flex;justify-content:space-between;font-size:10px;color:#999;}
+  .sig-line{margin-top:40px;padding-top:12px;border-top:1px solid #333;width:240px;font-size:11px;color:#555;}
+  @media print{body{padding:20px;}button{display:none;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="brand">PECOS <span>GRANT</span></div>
+    <div style="font-size:11px;color:#888;letter-spacing:1px;margin-top:2px;">DEVELOPMENT LLC</div>
+  </div>
+  <div>
+    <div class="doc-title">Investment Offer Sheet</div>
+    <div class="doc-date">${date}</div>
+  </div>
+</div>
+
+<div class="address-block">
+  <h2>${deal.address || 'Address Not Entered'}</h2>
+  <p>Prepared by Pecos Grant Development LLC · ${date}</p>
+</div>
+
+<div class="verdict-box ${deal.score >= 70 ? 'fire' : deal.score >= 40 ? 'good' : 'pass'}">
+  <div class="verdict-score ${deal.score >= 70 ? 'fire' : deal.score >= 40 ? 'good' : 'pass'}">${deal.score || 0}</div>
+  <div class="verdict-text">
+    <h3>${deal.score >= 70 ? '🔥 FIRE DEAL' : deal.score >= 40 ? '⚠ PROCEED WITH CAUTION' : '✗ DOES NOT PENCIL'}</h3>
+    <p>Deal score out of 100 · Based on ARV, rehab estimate, equity gap, and market flags</p>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="section">
+    <div class="section-title">Offer Details</div>
+    <div class="row"><span class="label">List Price</span><span class="value">${fmt(deal.listPrice || 0)}</span></div>
+    <div class="row"><span class="label">Your Offer</span><span class="value">${fmt(deal.offer || 0)}</span></div>
+    <div class="row"><span class="label">Discount to List</span><span class="value">${deal.listPrice > 0 ? (((deal.listPrice - deal.offer) / deal.listPrice) * 100).toFixed(1) + '%' : '—'}</span></div>
+    <div class="row"><span class="label">ARV (After Repair)</span><span class="value">${fmt(deal.arv || 0)}</span></div>
+    <div class="row"><span class="label">Rehab Estimate</span><span class="value">${fmt(deal.rehabMid || 0)}</span></div>
+  </div>
+  <div class="section">
+    <div class="section-title">Deal Economics</div>
+    <div class="row"><span class="label">Total In</span><span class="value">${fmt(deal.totalIn || 0)}</span></div>
+    <div class="row"><span class="label">Net Profit</span><span class="value" style="color:${(deal.netProfit||0) >= 0 ? '#27ae60' : '#e03c3c'}">${fmt(deal.netProfit || 0)}</span></div>
+    <div class="row"><span class="label">ROI</span><span class="value">${roiPct}%</span></div>
+    <div class="row"><span class="label">Profit Margin</span><span class="value">${margin}%</span></div>
+    <div class="row"><span class="label">Max Offer (70% Rule)</span><span class="value">${fmt(deal.maxOffer || 0)}</span></div>
+  </div>
+</div>
+
+${deal.flags && deal.flags.length ? `
+<div class="section">
+  <div class="section-title">Deal Signals</div>
+  <div class="flags">
+    ${deal.flags.map(f => `<div class="flag">${f}</div>`).join('')}
+  </div>
+</div>` : ''}
+
+<div class="grid-2" style="margin-top:8px;">
+  <div>
+    <div class="section-title" style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c9a84c;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e0d8;">Seller Signature</div>
+    <div class="sig-line">Signature · Date</div>
+  </div>
+  <div>
+    <div class="section-title" style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c9a84c;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e0d8;">Buyer Signature</div>
+    <div class="sig-line">Pecos Grant Development LLC · Date</div>
+  </div>
+</div>
+
+<div class="footer">
+  <span>Pecos Grant Development LLC · Springfield, MO</span>
+  <span>Generated by Deal Analyzer · ${date}</span>
+</div>
+
+</body>
+</html>`;
+
+  // Open in new tab and trigger print dialog
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 500);
+}
+
 </script>
 </body>
 </html>

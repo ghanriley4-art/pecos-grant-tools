@@ -271,7 +271,7 @@
           <div class="section-label" style="font-size:9px;">Comparable Sales</div>
           <div class="comps-fetch-row">
             <div class="fetch-label">Auto-pull recently sold from Zillow</div>
-            <button class="fetch-btn" id="fetchCompsBtn" onclick="fetchComps()">⚡ FETCH COMPS</button>
+            <button class="fetch-btn" id="fetchCompsBtn" onclick="fetchComps()">⚡ PROFILE AREA</button>
           </div>
           <div id="fetchStatus" class="fetch-status"></div>
           <div id="compCardsList"></div>
@@ -590,52 +590,96 @@ async function checkBackend(){
 }
 
 // ════════════════════════════════════════════
-// FETCH COMPS
+// FETCH COMPS — wired to neighborhood profiler (bylocation + ZHVI)
 // ════════════════════════════════════════════
 async function fetchComps(){
-  const address=document.getElementById('address').value.trim();
-  const bedRaw =document.getElementById('bedBath').value.trim();
-  const sqft   =document.getElementById('sqft').value.trim();
-  const beds   =bedRaw.match(/\d+/)?bedRaw.match(/\d+/)[0]:'';
+  const address = document.getElementById('address').value.trim();
+  const sqft    = document.getElementById('sqft').value.trim();
+  const bedRaw  = document.getElementById('bedBath').value.trim();
+  const beds    = bedRaw.match(/\d+/) ? bedRaw.match(/\d+/)[0] : '';
 
   if(!address){alert('Enter an address first.');return;}
 
-  const btn   =document.getElementById('fetchCompsBtn');
-  const status=document.getElementById('fetchStatus');
-  btn.disabled=true;
-  btn.textContent='⏳ FETCHING...';
-  status.className='fetch-status loading';
-  status.textContent='Pulling recently sold comps from Zillow...';
+  // Extract ZIP from address if present, otherwise use full address
+  const zipMatch = address.match(/(\d{5})/);
+  const location = zipMatch ? zipMatch[1] : address;
+
+  const btn    = document.getElementById('fetchCompsBtn');
+  const status = document.getElementById('fetchStatus');
+  btn.disabled = true;
+  btn.textContent = '⏳ PROFILING AREA...';
+  status.className   = 'fetch-status loading';
+  status.textContent = `Pulling market data for area: ${location}...`;
 
   try{
-    const params=new URLSearchParams({address});
-    if(beds)params.set('beds',beds);
-    if(sqft)params.set('sqft',sqft);
-
-    const resp=await fetch(`${BACKEND_URL}/comps?${params}`,{signal:AbortSignal.timeout(20000)});
+    const params = new URLSearchParams({ location });
+    const resp   = await fetch(`${BACKEND_URL}/neighborhood?${params}`, {
+      signal: AbortSignal.timeout(25000)
+    });
     if(!resp.ok){
-      const err=await resp.json().catch(()=>({}));
-      throw new Error(err.error||`Server error ${resp.status}`);
+      const err = await resp.json().catch(()=>({}));
+      throw new Error(err.error || `Server error ${resp.status}`);
     }
-    const data=await resp.json();
+    const d = await resp.json();
+    if(d.error) throw new Error(d.error);
 
-    if(!data.comps||!data.comps.length){
-      status.className='fetch-status error';
-      status.textContent='⚠ No recent sold comps found. Try a nearby city name or ZIP code.';
-      btn.disabled=false;btn.textContent='⚡ FETCH COMPS';
-      return;
+    // Build a summary to show inline under the comps section
+    const ppsf    = d.avgPpsf;
+    const sqftNum = parseInt(sqft) || 0;
+    const estArv  = ppsf && sqftNum ? ppsf * sqftNum : null;
+
+    // Render inline market snapshot
+    const compsList = document.getElementById('compCardsList');
+    compsList.innerHTML = `
+      <div style="background:#0d0d0d;border:1px solid var(--border);border-radius:6px;padding:16px;margin-top:8px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold);letter-spacing:1px;margin-bottom:12px;">
+          AREA MARKET PROFILE — ${d.location}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div style="font-size:12px;color:var(--muted2);">Avg $/sqft (active)
+            <div style="font-size:20px;color:var(--gold);font-family:'Space Mono',monospace;">${ppsf ? fmt(ppsf)+'/sf' : '—'}</div>
+          </div>
+          <div style="font-size:12px;color:var(--muted2);">Zillow Median SFR
+            <div style="font-size:20px;color:var(--white);font-family:'Space Mono',monospace;">${d.zhviCurrent ? fmt(d.zhviCurrent) : '—'}</div>
+          </div>
+          <div style="font-size:12px;color:var(--muted2);">Median DOM
+            <div style="font-size:20px;color:var(--green);font-family:'Space Mono',monospace;">${d.medianDom ? d.medianDom+'d' : '—'}</div>
+          </div>
+          <div style="font-size:12px;color:var(--muted2);">1yr Appreciation
+            <div style="font-size:20px;font-family:'Space Mono',monospace;color:${d.zhviPctChange>=0?'var(--green)":'var(--red)'};">${d.zhviPctChange !== null ? (d.zhviPctChange>0?'+':'')+d.zhviPctChange+'%' : '—'}</div>
+          </div>
+        </div>
+        ${estArv ? `
+        <div style="background:rgba(201,168,76,0.1);border:1px solid var(--gold);border-radius:4px;padding:10px;margin-bottom:10px;">
+          <div style="font-size:11px;color:var(--muted2);margin-bottom:2px;">EST. ARV FOR YOUR ${sqftNum.toLocaleString()} SQFT PROPERTY</div>
+          <div style="font-family:'Space Mono',monospace;font-size:24px;color:var(--gold);">
+            ${fmt(estArv)}
+            <span style="font-size:11px;color:var(--muted2);">(${sqftNum.toLocaleString()} sqft × ${fmt(ppsf)}/sf)</span>
+          </div>
+          <button onclick="document.getElementById('arv').value=${estArv};updateResults();" 
+            style="margin-top:8px;background:var(--gold);border:none;border-radius:3px;color:var(--black);font-family:'Space Mono',monospace;font-size:10px;padding:7px 14px;cursor:pointer;font-weight:700;">
+            → SET AS MY ARV
+          </button>
+        </div>` : ''}
+        <div style="font-size:11px;color:var(--muted);">${d.velocity || ''} · ${d.inventory || ''}</div>
+      </div>`;
+
+    // Auto-push ARV if sqft entered
+    if(estArv){
+      const arvField = document.getElementById('arv');
+      if(arvField && !arvField.value) arvField.value = estArv;
     }
 
-    fetchedComps=data.comps;
-    renderCompCards(data.comps,data.summary);
-    status.className='fetch-status success';
-    status.textContent=`✓ ${data.comps.length} comps loaded${data.cached?' (cached)':''} — avg sold: ${fmt(data.summary.avgPrice)}`;
-    btn.textContent='↻ REFRESH';btn.disabled=false;
+    status.className   = 'fetch-status success';
+    status.textContent = `✓ Area profile loaded${d.cached?' (cached)':''} — ${ppsf ? fmt(ppsf)+'/sf ARV benchmark' : 'use Neighborhoods tab for full profile'}`;
+    btn.textContent  = '↻ REFRESH';
+    btn.disabled     = false;
 
   }catch(err){
-    status.className='fetch-status error';
-    status.textContent='✗ '+err.message;
-    btn.disabled=false;btn.textContent='⚡ FETCH COMPS';
+    status.className   = 'fetch-status error';
+    status.textContent = '✗ ' + err.message;
+    btn.disabled     = false;
+    btn.textContent  = '⚡ PROFILE AREA';
   }
 }
 
@@ -1052,7 +1096,7 @@ function reset(){
   document.getElementById('compArvSuggest').style.display='none';
   document.getElementById('fetchStatus').className='fetch-status';
   document.getElementById('fetchStatus').textContent='';
-  document.getElementById('fetchCompsBtn').textContent='⚡ FETCH COMPS';
+  document.getElementById('fetchCompsBtn').textContent='⚡ PROFILE AREA';
   document.getElementById('fetchCompsBtn').disabled=false;
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1086,7 +1130,7 @@ async function profileNeighborhood() {
     if (d.error) throw new Error(d.error);
 
     status.className   = 'fetch-status success';
-    status.textContent = `✓ Profile loaded for "${location}"${d.cached ? ' (cached)' : ''} — ${d.soldCount} recent sales analyzed`;
+    status.textContent = `✓ Profile loaded for "${location}"${d.cached ? ' (cached)' : ''} — ${d.activeCount || 0} active listings analyzed`;
 
     renderNeighborhoodProfile(d);
     document.getElementById('nbhd-results').style.display = 'block';
@@ -1250,7 +1294,7 @@ function renderSavedProfiles() {
       <div>
         <div style="font-size:14px;font-weight:500;color:var(--white);">${p.location}</div>
         <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;">
-          ${p.soldCount} sales · Avg ${fmt(p.avgPrice)} · ${p.avgPpsf ? fmt(p.avgPpsf)+'/sf' : 'no $/sf'} · DOM ${p.medianDom || '—'}d · ${p.savedAt}
+          ${p.activeCount || 0} active · ${p.avgPpsf ? fmt(p.avgPpsf)+'/sf' : 'no $/sf'} · DOM ${p.medianDom || '—'}d · ${p.savedAt}
         </div>
       </div>
       <div style="display:flex;gap:8px;">

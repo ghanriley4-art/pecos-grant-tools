@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -237,6 +236,7 @@
   <button class="nav-tab active" onclick="switchTab('analyzer')">Analyzer</button>
   <button class="nav-tab" onclick="switchTab('saved')">Saved Deals</button>
   <button class="nav-tab" onclick="switchTab('pipeline')">Pipeline</button>
+  <button class="nav-tab" onclick="switchTab('neighborhood')">Neighborhoods</button>
 </div>
 
 <div class="main">
@@ -485,6 +485,62 @@
   <div class="pipeline-cols" id="pipelineCols"></div>
 </div>
 
+<!-- ═══════════════════════ NEIGHBORHOOD ═══════════════════════ -->
+<div class="tab-panel" id="tab-neighborhood">
+
+  <div class="section-label">Neighborhood Profiler</div>
+  <div style="font-size:13px;color:var(--muted2);margin-bottom:20px;line-height:1.6;">
+    Enter a ZIP code, city, or neighborhood before making an offer. Get real sold data — avg $/sqft, sales volume, days on market. Push the ARV benchmark straight into the analyzer.
+  </div>
+
+  <!-- SEARCH -->
+  <div class="card" style="margin-bottom:20px;">
+    <div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:end;">
+      <div class="field" style="margin-bottom:0;">
+        <label>ZIP Code, City, or Neighborhood</label>
+        <input type="text" id="nbhd-input" placeholder="65807 or Springfield MO or Republic MO" onkeydown="if(event.key==='Enter')profileNeighborhood()">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Beds Filter</label>
+        <select id="nbhd-beds" style="background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:13px;padding:11px 13px;outline:none;">
+          <option value="">Any</option>
+          <option value="2">2 bed</option>
+          <option value="3">3 bed</option>
+          <option value="4">4 bed</option>
+        </select>
+      </div>
+      <button class="analyze-btn" style="margin-top:0;padding:12px 24px;font-size:16px;width:auto;" onclick="profileNeighborhood()">PROFILE</button>
+    </div>
+    <div id="nbhd-status" class="fetch-status" style="margin-top:8px;"></div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="nbhd-results" style="display:none;">
+
+    <!-- HEADLINE STATS -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;" id="nbhd-stats-grid"></div>
+
+    <!-- MARKET HEALTH -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+      <div class="card">
+        <div class="section-label" style="font-size:9px;">Market Health</div>
+        <div id="nbhd-health"></div>
+      </div>
+      <div class="card">
+        <div class="section-label" style="font-size:9px;">Your ARV Benchmark</div>
+        <div id="nbhd-arv-box"></div>
+      </div>
+    </div>
+
+    <!-- SAVED PROFILES -->
+    <div style="margin-bottom:12px;">
+      <div class="section-label" style="font-size:9px;">Saved Profiles</div>
+      <div id="nbhd-saved"></div>
+    </div>
+  </div>
+
+</div>
+
 </div><!-- /main -->
 
 <script>
@@ -542,8 +598,8 @@ async function fetchComps(){
   const sqft   =document.getElementById('sqft').value.trim();
   const beds   =bedRaw.match(/\d+/)?bedRaw.match(/\d+/)[0]:'';
 
-  if(!address) return;
-  
+  if(!address){alert('Enter an address first.');return;}
+
   const btn   =document.getElementById('fetchCompsBtn');
   const status=document.getElementById('fetchStatus');
   btn.disabled=true;
@@ -654,13 +710,14 @@ function useCompAvg(avg){
 // ════════════════════════════════════════════
 // TABS
 // ════════════════════════════════════════════
-function switchTab(tab){
-  document.querySelectorAll('.nav-tab').forEach((t,i)=>
-    t.classList.toggle('active',['analyzer','saved','pipeline'][i]===tab));
-  document.querySelectorAll('.tab-panel').forEach(p=>
-    p.classList.toggle('active',p.id==='tab-'+tab));
-  if(tab==='saved')renderSaved();
-  if(tab==='pipeline')renderPipeline();
+function switchTab(tab) {
+  document.querySelectorAll('.nav-tab').forEach((t,i) =>
+    t.classList.toggle('active', ['analyzer','saved','pipeline','neighborhood'][i] === tab));
+  document.querySelectorAll('.tab-panel').forEach(p =>
+    p.classList.toggle('active', p.id === 'tab-'+tab));
+  if(tab==='saved')       renderSaved();
+  if(tab==='pipeline')    renderPipeline();
+  if(tab==='neighborhood') renderSavedProfiles();
 }
 function switchStrategy(s){
   document.querySelectorAll('.strategy-tab').forEach((t,i)=>
@@ -999,19 +1056,230 @@ function reset(){
   document.getElementById('fetchCompsBtn').disabled=false;
   window.scrollTo({top:0,behavior:'smooth'});
 }
-// Auto fetch comps when typing address
-document.getElementById('address').addEventListener('input', function(){
-  const address = this.value.trim();
-  if (!address) return;
 
-  clearTimeout(window._autoCompsTimer);
-  window._autoCompsTimer = setTimeout(() => {
-    fetchComps();
-  }, 700); // wait 0.7s after typing stops
-});
-  // ── INIT ──
+// ════════════════════════════════════════════
+// NEIGHBORHOOD PROFILER
+// ════════════════════════════════════════════
+let savedProfiles = JSON.parse(localStorage.getItem('pecos_profiles') || '[]');
+
+async function profileNeighborhood() {
+  const location = document.getElementById('nbhd-input').value.trim();
+  if (!location) { alert('Enter a ZIP code or area name.'); return; }
+
+  const status = document.getElementById('nbhd-status');
+  status.className   = 'fetch-status loading';
+  status.textContent = `Pulling sold data for "${location}" from Zillow...`;
+  status.style.display = 'block';
+
+  try {
+    const params = new URLSearchParams({ location });
+    const resp   = await fetch(`${BACKEND_URL}/neighborhood?${params}`, {
+      signal: AbortSignal.timeout(25000)
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error || `Server error ${resp.status}`);
+    }
+
+    const d = await resp.json();
+    if (d.error) throw new Error(d.error);
+
+    status.className   = 'fetch-status success';
+    status.textContent = `✓ Profile loaded for "${location}"${d.cached ? ' (cached)' : ''} — ${d.soldCount} recent sales analyzed`;
+
+    renderNeighborhoodProfile(d);
+    document.getElementById('nbhd-results').style.display = 'block';
+
+    // Auto-save profile
+    saveProfile(d);
+
+  } catch(err) {
+    status.className   = 'fetch-status error';
+    status.textContent = '✗ ' + err.message;
+  }
+}
+
+function renderNeighborhoodProfile(d) {
+  // ── Headline stat cards ──────────────────────────────────────────────────
+  const trendColor = d.zhviPctChange >= 2 ? 'green' : d.zhviPctChange >= -1 ? 'yellow' : 'red';
+  const domColor   = d.medianDom && d.medianDom <= 30 ? 'green' : d.medianDom && d.medianDom <= 60 ? 'yellow' : 'red';
+
+  const stats = [
+    {
+      label: 'Median SFR Value',
+      value: d.zhviCurrent ? fmt(d.zhviCurrent) : '—',
+      sub:   d.zhviYearAgo ? `Was ${fmt(d.zhviYearAgo)} 1yr ago` : 'Zillow ZHVI index',
+      color: 'gold'
+    },
+    {
+      label: '1yr Appreciation',
+      value: d.zhviPctChange !== null && d.zhviPctChange !== undefined ? (d.zhviPctChange > 0 ? '+' : '') + d.zhviPctChange + '%' : '—',
+      sub:   d.zhviTrend || '—',
+      color: trendColor
+    },
+    {
+      label: 'Avg $/sqft (Active)',
+      value: d.avgPpsf ? fmt(d.avgPpsf) + '/sf' : '—',
+      sub:   'ARV benchmark — active listings',
+      color: 'green'
+    },
+    {
+      label: 'Median DOM',
+      value: d.medianDom ? d.medianDom + 'd' : '—',
+      sub:   d.velocity || '—',
+      color: domColor
+    },
+    {
+      label: 'Active Inventory',
+      value: d.activeCount || '—',
+      sub:   d.inventory || '—',
+      color: d.activeCount <= 10 ? 'red' : d.activeCount <= 25 ? 'yellow' : 'green'
+    },
+    {
+      label: 'Distressed %',
+      value: d.distressedPct + '%',
+      sub:   'of active listings',
+      color: d.distressedPct >= 15 ? 'green' : 'white'
+    },
+  ];
+
+  document.getElementById('nbhd-stats-grid').style.gridTemplateColumns = 'repeat(3,1fr)';
+  document.getElementById('nbhd-stats-grid').innerHTML = stats.map(s => `
+    <div class="num-card">
+      <div class="num-label">${s.label}</div>
+      <div class="num-value ${s.color}">${s.value}</div>
+      <div class="num-sub">${s.sub}</div>
+    </div>`).join('');
+
+  // ── Market health ────────────────────────────────────────────────────────
+  const healthItems = [
+    { label: 'Market Direction', value: d.zhviTrend || '—' },
+    { label: 'Velocity (DOM)',   value: d.velocity  || '—' },
+    { label: 'Inventory',        value: d.inventory  || '—' },
+    { label: 'Distressed Ratio', value: d.distressedPct + '% of active listings' },
+    { label: 'Avg Active Price', value: d.avgActivePrice ? fmt(d.avgActivePrice) : '—' },
+  ];
+
+  document.getElementById('nbhd-health').innerHTML = healthItems.map(h => `
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span style="color:var(--muted2);">${h.label}</span>
+      <span style="font-family:'Space Mono',monospace;font-size:12px;color:var(--white);text-align:right;max-width:55%;">${h.value}</span>
+    </div>`).join('');
+
+  // ── ARV benchmark box ─────────────────────────────────────────────────────
+  const arvBox = document.getElementById('nbhd-arv-box');
+  const ppsf   = d.avgPpsf;
+  const zhvi   = d.zhviCurrent;
+
+  if (ppsf || zhvi) {
+    let benchmarkHtml = '';
+
+    if (ppsf) {
+      const sqftExamples = [900, 1200, 1500].map(s =>
+        `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
+          <span style="color:var(--muted2);">${s.toLocaleString()} sqft</span>
+          <span style="font-family:'Space Mono',monospace;color:var(--gold);">${fmt(s * ppsf)} est. ARV</span>
+        </div>`).join('');
+
+      benchmarkHtml = `
+        <div style="font-family:'Space Mono',monospace;font-size:26px;color:var(--gold);margin-bottom:2px;">
+          ${fmt(ppsf)}<span style="font-size:13px;">/sqft</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted2);margin-bottom:10px;">avg asking $/sqft — use as ARV starting point</div>
+        ${sqftExamples}`;
+    }
+
+    if (zhvi) {
+      benchmarkHtml += `
+        <div style="margin-top:10px;padding:8px 0;border-top:1px solid var(--border);font-size:12px;color:var(--muted2);">
+          Zillow median SFR: <strong style="color:var(--white);">${fmt(zhvi)}</strong>
+          ${d.zhviPctChange !== null ? ` · <span style="color:${d.zhviPctChange>=0?'var(--green)':'var(--red)'};">${d.zhviPctChange>0?'+':''}${d.zhviPctChange}% YoY</span>` : ''}
+        </div>`;
+    }
+
+    arvBox.innerHTML = benchmarkHtml + `
+      <button onclick="pushArvBenchmark(${ppsf || 0})" style="margin-top:12px;width:100%;background:var(--gold);border:none;border-radius:3px;color:var(--black);font-family:'Space Mono',monospace;font-size:11px;letter-spacing:1px;padding:10px;cursor:pointer;font-weight:700;">
+        → USE IN DEAL ANALYZER
+      </button>`;
+  } else {
+    arvBox.innerHTML = '<div style="color:var(--muted);font-size:13px;">No benchmark data available. Try city-state format e.g. springfield-mo</div>';
+  }
+
+  renderSavedProfiles();
+}
+
+function pushArvBenchmark(ppsf) {
+  // Store for deal analyzer to pick up
+  localStorage.setItem('pecos_arv_benchmark', JSON.stringify({ ppsf, ts: Date.now() }));
+  // Switch to analyzer tab
+  switchTab('analyzer');
+  // Show a hint
+  const arvField = document.getElementById('arv');
+  if (arvField) {
+    arvField.style.borderColor = 'var(--gold)';
+    arvField.placeholder = `Enter sqft × ${ppsf} = your ARV`;
+    setTimeout(() => arvField.style.borderColor = '', 3000);
+  }
+  // Show tip banner
+  const tipBanner = document.createElement('div');
+  tipBanner.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--black);font-family:"Space Mono",monospace;font-size:12px;padding:10px 20px;border-radius:4px;z-index:999;font-weight:700;';
+  tipBanner.textContent = `ARV benchmark: ${fmt(ppsf)}/sqft loaded — multiply by your sqft`;
+  document.body.appendChild(tipBanner);
+  setTimeout(() => tipBanner.remove(), 4000);
+}
+
+function saveProfile(d) {
+  const existing = savedProfiles.findIndex(p => p.location === d.location);
+  const profile  = { ...d, savedAt: new Date().toLocaleDateString() };
+  if (existing >= 0) savedProfiles[existing] = profile;
+  else savedProfiles.unshift(profile);
+  savedProfiles = savedProfiles.slice(0, 10); // keep last 10
+  localStorage.setItem('pecos_profiles', JSON.stringify(savedProfiles));
+  renderSavedProfiles();
+}
+
+function renderSavedProfiles() {
+  const el = document.getElementById('nbhd-saved');
+  if (!savedProfiles.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;">No saved profiles yet.</div>';
+    return;
+  }
+  el.innerHTML = savedProfiles.map((p, i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:8px;gap:12px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:14px;font-weight:500;color:var(--white);">${p.location}</div>
+        <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;">
+          ${p.soldCount} sales · Avg ${fmt(p.avgPrice)} · ${p.avgPpsf ? fmt(p.avgPpsf)+'/sf' : 'no $/sf'} · DOM ${p.medianDom || '—'}d · ${p.savedAt}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="loadProfile(${i})" style="background:var(--border);border:none;border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:9px;padding:7px 12px;cursor:pointer;">LOAD</button>
+        <button onclick="deleteProfile(${i})" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function loadProfile(i) {
+  const p = savedProfiles[i];
+  document.getElementById('nbhd-input').value = p.location;
+  renderNeighborhoodProfile(p);
+  document.getElementById('nbhd-results').style.display = 'block';
+  document.getElementById('nbhd-status').className   = 'fetch-status success';
+  document.getElementById('nbhd-status').textContent = `✓ Loaded saved profile for "${p.location}" (${p.savedAt})`;
+  document.getElementById('nbhd-status').style.display = 'block';
+}
+
+function deleteProfile(i) {
+  savedProfiles.splice(i, 1);
+  localStorage.setItem('pecos_profiles', JSON.stringify(savedProfiles));
+  renderSavedProfiles();
+}
+
+// ── INIT ──
 toggleFinanceFields();
 checkBackend();
+renderSavedProfiles();
 </script>
 </body>
 </html>

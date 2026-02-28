@@ -495,18 +495,28 @@
 
   <!-- SEARCH -->
   <div class="card" style="margin-bottom:20px;">
-    <div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:end;">
+    <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:end;">
       <div class="field" style="margin-bottom:0;">
-        <label>ZIP Code, City, or Neighborhood</label>
+        <label>ZIP Code, City, or Full Address</label>
         <input type="text" id="nbhd-input" placeholder="412 Elm St Springfield MO — or — 65807 — or — springfield-mo" onkeydown="if(event.key==='Enter')profileNeighborhood()">
       </div>
       <div class="field" style="margin-bottom:0;">
-        <label>Beds Filter</label>
+        <label>Beds</label>
         <select id="nbhd-beds" style="background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:13px;padding:11px 13px;outline:none;">
           <option value="">Any</option>
-          <option value="2">2 bed</option>
-          <option value="3">3 bed</option>
-          <option value="4">4 bed</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Baths</label>
+        <select id="nbhd-baths" style="background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:13px;padding:11px 13px;outline:none;">
+          <option value="">Any</option>
+          <option value="1">1</option>
+          <option value="1.5">1.5</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
         </select>
       </div>
       <button class="analyze-btn" style="margin-top:0;padding:12px 24px;font-size:16px;width:auto;" onclick="profileNeighborhood()">PROFILE</button>
@@ -1101,13 +1111,18 @@ async function profileNeighborhood() {
   const location = document.getElementById('nbhd-input').value.trim();
   if (!location) { alert('Enter a ZIP code or area name.'); return; }
 
+  const beds  = document.getElementById('nbhd-beds').value;
+  const baths = document.getElementById('nbhd-baths') ? document.getElementById('nbhd-baths').value : '';
+
   const status = document.getElementById('nbhd-status');
   status.className   = 'fetch-status loading';
-  status.textContent = `Pulling sold data for "${location}" from Zillow...`;
+  status.textContent = `Pulling market data for "${location}"${beds ? ' · '+beds+' bed' : ''}${baths ? ' · '+baths+' bath' : ''}...`;
   status.style.display = 'block';
 
   try {
     const params = new URLSearchParams({ location });
+    if (beds)  params.set('beds', beds);
+    if (baths) params.set('baths', baths);
     const resp   = await fetch(`${BACKEND_URL}/neighborhood?${params}`, {
       signal: AbortSignal.timeout(25000)
     });

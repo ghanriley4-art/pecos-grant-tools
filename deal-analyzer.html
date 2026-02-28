@@ -312,25 +312,21 @@
 
     <!-- RIGHT: Rehab + Financing + BRRRR -->
     <div>
-      <div class="section-label">Rehab Level</div>
+      <div class="section-label">Rehab Estimator</div>
       <div class="card">
-        <div class="rehab-grid">
-          <button class="rehab-btn" data-level="1" onclick="selectRehab(1)">
-            <span class="type">1 — COSMETIC</span>
-            <span class="desc">Paint, floors, kitchen & bath. Roof & HVAC good.</span>
-          </button>
-          <button class="rehab-btn" data-level="2" onclick="selectRehab(2)">
-            <span class="type">2 — MID</span>
-            <span class="desc">Cosmetic + roof OR HVAC. Not both.</span>
-          </button>
-          <button class="rehab-btn" data-level="3" onclick="selectRehab(3)">
-            <span class="type">3 — FULL</span>
-            <span class="desc">Everything. Roof, HVAC, cosmetic, structural.</span>
-          </button>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:10px;font-family:var(--font);">TAP WHAT THE HOUSE NEEDS — Springfield MO pricing</div>
+        <div id="rehabItemGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;"></div>
+        <div style="background:var(--surface2);border-radius:6px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:9px;color:var(--muted);letter-spacing:1px;font-family:var(--font);">EST. REHAB RANGE</div>
+            <div id="rehabRangeDisplay" style="font-size:16px;font-weight:700;color:var(--gold);margin-top:2px;">$0 — select items above</div>
+          </div>
+          <button onclick="clearRehab()" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:10px;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:var(--font);">CLEAR</button>
         </div>
-        <div class="field">
-          <label>Custom Rehab Cost ($)</label>
-          <input type="number" id="rehabOverride" placeholder="Overrides level estimate">
+        <div style="font-size:9px;color:var(--muted);margin-top:6px;font-family:var(--font);">Based on HomeBlue &amp; Ecostify Springfield 2025-26 data. Always get 3 bids.</div>
+        <div class="field" style="margin-top:10px;">
+          <label>Override Total ($)</label>
+          <input type="number" id="rehabOverride" placeholder="Overrides estimate above">
         </div>
 
         <div class="divider" style="margin:16px 0;"></div>
@@ -608,13 +604,29 @@ const BACKEND_URL = 'https://worker-production-8f13.up.railway.app';
 let rehabLevel   = 0;
 let fetchedComps = [];
 let savedDeals   = JSON.parse(localStorage.getItem('pecos_deals') || '[]');
+document.addEventListener('DOMContentLoaded', ()=>{ buildRehabGrid(); });
 let lastResult   = null;
 
-const REHAB_PER_SQFT = {
-  1:{low:8,  high:11, label:'Cosmetic'},
-  2:{low:18, high:24, label:'Mid-Level'},
-  3:{low:28, high:36, label:'Full Rehab'}
+// Springfield MO rehab costs — sourced from HomeBlue, Ecostify, local data 2025-26
+// Roof: HomeBlue Springfield $6,400-$10,000 (1,500 sqft house)
+// HVAC: Ecostify Springfield 2026 $3,200-$7,300
+// All others: national averages adjusted -11% for Springfield RPP of 89.1
+const REHAB_ITEMS = {
+  roof:       { label:'Roof',              low:6400,  high:10000, icon:'🏠', note:'Asphalt shingle, 1,000-1,500 sqft' },
+  hvac:       { label:'HVAC System',       low:3200,  high:7300,  icon:'❄️', note:'Full replacement, central A/C + heat' },
+  electrical: { label:'Electrical Panel',  low:2500,  high:5000,  icon:'⚡', note:'200A upgrade, no full rewire' },
+  plumbing:   { label:'Plumbing',          low:3500,  high:8000,  icon:'🔧', note:'Partial — no full repipe' },
+  foundation: { label:'Foundation/Struct', low:8000,  high:25000, icon:'🧱', note:'Wide range — get inspection first' },
+  kitchen:    { label:'Kitchen',           low:8000,  high:18000, icon:'🍳', note:'Mid-range remodel, new cabinets/counters' },
+  bath1:      { label:'Bathroom (1)',      low:4500,  high:9000,  icon:'🚿', note:'Full gut and refresh' },
+  bath2:      { label:'Bathroom (2nd)',    low:4000,  high:8000,  icon:'🚿', note:'Second bath, similar scope' },
+  flooring:   { label:'Flooring',          low:3500,  high:7000,  icon:'🪵', note:'LVP throughout, 1,000-1,500 sqft' },
+  windows:    { label:'Windows',           low:3000,  high:7000,  icon:'🪟', note:'6-8 windows, double-pane' },
+  paint:      { label:'Paint (Interior)',  low:1800,  high:3500,  icon:'🖌️', note:'Full interior, ~1,200 sqft' },
+  exterior:   { label:'Exterior/Siding',   low:4000,  high:12000, icon:'🏘️', note:'Paint or partial siding' },
+  septic:     { label:'Septic/Well',       low:5000,  high:15000, icon:'💧', note:'Rural properties — inspect first' },
 };
+let rehabSelected = {}; // key: true/false
 const PIPELINE_STAGES = ['Lead','Analyzing','Offer Made','Under Contract','Closed'];
 
 // ════════════════════════════════════════════
@@ -813,11 +825,63 @@ function switchStrategy(s){
   document.querySelectorAll('.strategy-panel').forEach(p=>
     p.classList.toggle('active',p.id==='strategy-'+s));
 }
-function selectRehab(level){
-  rehabLevel=level;
-  document.querySelectorAll('.rehab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelector(`[data-level="${level}"]`).classList.add('active');
+function buildRehabGrid(){
+  const grid = document.getElementById('rehabItemGrid');
+  if(!grid) return;
+  grid.innerHTML = Object.entries(REHAB_ITEMS).map(([key,item])=>{
+    const sel = rehabSelected[key];
+    const mid = Math.round((item.low+item.high)/2);
+    return `<button onclick="toggleRehabItem('${key}')" title="${item.note}"
+      style="background:${sel?'rgba(201,168,76,0.15)':'var(--surface2)'};
+             border:1px solid ${sel?'var(--gold)':'var(--border)'};
+             border-radius:6px;padding:8px 10px;cursor:pointer;text-align:left;
+             transition:all 0.15s;color:${sel?'var(--gold)':'var(--muted)'};">
+      <div style="font-size:13px;margin-bottom:2px;">${item.icon}</div>
+      <div style="font-size:10px;font-weight:700;font-family:var(--font);color:${sel?'var(--gold)':'var(--white)'};">${item.label}</div>
+      <div style="font-size:9px;color:var(--muted);margin-top:2px;">~$${(item.low/1000).toFixed(0)}k-$${(item.high/1000).toFixed(0)}k</div>
+    </button>`;
+  }).join('');
 }
+
+function toggleRehabItem(key){
+  rehabSelected[key] = !rehabSelected[key];
+  buildRehabGrid();
+  updateRehabDisplay();
+}
+
+function clearRehab(){
+  rehabSelected = {};
+  buildRehabGrid();
+  updateRehabDisplay();
+}
+
+function updateRehabDisplay(){
+  let low=0, high=0;
+  Object.entries(rehabSelected).forEach(([key,sel])=>{
+    if(sel){ low+=REHAB_ITEMS[key].low; high+=REHAB_ITEMS[key].high; }
+  });
+  const el = document.getElementById('rehabRangeDisplay');
+  if(!el) return;
+  if(low===0){
+    el.textContent='$0 — select items above';
+    el.style.color='var(--muted)';
+  } else {
+    el.textContent=`$${(low/1000).toFixed(0)}k – $${(high/1000).toFixed(0)}k  (mid $${Math.round((low+high)/2/1000)}k)`;
+    el.style.color='var(--gold)';
+  }
+}
+
+function getRehabMid(){
+  const ovr = parseFloat(document.getElementById('rehabOverride').value)||0;
+  if(ovr>0) return {low:ovr,high:ovr,mid:ovr};
+  let low=0,high=0;
+  Object.entries(rehabSelected).forEach(([key,sel])=>{
+    if(sel){ low+=REHAB_ITEMS[key].low; high+=REHAB_ITEMS[key].high; }
+  });
+  return {low,high,mid:Math.round((low+high)/2)};
+}
+
+function selectRehab(level){} // legacy stub — no-op
 function toggleFinanceFields(){
   document.getElementById('loanFields').style.display=
     document.getElementById('financingType').value==='cash'?'none':'block';
@@ -891,7 +955,7 @@ function analyze(){
   const offer      =parseFloat(document.getElementById('offerPrice').value)||0;
   const sqft       =parseFloat(document.getElementById('sqft').value)||0;
   const arvInput   =parseFloat(document.getElementById('arv').value)||0;
-  const rehabOvr   =parseFloat(document.getElementById('rehabOverride').value)||0;
+  // rehabOverride handled inside getRehabMid()
   const finType    =document.getElementById('financingType').value;
   const holdMos    =parseFloat(document.getElementById('holdingMonths').value)||3;
   const loanRate   =parseFloat(document.getElementById('loanRate').value)||12;
@@ -903,14 +967,14 @@ function analyze(){
 
   if(!offer||!arvInput){alert('Enter at least an offer price and ARV.');return;}
 
-  // Rehab
-  let rehabLow=0,rehabHigh=0,rehabMid=0;
-  if(rehabOvr>0){rehabLow=rehabHigh=rehabMid=rehabOvr;}
-  else if(rehabLevel>0){
-    const s=sqft||1200;const r=REHAB_PER_SQFT[rehabLevel];
-    rehabLow=s*r.low;rehabHigh=s*r.high;rehabMid=(rehabLow+rehabHigh)/2;
-  }
+  // Rehab — item-based estimator
+  const rh=getRehabMid();
+  let rehabLow=rh.low,rehabHigh=rh.high,rehabMid=rh.mid;
 
+  // Show rehab range in results
+  const rehabRangeStr = rehabLow===rehabHigh
+    ? fmt(rehabMid)
+    : `${fmt(rehabLow)} – ${fmt(rehabHigh)}`;
   const contingency=rehabMid*0.10;
   let interestCost=0,pointsCost=0,finLabel='Cash';
   if(finType!=='cash'){
@@ -1006,7 +1070,7 @@ function analyze(){
   esEl.className=`num-value ${equitySpread>0?'green':'red'}`;
   set('equityPct',fmtPct(equitySpread/arv*100)+' of ARV');
   set('bOffer',fmt(offer));
-  set('bRehab',rehabOvr>0?fmt(rehabOvr):`${fmt(rehabLow)} – ${fmt(rehabHigh)}`);
+  set('bRehab',rehabRangeStr);
   set('bContingency',fmt(contingency));
   set('bFinancing',finType==='cash'?'$0 (cash)':fmt(finCost));
   set('bHolding',fmt(holdingCosts));
@@ -1136,7 +1200,7 @@ function reset(){
     if(!['holdingMonths','loanRate','loanPoints','refiLtv','refiRate','refiTerm'].includes(i.id))i.value='';
   });
   document.querySelectorAll('.rehab-btn').forEach(b=>b.classList.remove('active'));
-  rehabLevel=0;fetchedComps=[];lastResult=null;
+  rehabSelected={};fetchedComps=[];lastResult=null;buildRehabGrid();updateRehabDisplay();
   document.getElementById('compCardsList').innerHTML='';
   document.getElementById('compArvSuggest').style.display='none';
   document.getElementById('fetchStatus').className='fetch-status';

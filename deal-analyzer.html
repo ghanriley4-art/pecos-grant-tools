@@ -1,1819 +1,1802 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pecos Grant — Deal Analyzer</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --black:#0a0a0a; --dark:#111111; --card:#161616; --card2:#1c1c1c;
-    --border:#252525; --border2:#2e2e2e;
-    --gold:#c9a84c; --gold-light:#e8c96a; --gold-dim:rgba(201,168,76,0.10);
-    --red:#e03c3c; --green:#2ecc71; --yellow:#f0b429; --blue:#4a9eff;
-    --white:#f0ede8; --muted:#555; --muted2:#777;
-  }
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{background:var(--black);color:var(--white);font-family:'DM Sans',sans-serif;min-height:100vh;}
-
-  /* ── HEADER ── */
-  .header{background:var(--dark);border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-  .logo{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;color:var(--gold);display:flex;align-items:center;gap:14px;}
-  .logo-divider{width:1px;height:28px;background:var(--border2);}
-  .logo-sub{color:var(--muted2);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;line-height:1.4;}
-  .logo-sub span{color:var(--gold);display:block;}
-  .header-right{display:flex;align-items:center;gap:10px;}
-  .badge{background:var(--border);color:var(--muted2);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;padding:5px 10px;border-radius:2px;text-transform:uppercase;}
-  .badge.green{background:rgba(46,204,113,0.1);color:var(--green);border:1px solid rgba(46,204,113,0.2);}
-  .badge.red{background:rgba(224,60,60,0.1);color:var(--red);border:1px solid rgba(224,60,60,0.2);}
-
-  /* ── NAV ── */
-  .nav-tabs{background:var(--dark);border-bottom:1px solid var(--border);padding:0 32px;display:flex;}
-  .nav-tab{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:14px 20px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;background:none;border-left:none;border-right:none;border-top:none;}
-  .nav-tab:hover{color:var(--white);}
-  .nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
-
-  .main{max-width:1100px;margin:0 auto;padding:36px 24px;}
-  .tab-panel{display:none;}
-  .tab-panel.active{display:block;animation:fadeIn 0.25s ease;}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-  @media(max-width:780px){.grid-2{grid-template-columns:1fr;}}
-
-  .section-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
-  .section-label::after{content:'';flex:1;height:1px;background:var(--border);}
-
-  .card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:22px;}
-
-  /* ── FIELDS ── */
-  .field{margin-bottom:14px;}
-  .field:last-child{margin-bottom:0;}
-  .field label{display:block;font-size:10px;font-family:'Space Mono',monospace;letter-spacing:1.5px;color:var(--muted2);text-transform:uppercase;margin-bottom:7px;}
-  .field input,.field select{width:100%;background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:15px;padding:11px 13px;outline:none;transition:border-color 0.15s;-webkit-appearance:none;appearance:none;}
-  .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23555' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer;}
-  .field select option{background:#161616;}
-  .field input:focus,.field select:focus{border-color:var(--gold);}
-  .field input::placeholder{color:#2a2a2a;}
-  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-
-  /* ── REHAB ── */
-  .rehab-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;}
-  .rehab-btn{background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--muted2);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;padding:13px 8px;cursor:pointer;text-align:center;transition:all 0.15s;}
-  .rehab-btn:hover{border-color:var(--gold);color:var(--gold);}
-  .rehab-btn.active{background:var(--gold);border-color:var(--gold);color:var(--black);font-weight:700;}
-  .rehab-btn .type{font-size:12px;font-weight:700;display:block;margin-bottom:4px;}
-  .rehab-btn .desc{font-size:9px;opacity:0.7;line-height:1.4;}
-
-  /* ── BUTTONS ── */
-  .analyze-btn{width:100%;background:var(--gold);border:none;border-radius:3px;color:var(--black);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;padding:17px;cursor:pointer;transition:all 0.2s;margin-top:6px;}
-  .analyze-btn:hover{background:var(--gold-light);transform:translateY(-1px);}
-  .analyze-btn:active{transform:translateY(0);}
-  .reset-btn{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted2);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;padding:9px 18px;cursor:pointer;transition:all 0.2s;}
-  .reset-btn:hover{border-color:var(--muted2);color:var(--white);}
-
-  /* ── COMPS UI ── */
-  .comps-fetch-row{display:flex;align-items:center;gap:8px;padding:12px 14px;background:#0d0d0d;border:1px solid var(--border);border-radius:3px;margin-top:12px;}
-  .fetch-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted2);text-transform:uppercase;flex:1;}
-  .fetch-btn{background:var(--border);border:1px solid var(--border2);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
-  .fetch-btn:hover{border-color:var(--gold);color:var(--gold);}
-  .fetch-btn:disabled{opacity:0.4;cursor:not-allowed;}
-  .fetch-status{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;padding:6px 2px;margin-top:6px;display:none;}
-  .fetch-status.loading{color:var(--yellow);display:block;}
-  .fetch-status.success{color:var(--green);display:block;}
-  .fetch-status.error{color:var(--red);display:block;}
-
-  /* ── COMP CARDS ── */
-  .comp-cards{display:flex;flex-direction:column;gap:5px;margin-top:10px;}
-  .comp-card{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--border);border-radius:3px;padding:9px 12px;animation:fadeIn 0.3s ease;}
-  @media(max-width:600px){.comp-card{grid-template-columns:1fr 1fr;}}
-  .cc-addr{color:var(--white);font-size:12px;line-height:1.3;}
-  .cc-val{font-family:'Space Mono',monospace;font-size:11px;color:var(--gold);}
-  .cc-meta{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted2);}
-  .cc-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0;}
-  .cc-del:hover{color:var(--red);}
-  .comp-avg-row{padding:10px 12px;background:var(--gold-dim);border:1px solid rgba(201,168,76,0.2);border-radius:3px;margin-top:4px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;}
-  .avg-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase;}
-  .avg-vals{font-family:'Space Mono',monospace;font-size:12px;color:var(--white);display:flex;gap:14px;}
-  .arv-suggest{margin-top:8px;padding:10px 14px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:3px;font-size:12px;line-height:1.6;color:#88bfff;}
-  .arv-suggest strong{color:var(--blue);}
-  .use-arv-btn{display:inline-block;margin-top:6px;background:rgba(74,158,255,0.15);border:1px solid rgba(74,158,255,0.3);border-radius:3px;color:var(--blue);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;padding:5px 10px;cursor:pointer;transition:all 0.15s;}
-  .use-arv-btn:hover{background:rgba(74,158,255,0.25);}
-
-  /* ── RESULTS ── */
-  .results{display:none;margin-top:28px;}
-  .results.show{display:block;animation:fadeIn 0.35s ease;}
-
-  /* ── SCORE GAUGE ── */
-  .score-section{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:24px 28px;margin-bottom:20px;}
-  @media(max-width:600px){.score-section{grid-template-columns:1fr;}}
-  .score-gauge{position:relative;width:110px;height:110px;flex-shrink:0;}
-  .score-gauge svg{transform:rotate(-90deg);}
-  .score-number{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;line-height:1;}
-  .score-lbl{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-family:'Space Mono',monospace;font-size:8px;letter-spacing:1.5px;color:var(--muted2);white-space:nowrap;}
-  .score-verdict{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;margin-bottom:6px;}
-  .score-verdict.fire{color:var(--green);}
-  .score-verdict.good{color:#7ecb8d;}
-  .score-verdict.marginal{color:var(--yellow);}
-  .score-verdict.pass{color:var(--red);}
-  .score-sub{font-size:13px;color:var(--muted2);line-height:1.6;max-width:480px;}
-  .score-bars{display:flex;flex-direction:column;gap:7px;margin-top:14px;}
-  .score-bar-row{display:flex;align-items:center;gap:10px;}
-  .score-bar-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted2);width:110px;text-transform:uppercase;flex-shrink:0;}
-  .score-bar-track{flex:1;height:4px;background:var(--border2);border-radius:2px;overflow:hidden;}
-  .score-bar-fill{height:100%;border-radius:2px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1);}
-  .score-bar-val{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted2);width:28px;text-align:right;flex-shrink:0;}
-
-  /* ── MAX OFFER ── */
-  .max-offer-box{background:var(--gold-dim);border:1px solid rgba(201,168,76,0.25);border-radius:4px;padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
-  .max-offer-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;}
-  .max-offer-sub{font-size:11px;color:var(--muted);margin-top:3px;}
-  .max-offer-value{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:2px;color:var(--gold-light);}
-
-  /* ── NUMBER CARDS ── */
-  .numbers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
-  @media(max-width:600px){.numbers{grid-template-columns:1fr 1fr;}}
-  .num-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:16px;}
-  .num-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:7px;}
-  .num-value{font-family:'Space Mono',monospace;font-size:19px;font-weight:700;color:var(--white);}
-  .num-value.green{color:var(--green);}.num-value.red{color:var(--red);}.num-value.yellow{color:var(--yellow);}.num-value.gold{color:var(--gold);}
-  .num-sub{font-size:10px;color:var(--muted);margin-top:4px;}
-
-  /* ── COMPS RESULTS TABLE ── */
-  .comps-results-section{margin-bottom:20px;}
-  .comps-results-table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
-  .comps-results-table th{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--card2);}
-  .comps-results-table td{font-family:'Space Mono',monospace;font-size:12px;padding:10px 12px;border-bottom:1px solid var(--border);color:var(--white);}
-  .comps-results-table tr:last-child td{border-bottom:none;}
-  .comps-results-table .avg-row td{background:var(--gold-dim);color:var(--gold);font-weight:700;border-top:1px solid rgba(201,168,76,0.25);}
-  .arv-confidence{margin-top:10px;padding:12px 14px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:3px;font-size:12px;color:#88bfff;line-height:1.6;}
-  .arv-confidence strong{color:var(--blue);}
-
-  /* ── BREAKDOWN ── */
-  .breakdown{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:22px;margin-bottom:20px;}
-  .breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);}
-  .breakdown-row:last-child{border-bottom:none;padding-top:13px;}
-  .breakdown-row .label{color:var(--muted2);font-size:13px;}
-  .breakdown-row .value{font-family:'Space Mono',monospace;font-size:13px;color:var(--white);}
-  .breakdown-row.total .label{color:var(--white);font-weight:600;font-size:14px;}
-  .breakdown-row.total .value{font-size:15px;font-weight:700;}
-
-  /* ── STRATEGY TABS ── */
-  .strategy-tabs{display:flex;margin-bottom:16px;border:1px solid var(--border);border-radius:4px;overflow:hidden;}
-  .strategy-tab{flex:1;background:var(--card);border:none;color:var(--muted2);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;padding:13px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;border-right:1px solid var(--border);}
-  .strategy-tab:last-child{border-right:none;}
-  .strategy-tab.active{background:var(--gold-dim);color:var(--gold);}
-  .strategy-tab:hover:not(.active){color:var(--white);background:var(--card2);}
-  .strategy-panel{display:none;}
-  .strategy-panel.active{display:block;animation:fadeIn 0.2s ease;}
-  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-  @media(max-width:600px){.compare-grid{grid-template-columns:1fr;}}
-  .compare-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:18px;}
-  .compare-card-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--gold);margin-bottom:12px;}
-  .compare-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
-  .compare-row:last-child{border-bottom:none;font-weight:600;}
-  .compare-row .clabel{color:var(--muted2);}
-  .compare-row .cval{font-family:'Space Mono',monospace;font-size:12px;}
-
-  /* ── FLAGS ── */
-  .flags{display:flex;flex-direction:column;gap:7px;margin-bottom:20px;}
-  .flag{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#aaa;line-height:1.5;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:3px;}
-  .flag-icon{font-size:14px;margin-top:1px;flex-shrink:0;}
-
-  /* ── REC BOX ── */
-  .rec-box{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:0 4px 4px 0;padding:18px 22px;margin-bottom:20px;}
-  .rec-title{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:9px;}
-  .rec-text{font-size:14px;line-height:1.7;color:#bbb;}
-  .rec-text strong{color:var(--white);}
-
-  .divider{height:1px;background:var(--border);margin:24px 0;}
-  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-  .section-header .section-label{margin-bottom:0;flex:1;}
-
-  /* ── SAVED DEALS ── */
-  .saved-list{display:flex;flex-direction:column;gap:10px;}
-  .saved-deal{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-  .saved-deal-address{font-size:14px;font-weight:500;color:var(--white);}
-  .saved-deal-meta{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;}
-  .saved-deal-profit{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;}
-  .saved-deal-actions{display:flex;gap:6px;align-items:center;}
-  .saved-deal-btn{background:var(--border);border:none;border-radius:3px;color:var(--muted2);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;padding:7px 12px;cursor:pointer;transition:all 0.15s;text-transform:uppercase;}
-  .saved-deal-btn:hover{color:var(--white);background:var(--border2);}
-  .saved-deal-btn.danger:hover{color:var(--red);}
-  .empty-state{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px;}
-  .empty-icon{font-size:36px;margin-bottom:12px;}
-  .stage-select{background:var(--border);border:none;color:var(--muted2);font-family:'Space Mono',monospace;font-size:9px;padding:6px 8px;border-radius:3px;cursor:pointer;}
-
-  /* ── PIPELINE ── */
-  .pipeline-cols{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
-  @media(max-width:900px){.pipeline-cols{grid-template-columns:1fr 1fr;}}
-  @media(max-width:600px){.pipeline-cols{grid-template-columns:1fr;}}
-
-  /* ── MOBILE OVERRIDES ── */
-  @media(max-width:600px){
-    .header{padding:12px 16px;}
-    .logo{font-size:20px;gap:10px;}
-    .logo-sub{display:none;}
-    .badge{font-size:8px;padding:4px 7px;}
-    .nav-tabs{padding:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-    .nav-tabs::-webkit-scrollbar{display:none;}
-    .nav-tab{padding:12px 14px;font-size:9px;letter-spacing:1px;white-space:nowrap;}
-    .main{padding:16px 12px;}
-    .grid-2{grid-template-columns:1fr;}
-    .field-row{grid-template-columns:1fr;}
-    .rehab-grid{grid-template-columns:1fr 1fr 1fr;}
-    .rehab-btn .desc{display:none;}
-    .numbers{grid-template-columns:1fr 1fr;}
-    .compare-grid{grid-template-columns:1fr;}
-    .score-section{grid-template-columns:1fr;gap:16px;}
-    .saved-deal{flex-direction:column;align-items:flex-start;}
-    .saved-deal-actions{width:100%;justify-content:flex-end;}
-    .nbhd-filter-row{grid-template-columns:1fr 1fr !important;}
-    .nbhd-filter-row button{grid-column:1/-1;}
-    #nbhd-stats-grid{grid-template-columns:1fr 1fr !important;}
-    .nbhd-market-grid{grid-template-columns:1fr !important;}
-    .analyze-btn{font-size:17px;padding:15px;}
-    .max-offer-value{font-size:30px;}
-    .comp-card{grid-template-columns:1fr 1fr;}
-    .pdf-btn{width:100%;margin-top:8px;}
-  }
-  .pipeline-col{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:14px;min-height:180px;}
-  .pipeline-col-title{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
-  .p-count{background:var(--border2);color:var(--muted2);border-radius:2px;padding:2px 6px;font-size:9px;}
-  .pipeline-card{background:var(--card2);border:1px solid var(--border2);border-radius:3px;padding:10px 12px;margin-bottom:8px;transition:border-color 0.15s;}
-  .pipeline-card:hover{border-color:var(--gold);}
-  .pc-addr{color:var(--white);font-size:12px;margin-bottom:4px;line-height:1.3;}
-  .pc-profit{font-family:'Space Mono',monospace;font-size:11px;}
-</style>
-</head>
-<body>
-
-<!-- HEADER -->
-<div class="header">
-  <div class="logo">
-    Pecos Grant
-    <div class="logo-divider"></div>
-    <div class="logo-sub"><span>DEAL ANALYZER</span>v3.0</div>
-  </div>
-  <div class="header-right">
-    <div class="badge">Springfield, MO</div>
-    <div class="badge" id="backendStatus">● CONNECTING</div>
-  </div>
-</div>
-
-<!-- NAV -->
-<div class="nav-tabs">
-  <button class="nav-tab active" onclick="switchTab('analyzer')">Analyzer</button>
-  <button class="nav-tab" onclick="switchTab('saved')">Saved Deals</button>
-  <button class="nav-tab" onclick="switchTab('pipeline')">Pipeline</button>
-  <button class="nav-tab" onclick="switchTab('neighborhood')">Neighborhoods</button>
-</div>
-
-<div class="main">
-
-<!-- ═══════════════════════ ANALYZER ═══════════════════════ -->
-<div class="tab-panel active" id="tab-analyzer">
-  <div class="grid-2">
-
-    <!-- LEFT: Property + Comps -->
-    <div>
-      <div class="section-label">Property Info</div>
-      <div class="card">
-        <!-- AUTO-FILL FROM ZILLOW -->
-        <div style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:4px;padding:14px;margin-bottom:16px;">
-          <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px;">⚡ Quick Fill — Paste Zillow Link or Address</div>
-          <div style="display:flex;gap:8px;">
-            <input type="text" id="lookupInput" placeholder="Zillow URL or full address..." style="flex:1;background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:13px;padding:11px 13px;outline:none;" onkeydown="if(event.key==='Enter')autoFillFromLookup()">
-            <button onclick="autoFillFromLookup()" id="lookupBtn" style="background:var(--gold);border:none;border-radius:3px;color:var(--black);font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;padding:0 24px;cursor:pointer;white-space:nowrap;transition:all 0.15s;">PULL</button>
-          </div>
-          <div id="lookupStatus" class="fetch-status" style="margin-top:6px;"></div>
-          <div id="lookupPhoto" style="display:none;margin-top:10px;border-radius:4px;overflow:hidden;height:140px;"></div>
-        </div>
-
-        <div class="field">
-          <label>Address</label>
-          <input type="text" id="address" placeholder="123 Main St, Springfield MO">
-        </div>
-        <div class="field-row">
-          <div class="field"><label>List Price ($)</label><input type="number" id="listPrice" placeholder="85000"></div>
-          <div class="field"><label>Your Offer ($)</label><input type="number" id="offerPrice" placeholder="70000"></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label>Sqft</label><input type="number" id="sqft" placeholder="1200"></div>
-          <div class="field"><label>Beds / Baths</label><input type="text" id="bedBath" placeholder="3 / 2"></div>
-        </div>
-        <div class="field">
-          <label>ARV — After Repair Value ($)</label>
-          <input type="number" id="arv" placeholder="185000">
-        </div>
-
-        <!-- AUTO COMPS -->
-        <div style="margin-top:16px;">
-          <div class="section-label" style="font-size:9px;">Comparable Sales</div>
-          <div class="comps-fetch-row">
-            <div class="fetch-label">Auto-pull recently sold from Zillow</div>
-            <button class="fetch-btn" id="fetchCompsBtn" onclick="fetchComps()">⚡ PROFILE AREA</button>
-          </div>
-          <div id="fetchStatus" class="fetch-status"></div>
-          <div id="compCardsList"></div>
-          <div id="compArvSuggest" style="display:none;"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT: Rehab + Financing + BRRRR -->
-    <div>
-      <div class="section-label">Rehab Estimator</div>
-      <div class="card">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:10px;font-family:var(--font);">TAP WHAT THE HOUSE NEEDS — Springfield MO pricing</div>
-        <div id="rehabItemGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;"></div>
-        <div style="background:var(--surface2);border-radius:6px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <div style="font-size:9px;color:var(--muted);letter-spacing:1px;font-family:var(--font);">EST. REHAB RANGE</div>
-            <div id="rehabRangeDisplay" style="font-size:16px;font-weight:700;color:var(--gold);margin-top:2px;">$0 — select items above</div>
-          </div>
-          <button onclick="clearRehab()" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:10px;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:var(--font);">CLEAR</button>
-        </div>
-        <div style="font-size:9px;color:var(--muted);margin-top:6px;font-family:var(--font);">Based on HomeBlue &amp; Ecostify Springfield 2025-26 data. Always get 3 bids.</div>
-        <div class="field" style="margin-top:10px;">
-          <label>Override Total ($)</label>
-          <input type="number" id="rehabOverride" placeholder="Overrides estimate above">
-        </div>
-
-        <div class="divider" style="margin:16px 0;"></div>
-        <div class="section-label" style="font-size:9px;">Financing</div>
-        <div class="field-row">
-          <div class="field">
-            <label>Type</label>
-            <select id="financingType" onchange="toggleFinanceFields()">
-              <option value="cash">Cash</option>
-              <option value="hard">Hard Money</option>
-              <option value="conv">Conventional</option>
-              <option value="private">Private Lender</option>
-            </select>
-          </div>
-          <div class="field"><label>Hold Months</label><input type="number" id="holdingMonths" value="3"></div>
-        </div>
-        <div id="loanFields" style="display:none;">
-          <div class="field-row">
-            <div class="field"><label>Rate (% / yr)</label><input type="number" id="loanRate" value="12"></div>
-            <div class="field"><label>Points (%)</label><input type="number" id="loanPoints" value="2"></div>
-          </div>
-        </div>
-
-        <div class="divider" style="margin:16px 0;"></div>
-
-        <!-- BRRRR TOGGLE -->
-        <div onclick="document.getElementById('brrrr-inputs').style.display=document.getElementById('brrrr-inputs').style.display==='none'?'block':'none';this.querySelector('.brrrr-arrow').style.transform=document.getElementById('brrrr-inputs').style.display==='block'?'rotate(180deg)':'rotate(0deg)'"
-             style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:8px 0;user-select:none;">
-          <div>
-            <span class="section-label" style="font-size:9px;display:inline;">BRRRR / RENTAL</span>
-            <span style="color:var(--muted);font-size:10px;margin-left:8px;font-family:var(--font);">— expand when ready</span>
-          </div>
-          <span class="brrrr-arrow" style="color:var(--gold);font-size:12px;transition:transform 0.2s;">&#9660;</span>
-        </div>
-
-        <div id="brrrr-inputs" style="display:none;">
-          <div class="field-row" style="margin-top:8px;">
-            <div class="field"><label>Monthly Rent ($)</label><input type="number" id="monthlyRent" placeholder="1100"></div>
-            <div class="field"><label>Refi LTV (%)</label><input type="number" id="refiLtv" value="75"></div>
-          </div>
-          <div class="field-row">
-            <div class="field"><label>Refi Rate (%)</label><input type="number" id="refiRate" value="7.5"></div>
-            <div class="field"><label>Refi Term (yrs)</label><input type="number" id="refiTerm" value="30"></div>
-          </div>
-        </div>
-
-        <button class="analyze-btn" onclick="analyze()">RUN THE NUMBERS</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══════ RESULTS ═══════ -->
-  <div class="results" id="results">
-    <div class="divider"></div>
-    <div class="section-header">
-      <div class="section-label">Deal Score</div>
-      <button class="reset-btn" onclick="reset()">↩ NEW DEAL</button>
-    </div>
-
-    <!-- SCORE -->
-    <div class="score-section">
-      <div class="score-gauge">
-        <svg width="110" height="110" viewBox="0 0 110 110">
-          <circle cx="55" cy="55" r="46" fill="none" stroke="#1e1e1e" stroke-width="8"/>
-          <circle cx="55" cy="55" r="46" fill="none" stroke="#c9a84c" stroke-width="8"
-            stroke-dasharray="289" stroke-dashoffset="289" id="scoreCircle" stroke-linecap="round"/>
-        </svg>
-        <div class="score-number" id="scoreNumber">0</div>
-        <div class="score-lbl">/ 100</div>
-      </div>
-      <div>
-        <div class="score-verdict" id="scoreVerdict">—</div>
-        <div class="score-sub" id="scoreSub">—</div>
-        <div class="score-bars" id="scoreBars"></div>
-      </div>
-    </div>
-
-    <!-- MAX OFFER -->
-    <div class="max-offer-box">
-      <div>
-        <div class="max-offer-label">Max Offer (65% Rule)</div>
-        <div class="max-offer-sub">ARV × 0.65 − Rehab — never exceed this</div>
-      </div>
-      <div class="max-offer-value" id="maxOffer">—</div>
-    </div>
-
-    <!-- KEY NUMBERS -->
-    <div class="numbers">
-      <div class="num-card"><div class="num-label">Total All-In</div><div class="num-value" id="totalIn">—</div></div>
-      <div class="num-card"><div class="num-label">ARV</div><div class="num-value gold" id="arvDisplay">—</div></div>
-      <div class="num-card"><div class="num-label">Net Profit</div><div class="num-value" id="netProfit">—</div><div class="num-sub" id="roiDisplay">—</div></div>
-      <div class="num-card"><div class="num-label">$/sqft (Buy)</div><div class="num-value" id="ppsf">—</div></div>
-      <div class="num-card"><div class="num-label">$/sqft (ARV)</div><div class="num-value gold" id="arvpsf">—</div></div>
-      <div class="num-card"><div class="num-label">Equity Spread</div><div class="num-value" id="equitySpread">—</div><div class="num-sub" id="equityPct">—</div></div>
-    </div>
-
-    <!-- ARV STRESS TEST -->
-    <div id="stressTestSection" style="display:none;margin-bottom:20px;">
-      <div class="section-label">ARV Stress Test — 3 Scenarios</div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:4px;overflow:hidden;">
-        <table style="width:100%;border-collapse:collapse;">
-          <thead>
-            <tr style="background:var(--card2);">
-              <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 14px;">Scenario</th>
-              <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 14px;">ARV</th>
-              <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 14px;">Net Profit</th>
-              <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 14px;">ROI</th>
-              <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 14px;">Verdict</th>
-            </tr>
-          </thead>
-          <tbody id="stressTestBody"></tbody>
-        </table>
-      </div>
-      <div id="stressTestNote" style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'Space Mono',monospace;line-height:1.6;"></div>
-    </div>
-
-    <!-- COMPS RESULTS -->
-    <div id="compsResultsSection" style="display:none;" class="comps-results-section">
-      <div class="section-label">Comps vs Your ARV</div>
-      <table class="comps-results-table">
-        <thead><tr><th>Address</th><th>Sold Price</th><th>Sqft</th><th>$/sqft</th><th>Days Ago</th></tr></thead>
-        <tbody id="compsResultsBody"></tbody>
-      </table>
-      <div class="arv-confidence" id="arvConfidence"></div>
-    </div>
-
-    <!-- BREAKDOWN -->
-    <div class="section-label">Cost Breakdown</div>
-    <div class="breakdown">
-      <div class="breakdown-row"><span class="label">Purchase Price</span><span class="value" id="bOffer">—</span></div>
-      <div class="breakdown-row"><span class="label">Estimated Rehab</span><span class="value" id="bRehab">—</span></div>
-      <div class="breakdown-row"><span class="label">Rehab Contingency (10%)</span><span class="value" id="bContingency">—</span></div>
-      <div class="breakdown-row"><span class="label">Financing Costs</span><span class="value" id="bFinancing">—</span></div>
-      <div class="breakdown-row"><span class="label">Holding Costs</span><span class="value" id="bHolding">—</span></div>
-      <div class="breakdown-row total"><span class="label">Total All-In</span><span class="value" id="bTotal">—</span></div>
-      <div class="breakdown-row"><span class="label">ARV (Sale Price)</span><span class="value gold" id="bArv">—</span></div>
-      <div class="breakdown-row"><span class="label">Agent Fees (6%)</span><span class="value" id="bAgent">—</span></div>
-      <div class="breakdown-row"><span class="label">Closing Costs (2%)</span><span class="value" id="bClosing">—</span></div>
-      <div class="breakdown-row total"><span class="label">NET PROFIT</span><span class="value" id="bNet">—</span></div>
-    </div>
-
-    <!-- STRATEGY -->
-    <div class="section-label">Strategy Comparison</div>
-    <div class="strategy-tabs">
-      <button class="strategy-tab active" onclick="switchStrategy('flip')">Flip</button>
-      <button class="strategy-tab" onclick="switchStrategy('brrrr')">BRRRR</button>
-    </div>
-    <div class="strategy-panel active" id="strategy-flip">
-      <div class="compare-grid">
-        <div class="compare-card">
-          <div class="compare-card-title">Flip Summary</div>
-          <div class="compare-row"><span class="clabel">Total In</span><span class="cval" id="f-totalIn">—</span></div>
-          <div class="compare-row"><span class="clabel">Net Profit</span><span class="cval" id="f-netProfit">—</span></div>
-          <div class="compare-row"><span class="clabel">ROI</span><span class="cval" id="f-roi">—</span></div>
-          <div class="compare-row"><span class="clabel">Annualized ROI</span><span class="cval" id="f-annualRoi">—</span></div>
-          <div class="compare-row"><span class="clabel">Equity Multiple</span><span class="cval" id="f-emx">—</span></div>
-        </div>
-        <div class="compare-card">
-          <div class="compare-card-title">Financing</div>
-          <div class="compare-row"><span class="clabel">Type</span><span class="cval" id="f-finType">—</span></div>
-          <div class="compare-row"><span class="clabel">Interest Cost</span><span class="cval" id="f-interest">—</span></div>
-          <div class="compare-row"><span class="clabel">Points / Fees</span><span class="cval" id="f-points">—</span></div>
-          <div class="compare-row"><span class="clabel">Hold Period</span><span class="cval" id="f-hold">—</span></div>
-          <div class="compare-row"><span class="clabel">Total Fin. Cost</span><span class="cval" id="f-finTotal">—</span></div>
-        </div>
-      </div>
-    </div>
-    <div class="strategy-panel" id="strategy-brrrr">
-      <div id="brrrrNoRent" style="text-align:center;padding:30px;color:var(--muted);font-size:13px;">Enter monthly rent above to see BRRRR analysis.</div>
-      <div id="brrrrContent" style="display:none;">
-        <div class="compare-grid">
-          <div class="compare-card">
-            <div class="compare-card-title">BRRRR Numbers</div>
-            <div class="compare-row"><span class="clabel">ARV</span><span class="cval" id="b-arv">—</span></div>
-            <div class="compare-row"><span class="clabel">Refi Amount</span><span class="cval" id="b-refi">—</span></div>
-            <div class="compare-row"><span class="clabel">Cash Left In Deal</span><span class="cval" id="b-cashIn">—</span></div>
-            <div class="compare-row"><span class="clabel">Monthly PITI</span><span class="cval" id="b-piti">—</span></div>
-            <div class="compare-row"><span class="clabel">Monthly Cash Flow</span><span class="cval" id="b-cashflow">—</span></div>
-          </div>
-          <div class="compare-card">
-            <div class="compare-card-title">Rental Returns</div>
-            <div class="compare-row"><span class="clabel">Gross Rent Yield</span><span class="cval" id="b-gry">—</span></div>
-            <div class="compare-row"><span class="clabel">Cash-on-Cash ROI</span><span class="cval" id="b-coc">—</span></div>
-            <div class="compare-row"><span class="clabel">Annual Cash Flow</span><span class="cval" id="b-annualCF">—</span></div>
-            <div class="compare-row"><span class="clabel">Cap Rate (est.)</span><span class="cval" id="b-cap">—</span></div>
-            <div class="compare-row"><span class="clabel">Verdict</span><span class="cval" id="b-verdict">—</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="flags" id="flagsBox" style="margin-top:20px;"></div>
-
-    <div class="rec-box">
-      <div class="rec-title">Recommendation</div>
-      <div class="rec-text" id="recText">—</div>
-    </div>
-
-    <div style="text-align:right;margin-top:-8px;margin-bottom:20px;">
-      <button class="analyze-btn" style="width:auto;padding:12px 28px;font-size:15px;" onclick="saveDeal()">💾 SAVE DEAL</button>
-      <button class="reset-btn pdf-btn" onclick="generatePDF(lastResult)" style="margin-top:8px;width:100%;">📄 GENERATE OFFER SHEET PDF</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════ SAVED ═══════════════════════ -->
-<div class="tab-panel" id="tab-saved">
-  <div class="section-label">Saved Deals</div>
-  <div id="savedList"></div>
-</div>
-
-<!-- ═══════════════════════ PIPELINE ═══════════════════════ -->
-<div class="tab-panel" id="tab-pipeline">
-  <div class="section-label">Deal Pipeline</div>
-  <div class="pipeline-cols" id="pipelineCols"></div>
-</div>
-
-<!-- ═══════════════════════ NEIGHBORHOOD ═══════════════════════ -->
-<div class="tab-panel" id="tab-neighborhood">
-
-  <div class="section-label">Neighborhood Profiler</div>
-  <div style="font-size:13px;color:var(--muted2);margin-bottom:20px;line-height:1.6;">
-    Enter a ZIP code, city, or neighborhood before making an offer. Get real sold data — avg $/sqft, sales volume, days on market. Push the ARV benchmark straight into the analyzer.
-  </div>
-
-  <!-- SEARCH -->
-  <div class="card" style="margin-bottom:20px;">
-    <div class="nbhd-filter-row" style="display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:end;">
-      <div class="field" style="margin-bottom:0;">
-        <label>ZIP Code, City, or Full Address</label>
-        <input type="text" id="nbhd-input" placeholder="412 Elm St Springfield MO — or — 65807 — or — springfield-mo" onkeydown="if(event.key==='Enter')profileNeighborhood()">
-      </div>
-      <div class="field" style="margin-bottom:0;">
-        <label>Beds</label>
-        <select id="nbhd-beds" style="background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:13px;padding:11px 13px;outline:none;">
-          <option value="">Any</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-        </select>
-      </div>
-      <div class="field" style="margin-bottom:0;">
-        <label>Baths</label>
-        <select id="nbhd-baths" style="background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:13px;padding:11px 13px;outline:none;">
-          <option value="">Any</option>
-          <option value="1">1</option>
-          <option value="1.5">1.5</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-        </select>
-      </div>
-      <button class="analyze-btn" style="margin-top:0;padding:12px 24px;font-size:16px;width:auto;" onclick="profileNeighborhood()">PROFILE</button>
-    </div>
-    <div id="nbhd-status" class="fetch-status" style="margin-top:8px;"></div>
-  </div>
-
-  <!-- RESULTS -->
-  <div id="nbhd-results" style="display:none;">
-
-    <!-- HEADLINE STATS -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;" id="nbhd-stats-grid"></div>
-
-    <!-- MARKET HEALTH -->
-    <div class="nbhd-market-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
-      <div class="card">
-        <div class="section-label" style="font-size:9px;">Market Health</div>
-        <div id="nbhd-health"></div>
-      </div>
-      <div class="card">
-        <div class="section-label" style="font-size:9px;">Your ARV Benchmark</div>
-        <div id="nbhd-arv-box"></div>
-      </div>
-    </div>
-
-    <!-- SAVED PROFILES -->
-    <div style="margin-bottom:12px;">
-      <div class="section-label" style="font-size:9px;">Saved Profiles</div>
-      <div id="nbhd-saved"></div>
-    </div>
-  </div>
-
-</div>
-
-</div><!-- /main -->
-
-<script>
-// ════════════════════════════════════════════
-// CONFIG — your Railway URL
-// ════════════════════════════════════════════
-const BACKEND_URL = 'https://worker-production-8f13.up.railway.app';
-
-// ════════════════════════════════════════════
-// STATE
-// ════════════════════════════════════════════
-let rehabLevel   = 0;
-let fetchedComps = [];
-let savedDeals   = JSON.parse(localStorage.getItem('pecos_deals') || '[]');
-document.addEventListener('DOMContentLoaded', ()=>{ buildRehabGrid(); });
-let lastResult   = null;
-
-// Springfield MO rehab costs — sourced from HomeBlue, Ecostify, local data 2025-26
-// Roof: HomeBlue Springfield $6,400-$10,000 (1,500 sqft house)
-// HVAC: Ecostify Springfield 2026 $3,200-$7,300
-// All others: national averages adjusted -11% for Springfield RPP of 89.1
-const REHAB_ITEMS = {
-  roof:       { label:'Roof',              low:6400,  high:10000, icon:'🏠', note:'Asphalt shingle, 1,000-1,500 sqft' },
-  hvac:       { label:'HVAC System',       low:3200,  high:7300,  icon:'❄️', note:'Full replacement, central A/C + heat' },
-  electrical: { label:'Electrical Panel',  low:2500,  high:5000,  icon:'⚡', note:'200A upgrade, no full rewire' },
-  plumbing:   { label:'Plumbing',          low:3500,  high:8000,  icon:'🔧', note:'Partial — no full repipe' },
-  foundation: { label:'Foundation/Struct', low:8000,  high:25000, icon:'🧱', note:'Wide range — get inspection first' },
-  kitchen:    { label:'Kitchen',           low:8000,  high:18000, icon:'🍳', note:'Mid-range remodel, new cabinets/counters' },
-  bath1:      { label:'Bathroom (1)',      low:4500,  high:9000,  icon:'🚿', note:'Full gut and refresh' },
-  bath2:      { label:'Bathroom (2nd)',    low:4000,  high:8000,  icon:'🚿', note:'Second bath, similar scope' },
-  flooring:   { label:'Flooring',          low:3500,  high:7000,  icon:'🪵', note:'LVP throughout, 1,000-1,500 sqft' },
-  windows:    { label:'Windows',           low:3000,  high:7000,  icon:'🪟', note:'6-8 windows, double-pane' },
-  paint:      { label:'Paint (Interior)',  low:1800,  high:3500,  icon:'🖌️', note:'Full interior, ~1,200 sqft' },
-  exterior:   { label:'Exterior/Siding',   low:4000,  high:12000, icon:'🏘️', note:'Paint or partial siding' },
-  septic:     { label:'Septic/Well',       low:5000,  high:15000, icon:'💧', note:'Rural properties — inspect first' },
-};
-let rehabSelected = {}; // key: true/false
-const PIPELINE_STAGES = ['Lead','Analyzing','Offer Made','Under Contract','Closed'];
-
-// ════════════════════════════════════════════
-// UTILS
-// ════════════════════════════════════════════
-function fmt(n){
-  if(n===null||n===undefined||isNaN(n))return'—';
-  return(n<0?'-$':'$')+Math.round(Math.abs(n)).toLocaleString();
-}
-function fmtPct(n){return(!isFinite(n)||isNaN(n))?'—':n.toFixed(1)+'%';}
-function fmtX(n){return isNaN(n)?'—':n.toFixed(2)+'x';}
-function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
-
-// ════════════════════════════════════════════
-// BACKEND HEALTH
-// ════════════════════════════════════════════
-async function checkBackend(){
-  const el=document.getElementById('backendStatus');
-  try{
-    const r=await fetch(BACKEND_URL+'/health',{signal:AbortSignal.timeout(6000)});
-    if(r.ok){el.textContent='● LIVE';el.className='badge green';}
-    else throw new Error();
-  }catch{
-    el.textContent='● OFFLINE';el.className='badge red';
-  }
+import os
+import re
+import time
+import json
+import logging
+import sqlite3
+import threading
+import schedule
+import pytz
+import requests
+from bs4 import BeautifulSoup
+from datetime import datetime
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+
+# ─── LOGGING ──────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+logger = logging.getLogger(__name__)
+
+# ─── CONFIG ───────────────────────────────────────────────────────────────────
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
+RAPIDAPI_KEY   = os.environ.get("RAPIDAPI_KEY")
+FROM_EMAIL     = os.environ.get("FROM_EMAIL", "onboarding@resend.dev")
+TO_EMAIL       = os.environ.get("TO_EMAIL",   "pecosgrantdevelopmentllc@gmail.com")
+
+COUNTIES     = ["Greene", "Christian", "Webster", "Lawrence", "Stone", "Taney", "Polk"]
+COUNTY_STATE = "Missouri"
+MIN_PRICE    = 25000
+MAX_PRICE    = 125000
+
+# Springfield MO market benchmarks — update as you learn the market
+# These are the &#36;/sqft targets by rehab level for your 7 counties
+MARKET_ARV_PPSF = {
+    "Greene":    82,   # highest demand, fastest days - Springfield core
+    "Christian": 75,   # Ozark/Nixa - strong suburb demand
+    "Webster":   65,   # Marshfield area - decent demand
+    "Lawrence":  55,   # Mt Vernon/Aurora - rural, slower market
+    "Stone":     68,   # Table Rock lake-adjacent premium
+    "Taney":     65,   # Branson-adjacent - tourist market, slower off-season
+    "Polk":      52,   # Bolivar/Humansville - rural, slowest mover
 }
 
-// ════════════════════════════════════════════
-// FETCH COMPS — wired to neighborhood profiler (bylocation + ZHVI)
-// ════════════════════════════════════════════
-function setArv(val){ const f=document.getElementById("arv"); if(f){f.value=val; if(typeof updateResults==="function")updateResults();} }
+# Thresholds for MJ/Kobe/LeBron rating
+# MJ = &#36;/sqft is at least 35% below county benchmark AND dom >= 45
+# Kobe = &#36;/sqft is 15-35% below benchmark OR dom >= 60 but price not deep
+# LeBron = everything else — doesn't pencil or not enough signal
+def get_rating(ppsf, bench, dom):
+    if not ppsf or not bench:
+        return "kobe" if dom >= 60 else "lebron"
+    discount = (bench - ppsf) / bench * 100
+    if discount >= 35 and dom >= 45:
+        return "mj"
+    elif discount >= 35 or (discount >= 15 and dom >= 60):
+        return "kobe"
+    elif discount >= 15:
+        return "kobe"
+    else:
+        return "lebron"
 
-async function fetchComps(){
-  const address = document.getElementById('address').value.trim();
-  const sqft    = document.getElementById('sqft').value.trim();
-  const bedRaw  = document.getElementById('bedBath').value.trim();
-  const beds    = bedRaw.match(/\d+/) ? bedRaw.match(/\d+/)[0] : '';
+SCRAPE_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+}
 
-  if(!address){alert('Enter an address first.');return;}
+# ─── CONSTANTS ────────────────────────────────────────────────────────────────
+CACHE_TTL             = 60 * 60 * 6   # 6 hours
+MAX_ACT_NOW           = 8             # max deals in ACT NOW section
+MIN_QUALIFYING_SCORE  = 4             # minimum score to appear in email
+NEW_LISTING_DOM_DAYS  = 7             # DOM threshold for "new this week"
+# Railway persistent volume mounts at /data — falls back to /tmp for local dev
+import pathlib
+_data_dir = pathlib.Path("/data") if pathlib.Path("/data").exists() else pathlib.Path("/tmp")
+DB_PATH   = str(_data_dir / "pecos_grant.db")
 
-  // Extract ZIP from address if present, otherwise use full address
-  const zipMatch = address.match(/(\d{5})/);
-  const location = zipMatch ? zipMatch[1] : address;
+# ─── IN-MEMORY CACHES (non-critical, ok to lose on restart) ──────────────────
+_comps_cache        = {}
+_neighborhood_cache = {}
 
-  const btn    = document.getElementById('fetchCompsBtn');
-  const status = document.getElementById('fetchStatus');
-  btn.disabled = true;
-  btn.textContent = '⏳ PROFILING AREA...';
-  status.className   = 'fetch-status loading';
-  status.textContent = `Pulling market data for area: ${location}...`;
+# ─── SQLITE PERSISTENCE ───────────────────────────────────────────────────────
+def init_db():
+    """Create tables if they don't exist."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c    = conn.cursor()
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS last_week (
+                key           TEXT PRIMARY KEY,
+                price         INTEGER,
+                days_on_market INTEGER,
+                score         INTEGER,
+                address       TEXT,
+                zestimate_gap INTEGER,
+                saved_at      TEXT
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS benchmarks (
+                county        TEXT PRIMARY KEY,
+                median_ppsf   REAL,
+                avg_ppsf      REAL,
+                sample_count  INTEGER,
+                min_ppsf      REAL,
+                max_ppsf      REAL,
+                updated_at    TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
+        logger.info("DB initialized")
+    except Exception as e:
+        logger.warning(f"DB init failed (will use memory fallback): {e}")
 
-  try{
-    const params = new URLSearchParams({ location });
-    const resp   = await fetch(`${BACKEND_URL}/neighborhood?${params}`, {
-      signal: AbortSignal.timeout(25000)
-    });
-    if(!resp.ok){
-      const err = await resp.json().catch(()=>({}));
-      throw new Error(err.error || `Server error ${resp.status}`);
-    }
-    const d = await resp.json();
-    if(d.error) throw new Error(d.error);
+def db_load_last_week():
+    """Load last week snapshot from SQLite. Falls back to empty dict."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c    = conn.cursor()
+        c.execute("SELECT key, price, days_on_market, score, address, zestimate_gap FROM last_week")
+        rows = c.fetchall()
+        conn.close()
+        result = {}
+        for row in rows:
+            result[row[0]] = {
+                "price":          row[1],
+                "days_on_market": row[2],
+                "score":          row[3],
+                "address":        row[4],
+                "zestimate_gap":  row[5],
+            }
+        logger.info(f"Loaded {len(result)} listings from DB")
+        return result
+    except Exception as e:
+        logger.warning(f"DB load failed: {e}")
+        return {}
 
-    // Build a summary to show inline under the comps section
-    const ppsf    = d.avgPpsf;
-    const sqftNum = parseInt(sqft) || 0;
-    const estArv  = ppsf && sqftNum ? ppsf * sqftNum : null;
+def db_save_last_week(listings):
+    """Persist this week's listings to SQLite."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c    = conn.cursor()
+        c.execute("DELETE FROM last_week")
+        now  = datetime.now().isoformat()
+        for l in listings:
+            key = f"zpid_{l.get('zpid')}" if l.get("zpid") else l.get("address", "").lower().strip()
+            if not key: continue
+            c.execute("""
+                INSERT OR REPLACE INTO last_week
+                (key, price, days_on_market, score, address, zestimate_gap, saved_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                key,
+                l.get("price", 0),
+                l.get("days_on_market", 999),
+                l.get("score", 0),
+                l.get("address", ""),
+                l.get("zestimate_gap", 0),
+                now
+            ))
+        conn.commit()
+        conn.close()
+        logger.info(f"Saved {len(listings)} listings to DB")
+    except Exception as e:
+        logger.warning(f"DB save failed: {e}")
 
-    // Render inline market snapshot
-    const compsList = document.getElementById('compCardsList');
-    compsList.innerHTML = `
-      <div style="background:#0d0d0d;border:1px solid var(--border);border-radius:6px;padding:16px;margin-top:8px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold);letter-spacing:1px;margin-bottom:12px;">
-          AREA MARKET PROFILE — ${d.location}
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-          <div style="font-size:12px;color:var(--muted2);">Avg $/sqft (active)
-            <div style="font-size:20px;color:var(--gold);font-family:'Space Mono',monospace;">${ppsf ? fmt(ppsf)+'/sf' : '—'}</div>
-          </div>
-          <div style="font-size:12px;color:var(--muted2);">Zillow Median SFR
-            <div style="font-size:20px;color:var(--white);font-family:'Space Mono',monospace;">${d.zhviCurrent ? fmt(d.zhviCurrent) : '—'}</div>
-          </div>
-          <div style="font-size:12px;color:var(--muted2);">Median DOM
-            <div style="font-size:20px;color:var(--green);font-family:'Space Mono',monospace;">${d.medianDom ? d.medianDom+'d' : '—'}</div>
-          </div>
-          <div style="font-size:12px;color:var(--muted2);">1yr Appreciation
-            <div style="font-size:20px;font-family:'Space Mono',monospace;" class="${d.zhviPctChange>=0?'green':'red'}">${d.zhviPctChange !== null ? (d.zhviPctChange>0?'+':'')+d.zhviPctChange+'%' : '—'}</div>
-          </div>
-        </div>
-        ${estArv ? '<div style="background:rgba(201,168,76,0.1);border:1px solid var(--gold);border-radius:4px;padding:10px;margin-bottom:10px;"><div style="font-size:11px;color:var(--muted2);margin-bottom:2px;">EST. ARV ESTIMATE</div><div style="font-family:Space Mono,monospace;font-size:24px;color:var(--gold);">'  + fmt(estArv) + '</div><button onclick="setArv(' + estArv + ')" style="margin-top:8px;background:#c9a84c;border:none;border-radius:3px;color:#000;font-size:10px;padding:7px 14px;cursor:pointer;font-weight:700;">→ SET AS MY ARV</button></div>' : ''}
-        <div style="font-size:11px;color:var(--muted);">${d.velocity || ''} · ${d.inventory || ''}</div>
-      </div>`;
 
-    // Auto-push ARV if sqft entered
-    if(estArv){
-      const arvField = document.getElementById('arv');
-      if(arvField && !arvField.value) arvField.value = estArv;
+# ─── LIVE BENCHMARK SYSTEM ───────────────────────────────────────────────────
+# Replaces hardcoded MARKET_ARV_PPSF with real sold comp data per county.
+# Runs monthly on the 1st, or on-demand via GET /update-benchmarks.
+# Falls back to hardcoded values if API fails or sample size too small.
+
+HARDCODED_BENCHMARKS = dict(MARKET_ARV_PPSF)  # preserve originals as fallback
+
+def db_load_benchmarks():
+    """Load saved benchmarks from SQLite. Returns dict of county → ppsf."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c    = conn.cursor()
+        c.execute("SELECT county, median_ppsf, sample_count, updated_at FROM benchmarks")
+        rows = c.fetchall()
+        conn.close()
+        result = {}
+        for county, median_ppsf, sample_count, updated_at in rows:
+            if median_ppsf and sample_count >= 3:  # need at least 3 comps to trust it
+                result[county] = round(median_ppsf)
+                logger.info(f"  Benchmark {county}: ${median_ppsf:.0f}/sqft (n={sample_count}, updated {updated_at})")
+        return result
+    except Exception as e:
+        logger.warning(f"Benchmark DB load failed: {e}")
+        return {}
+
+def db_save_benchmarks(county_data):
+    """Save updated benchmarks to SQLite."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c    = conn.cursor()
+        now  = datetime.now().isoformat()
+        for county, stats in county_data.items():
+            c.execute("""
+                INSERT OR REPLACE INTO benchmarks
+                (county, median_ppsf, avg_ppsf, sample_count, min_ppsf, max_ppsf, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                county,
+                stats["median_ppsf"],
+                stats["avg_ppsf"],
+                stats["sample_count"],
+                stats["min_ppsf"],
+                stats["max_ppsf"],
+                now
+            ))
+        conn.commit()
+        conn.close()
+        logger.info(f"Saved benchmarks for {len(county_data)} counties")
+    except Exception as e:
+        logger.warning(f"Benchmark DB save failed: {e}")
+
+def fetch_sold_comps_for_county(county):
+    """
+    Pull recently sold SFR listings for a county from RapidAPI.
+    Returns list of $/sqft values for qualifying sales.
+    """
+    if not RAPIDAPI_KEY:
+        return []
+
+    headers = {
+        "x-rapidapi-key":  RAPIDAPI_KEY,
+        "x-rapidapi-host": "real-estate101.p.rapidapi.com"
     }
 
-    status.className   = 'fetch-status success';
-    status.textContent = `✓ Area profile loaded${d.cached?' (cached)':''} — ${ppsf ? fmt(ppsf)+'/sf ARV benchmark' : 'use Neighborhoods tab for full profile'}`;
-    btn.textContent  = '↻ REFRESH';
-    btn.disabled     = false;
+    location = f"{county} County, {COUNTY_STATE}"
+    all_ppsf = []
 
-  }catch(err){
-    status.className   = 'fetch-status error';
-    status.textContent = '✗ ' + err.message;
-    btn.disabled     = false;
-    btn.textContent  = '⚡ PROFILE AREA';
-  }
-}
+    # Pull up to 2 pages of recently sold — enough for a benchmark
+    for page in range(1, 3):
+        try:
+            params = {
+                "location":    location,
+                "status_type": "RecentlySold",
+                "home_type":   "Houses",
+                "page":        str(page)
+            }
+            resp = requests.get(
+                "https://real-estate101.p.rapidapi.com/api/search",
+                headers=headers, params=params, timeout=30
+            )
+            if resp.status_code == 429:
+                logger.warning(f"  Rate limited on sold comps for {county}")
+                time.sleep(15)
+                continue
+            if resp.status_code != 200:
+                break
 
-function renderCompCards(comps,summary){
-  document.getElementById('compCardsList').innerHTML=`
-    <div class="comp-cards">
-      ${comps.map((c,i)=>`
-        <div class="comp-card">
-          <div><div class="cc-addr">${c.address}</div>
-          <div class="cc-meta">${[c.beds?c.beds+'bd':'',c.baths?c.baths+'ba':'',c.sqft?c.sqft.toLocaleString()+' sf':''].filter(Boolean).join(' · ')}</div></div>
-          <div class="cc-val">${fmt(c.price)}</div>
-          <div class="cc-meta">${c.ppsf?fmt(c.ppsf)+'/sf':'—'}</div>
-          <div class="cc-meta">${c.daysAgo?c.daysAgo+'d ago':'—'}</div>
-          <button class="cc-del" onclick="removeComp(${i})">✕</button>
-        </div>`).join('')}
+            data  = resp.json()
+            props = data.get("results") or data.get("props") or []
+            if isinstance(data, list):
+                props = data
+            if not props:
+                break
+
+            for p in props:
+                try:
+                    price = p.get("price", 0) or p.get("soldPrice", 0) or 0
+                    if isinstance(price, str):
+                        price = int("".join(filter(str.isdigit, price))) if price else 0
+                    sqft = int(p.get("livingArea", 0) or p.get("area", 0) or 0)
+
+                    # Quality filters — match your buy box, cap at $175k for light rehab comps
+                    if not price or price < 20000 or price > 175000:
+                        continue
+                    if not sqft or sqft < 500 or sqft > 5000:
+                        continue
+
+                    home_type = (p.get("homeType", "") or "").lower()
+                    if any(t in home_type for t in [
+                        "land", "lot", "mobile", "manufactured", "modular", "vacant"
+                    ]):
+                        continue
+
+                    ppsf = price / sqft
+                    # Sanity check — skip extreme outliers
+                    if ppsf < 10 or ppsf > 300:
+                        continue
+
+                    all_ppsf.append(round(ppsf, 1))
+                except Exception:
+                    continue
+
+            if len(props) < 41:
+                break
+            time.sleep(2)
+
+        except Exception as e:
+            logger.warning(f"  Sold comps error for {county}: {e}")
+            break
+
+    return all_ppsf
+
+def update_benchmarks():
+    """
+    Pull recently sold comps for all 7 counties and update MARKET_ARV_PPSF.
+    Falls back to hardcoded values if not enough data.
+    """
+    global MARKET_ARV_PPSF
+    logger.info("═══ UPDATING $/SQFT BENCHMARKS FROM LIVE DATA ═══")
+
+    county_data = {}
+    results_log = []
+
+    for county in COUNTIES:
+        logger.info(f"  Fetching sold comps for {county} County...")
+        ppsf_values = fetch_sold_comps_for_county(county)
+        time.sleep(4)  # respect rate limits between counties
+
+        old_bench = HARDCODED_BENCHMARKS.get(county, 65)
+
+        if len(ppsf_values) >= 3:
+            ppsf_values.sort()
+            median_ppsf = ppsf_values[len(ppsf_values) // 2]
+            avg_ppsf    = sum(ppsf_values) / len(ppsf_values)
+            min_ppsf    = min(ppsf_values)
+            max_ppsf    = max(ppsf_values)
+
+            county_data[county] = {
+                "median_ppsf":  median_ppsf,
+                "avg_ppsf":     round(avg_ppsf, 1),
+                "sample_count": len(ppsf_values),
+                "min_ppsf":     min_ppsf,
+                "max_ppsf":     max_ppsf,
+            }
+
+            # Use median as the benchmark (more robust than mean for RE)
+            MARKET_ARV_PPSF[county] = round(median_ppsf)
+            change = round(median_ppsf) - old_bench
+            direction = "↑" if change > 0 else "↓" if change < 0 else "="
+            results_log.append(
+                f"  ✓ {county}: ${median_ppsf:.0f}/sqft (was ${old_bench}) {direction}{abs(change)} "
+                f"[n={len(ppsf_values)}, range ${min_ppsf:.0f}-${max_ppsf:.0f}]"
+            )
+        else:
+            # Not enough data — keep hardcoded fallback
+            MARKET_ARV_PPSF[county] = old_bench
+            results_log.append(
+                f"  ⚠ {county}: KEPT HARDCODED ${old_bench}/sqft (only {len(ppsf_values)} comps found)"
+            )
+
+    # Persist to DB
+    if county_data:
+        db_save_benchmarks(county_data)
+
+    for line in results_log:
+        logger.info(line)
+
+    logger.info("═══ BENCHMARK UPDATE COMPLETE ═══")
+    return {
+        "updated": {k: v["median_ppsf"] for k, v in county_data.items()},
+        "kept_hardcoded": [c for c in COUNTIES if c not in county_data],
+        "benchmarks": dict(MARKET_ARV_PPSF),
+    }
+
+# Load last week from DB on startup (survives Railway restarts)
+_last_week = {}
+
+# ─── STARTUP VALIDATION ───────────────────────────────────────────────────────
+def validate_config():
+    missing = []
+    if not RESEND_API_KEY: missing.append("RESEND_API_KEY")
+    if not RAPIDAPI_KEY:   missing.append("RAPIDAPI_KEY")
+    if missing:
+        logger.error(f"MISSING ENV VARS: {', '.join(missing)} - emails and scraping will fail")
+    else:
+        logger.info("Config validated - all env vars present")
+
+# ─── FLASK ────────────────────────────────────────────────────────────────────
+app = Flask(__name__)
+CORS(app)
+
+
+@app.route("/health")
+def health():
+    return jsonify({
+        "status":          "ok",
+        "ts":              time.time(),
+        "last_week_count": len(_last_week),
+        "db_path":         DB_PATH,
+        "rapidapi_key":    "set" if RAPIDAPI_KEY else "MISSING",
+        "resend_key":      "set" if RESEND_API_KEY else "MISSING",
+        "benchmarks":      dict(MARKET_ARV_PPSF),
+        "version":         "3.1-debug",
+    })
+
+
+@app.route("/api-test")
+def api_test():
+    """Raw API test — shows exactly what the Zillow API returns for any address.
+    GET /api-test?q=2516+W+Elm+St+Springfield+MO
+    """
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify({"error": "Pass ?q=address"}), 400
+    if not RAPIDAPI_KEY:
+        return jsonify({"error": "No API key"}), 500
+    try:
+        headers = {
+            "x-rapidapi-key":  RAPIDAPI_KEY,
+            "x-rapidapi-host": "real-estate101.p.rapidapi.com"
+        }
+        resp = requests.get(
+            "https://real-estate101.p.rapidapi.com/api/search",
+            headers=headers,
+            params={"location": q, "status_type": "ForSale", "home_type": "Houses"},
+            timeout=20
+        )
+        raw = resp.json()
+        # Extract just the first 3 results with key fields
+        summary = {"api_status": resp.status_code, "response_type": type(raw).__name__}
+        if isinstance(raw, dict):
+            summary["keys"] = list(raw.keys())
+            for key in raw.keys():
+                val = raw[key]
+                if isinstance(val, list) and len(val) > 0:
+                    summary["list_key"] = key
+                    summary["count"] = len(val)
+                    summary["first_3"] = []
+                    for p in val[:3]:
+                        summary["first_3"].append({
+                            "address": p.get("address", "?"),
+                            "price": p.get("price", "?"),
+                            "zpid": p.get("zpid", "?"),
+                            "city": p.get("address", {}).get("city", "?") if isinstance(p.get("address"), dict) else "?",
+                        })
+                    break
+        elif isinstance(raw, list):
+            summary["count"] = len(raw)
+            summary["first_3"] = [{"address": p.get("address","?"), "price": p.get("price","?")} for p in raw[:3]]
+        return jsonify(summary)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/update-benchmarks")
+def update_benchmarks_endpoint():
+    """On-demand benchmark refresh. GET /update-benchmarks
+    Runs in background thread to avoid Railway HTTP timeout."""
+    def _run():
+        try:
+            result = update_benchmarks()
+            logger.info(f"Benchmark update result: {result}")
+        except Exception as e:
+            logger.error(f"Benchmark update failed: {e}")
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({
+        "status": "started",
+        "message": "Benchmark update running in background. Check /health in ~90 seconds for updated values.",
+        "current_benchmarks": dict(MARKET_ARV_PPSF),
+    })
+
+
+# ─── /lookup ENDPOINT — AUTO-FILL DEAL ANALYZER ─────────────────────────────
+@app.route("/lookup")
+def lookup():
+    """
+    GET /lookup?url=https://www.zillow.com/homedetails/...
+    GET /lookup?address=1460 S Jefferson Ave Springfield MO
+    GET /lookup?zpid=12345678
+
+    Extracts property details and returns them in a format the deal analyzer
+    can use to auto-fill all fields. One API call.
+    """
+    url_param = request.args.get("url", "").strip()
+    address   = request.args.get("address", "").strip()
+    zpid      = request.args.get("zpid", "").strip()
+
+    if not RAPIDAPI_KEY:
+        return jsonify({"error": "RAPIDAPI_KEY not set"}), 500
+
+    headers = {
+        "x-rapidapi-key":  RAPIDAPI_KEY,
+        "x-rapidapi-host": "real-estate101.p.rapidapi.com"
+    }
+
+    # Extract zpid and address from Zillow URL if provided
+    if url_param:
+        zpid_match = re.search(r'/(\d+)_zpid', url_param)
+        if zpid_match:
+            zpid = zpid_match.group(1)
+
+        # Always extract address from URL path — more reliable than zpid search
+        # e.g. /homedetails/2516-W-Elm-St-Springfield-MO-65806/50260275_zpid/
+        path_match = re.search(r'/homedetails/([^/]+)/\d+_zpid', url_param)
+        if path_match:
+            raw_slug = path_match.group(1)
+            # Convert slug to address: "2516-W-Elm-St-Springfield-MO-65806" → "2516 W Elm St Springfield MO 65806"
+            address = raw_slug.replace('-', ' ')
+            logger.info(f"  Lookup: extracted address from URL: {address}")
+
+    if not zpid and not address:
+        return jsonify({"error": "Provide a Zillow URL, address, or zpid"}), 400
+
+    try:
+        # Strategy: search by address to find the listing with full data
+        search_location = address if address else f"zpid {zpid}"
+
+        # If we have a zpid but no address, try property detail first
+        # If that doesn't work, fall back to search
+        prop = None
+
+        # ── STRATEGY: Use the propertyDetailsZpid endpoint for direct lookup ────
+        # This returns the exact property — no searching, no matching, no Boardman OR.
+        
+        # If we have a zpid (from URL or direct), use it
+        if zpid:
+            logger.info(f"  Lookup: fetching property details for zpid={zpid}")
+            resp = requests.get(
+                "https://real-estate101.p.rapidapi.com/api/property-details/byzpid",
+                headers=headers,
+                params={"zpid": zpid},
+                timeout=45
+            )
+            logger.info(f"  Lookup: API status={resp.status_code}")
+            if resp.status_code == 200:
+                data = resp.json()
+                if isinstance(data, dict) and not data.get("error"):
+                    prop = data
+                    # Log keys so we can see the response structure
+                    top_keys = list(data.keys())[:20]
+                    logger.info(f"  Lookup: got property details for zpid {zpid}")
+                    logger.info(f"  Lookup: response keys: {top_keys}")
+                    # Log some values to find the right field names
+                    for key in ['price', 'listPrice', 'list_price', 'livingArea', 'sqft', 'bedrooms', 'beds',
+                                'bathrooms', 'baths', 'address', 'streetAddress', 'daysOnZillow', 'zestimate',
+                                'yearBuilt', 'homeType', 'imgSrc', 'hdpUrl', 'zpid']:
+                        if key in data:
+                            val = data[key]
+                            if isinstance(val, (str, int, float, bool)):
+                                logger.info(f"  Lookup:   {key} = {val}")
+                            elif isinstance(val, dict):
+                                logger.info(f"  Lookup:   {key} = dict({list(val.keys())[:8]})")
+                            elif isinstance(val, list):
+                                logger.info(f"  Lookup:   {key} = list[{len(val)}]")
+                else:
+                    logger.warning(f"  Lookup: zpid response had error or empty: {str(data)[:200]}")
+            elif resp.status_code == 429:
+                return jsonify({"error": "Rate limited — try again in a minute"}), 429
+
+        # If we only have an address (no zpid), try propertyDetailsByaddress
+        if not prop and address:
+            logger.info(f"  Lookup: trying address lookup: '{address}'")
+            resp = requests.get(
+                "https://real-estate101.p.rapidapi.com/api/property-details/byaddress",
+                headers=headers,
+                params={"address": address},
+                timeout=45
+            )
+            logger.info(f"  Lookup: address API status={resp.status_code}")
+            if resp.status_code == 200:
+                data = resp.json()
+                if isinstance(data, dict) and not data.get("error"):
+                    prop = data
+                    logger.info(f"  Lookup: got property details by address")
+                else:
+                    logger.warning(f"  Lookup: address response had error: {str(data)[:200]}")
+
+        if not prop:
+            return jsonify({"error": f"Property not found. Searched: '{address or zpid}'. Try pasting the full Zillow URL.", "searched": address or zpid}), 404
+
+        # ── Parse the property into deal analyzer format ─────────────────────
+        # The property details endpoint returns a richer object than search
+        raw_addr = prop.get("address", {})
+        if isinstance(raw_addr, dict):
+            full_addr = f"{raw_addr.get('streetAddress','')} {raw_addr.get('city','')} {raw_addr.get('state','')} {raw_addr.get('zipcode','')}".strip()
+            city  = raw_addr.get("city", "")
+            state = raw_addr.get("state", "")
+            zip_code = raw_addr.get("zipcode", "")
+        elif isinstance(raw_addr, str):
+            full_addr = raw_addr
+            city = state = zip_code = ""
+        else:
+            # Details endpoint might have these at top level
+            full_addr = prop.get("streetAddress", "") or prop.get("formattedAddress", "") or address or "Unknown"
+            city  = prop.get("city", "")
+            state = prop.get("state", "")
+            zip_code = prop.get("zipcode", "") or prop.get("zip", "")
+            if city and not full_addr.strip():
+                full_addr = f"{prop.get('streetAddress','')} {city} {state} {zip_code}".strip()
+
+        price = prop.get("price", 0) or prop.get("unformattedPrice", 0) or 0
+        if isinstance(price, str):
+            price = int("".join(filter(str.isdigit, price))) if price else 0
+
+        sqft      = int(prop.get("livingArea", 0) or prop.get("area", 0) or 0)
+        beds      = int(prop.get("bedrooms", 0) or prop.get("beds", 0) or 0)
+        baths     = float(prop.get("bathrooms", 0) or prop.get("baths", 0) or 0)
+        dom       = int(prop.get("daysOnZillow", 0) or prop.get("daysOnMarket", 0) or prop.get("timeOnZillow", "") or 0)
+        year_built = prop.get("yearBuilt", 0) or prop.get("yearbuilt", 0) or 0
+        home_type  = prop.get("homeType", "") or prop.get("propertyType", "") or ""
+        zestimate  = prop.get("zestimate", 0) or prop.get("zestimateValue", 0) or 0
+        if isinstance(zestimate, str):
+            zestimate = int("".join(filter(str.isdigit, zestimate))) if zestimate else 0
+
+        p_zpid = str(prop.get("zpid", prop.get("id", "")))
+        link   = prop.get("detailUrl", prop.get("url", f"https://www.zillow.com/homedetails/{p_zpid}_zpid/"))
+        if link and not link.startswith("http"):
+            link = "https://www.zillow.com" + link
+
+        photo = (
+            prop.get("imgSrc") or
+            prop.get("img") or
+            prop.get("thumbnail") or
+            (prop.get("carouselPhotos") or [{}])[0].get("url", "") or
+            ""
+        )
+
+        # Price reduction detection
+        price_reduction = prop.get("priceReduction", "") or ""
+        reduction_amt = 0
+        if price_reduction:
+            try:
+                reduction_amt = int("".join(filter(str.isdigit, str(price_reduction))))
+            except Exception:
+                pass
+
+        # Detect county from city/zip
+        county = ""
+        city_low = city.lower()
+        zip_str  = str(zip_code)
+        if any(z in zip_str for z in ["6580", "6560"]) or "springfield" in city_low:
+            county = "Greene"
+        elif "ozark" in city_low or "nixa" in city_low:
+            county = "Christian"
+        elif "marshfield" in city_low:
+            county = "Webster"
+        elif "aurora" in city_low or "mt vernon" in city_low or "mount vernon" in city_low:
+            county = "Lawrence"
+        elif "branson" in city_low or "hollister" in city_low:
+            county = "Taney"
+        elif "kimberling" in city_low or "reeds spring" in city_low:
+            county = "Stone"
+        elif "bolivar" in city_low or "humansville" in city_low or "flemington" in city_low:
+            county = "Polk"
+
+        bench = MARKET_ARV_PPSF.get(county, 0)
+        ppsf  = round(price / sqft) if sqft else 0
+
+        result = {
+            "address":       full_addr,
+            "city":          city,
+            "state":         state,
+            "zipcode":       zip_code,
+            "county":        county,
+            "price":         price,
+            "sqft":          sqft,
+            "beds":          beds,
+            "baths":         baths,
+            "bedBath":       f"{beds} / {baths}" if beds else "",
+            "dom":           dom,
+            "yearBuilt":     year_built,
+            "homeType":      home_type,
+            "zestimate":     zestimate,
+            "zestimateGap":  zestimate - price if zestimate and price else 0,
+            "pricePerSqft":  ppsf,
+            "countyBench":   bench,
+            "discountPct":   round((bench - ppsf) / bench * 100, 1) if bench and ppsf else 0,
+            "priceReduction": reduction_amt,
+            "photo":         photo,
+            "link":          link,
+            "zpid":          p_zpid,
+        }
+
+        logger.info(f"  Lookup: {full_addr} → ${price:,} | {sqft}sqft | {beds}bd/{baths}ba | {dom}DOM")
+        return jsonify(result)
+
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "API timed out — try again"}), 504
+    except Exception as e:
+        logger.error(f"  Lookup error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ─── /comps ENDPOINT ─────────────────────────────────────────────────────────
+@app.route("/comps")
+def comps():
+    address = request.args.get("address", "").strip()
+    beds    = request.args.get("beds", "")
+    sqft    = request.args.get("sqft", "")
+
+    if not address or len(address) < 5:
+        return jsonify({"error": "address is required (min 5 chars)"}), 400
+    if not RAPIDAPI_KEY:
+        return jsonify({"error": "RAPIDAPI_KEY not set - contact admin"}), 500
+    # Sanitize beds/sqft — must be positive integers if provided
+    if beds:
+        try:
+            beds = str(max(1, min(int(beds), 10)))
+        except ValueError:
+            return jsonify({"error": "beds must be a number"}), 400
+    if sqft:
+        try:
+            sqft_val = int(sqft)
+            if sqft_val < 100 or sqft_val > 10000:
+                return jsonify({"error": "sqft must be between 100-10000"}), 400
+            sqft = str(sqft_val)
+        except ValueError:
+            return jsonify({"error": "sqft must be a number"}), 400
+
+    cache_key = f"comps|{address}|{beds}"
+    cached    = _comps_cache.get(cache_key)
+    if cached and (time.time() - cached["ts"]) < CACHE_TTL:
+        result = cached["data"].copy()
+        result["cached"] = True
+        return jsonify(result)
+
+    headers = {
+        "x-rapidapi-key":  RAPIDAPI_KEY,
+        "x-rapidapi-host": "real-estate101.p.rapidapi.com"
+    }
+    params = {
+        "location":    address,
+        "status_type": "RecentlySold",
+        "home_type":   "Houses",
+    }
+
+    try:
+        resp = requests.get(
+            "https://real-estate101.p.rapidapi.com/api/search",
+            headers=headers, params=params, timeout=20
+        )
+        if resp.status_code == 429:
+            return jsonify({"error": "Rate limited - try again shortly"}), 429
+        if resp.status_code != 200:
+            return jsonify({"error": f"API error {resp.status_code}"}), 502
+
+        data = resp.json()
+        raw  = data.get("results") or data.get("props") or []
+        if isinstance(data, list):
+            raw = data
+        if not raw:
+            return jsonify({"comps": [], "summary": {}, "message": "No recent sales found."})
+
+        target_beds = int(beds) if str(beds).isdigit() else None
+        target_sqft = int(sqft) if str(sqft).isdigit() else None
+
+        parsed = []
+        for p in raw:
+            try:
+                price = p.get("price", 0) or p.get("soldPrice", 0) or 0
+                if isinstance(price, str):
+                    price = int("".join(filter(str.isdigit, price))) if price else 0
+                if not price or price < 10000:
+                    continue
+
+                p_beds  = int(p.get("bedrooms", 0) or p.get("beds", 0) or 0)
+                p_sqft  = int(p.get("livingArea", 0) or p.get("area", 0) or 0)
+                p_baths = p.get("bathrooms", 0) or p.get("baths", 0) or 0
+
+                raw_addr = p.get("address", {})
+                if isinstance(raw_addr, dict):
+                    addr = f"{raw_addr.get('streetAddress','')} {raw_addr.get('city','')} {raw_addr.get('state','')}".strip()
+                elif isinstance(raw_addr, str):
+                    addr = raw_addr
+                else:
+                    addr = p.get("streetAddress", "Unknown")
+
+                sold_date = p.get("soldDate") or p.get("dateSold") or None
+                days_ago  = None
+                if sold_date:
+                    try:
+                        days_ago = int((time.time() - datetime.strptime(sold_date[:10], "%Y-%m-%d").timestamp()) / 86400)
+                    except Exception:
+                        pass
+
+                ppsf = round(price / p_sqft) if p_sqft else None
+
+                relevance = 0
+                if target_beds and p_beds:
+                    relevance += max(0, 10 - abs(p_beds - target_beds) * 3)
+                if target_sqft and p_sqft:
+                    relevance += max(0, 10 - abs(p_sqft - target_sqft) / 100)
+
+                parsed.append({
+                    "address": addr or "Unknown",
+                    "price":   price,
+                    "beds":    p_beds,
+                    "baths":   float(p_baths),
+                    "sqft":    p_sqft or None,
+                    "ppsf":    ppsf,
+                    "soldDate": sold_date,
+                    "daysAgo":  days_ago,
+                    "relevance": relevance,
+                })
+            except Exception:
+                continue
+
+        parsed.sort(key=lambda x: x["relevance"], reverse=True)
+        top = parsed[:6]
+
+        prices = [c["price"] for c in top if c["price"]]
+        ppsfs  = [c["ppsf"]  for c in top if c["ppsf"]]
+        summary = {}
+        if prices:
+            summary["avgPrice"] = round(sum(prices) / len(prices))
+            summary["medPrice"] = sorted(prices)[len(prices) // 2]
+            summary["minPrice"] = min(prices)
+            summary["maxPrice"] = max(prices)
+        if ppsfs:
+            summary["avgPpsf"] = round(sum(ppsfs) / len(ppsfs))
+        summary["count"] = len(top)
+
+        result = {"comps": top, "summary": summary, "cached": False}
+        _comps_cache[cache_key] = {"data": result, "ts": time.time()}
+        return jsonify(result)
+
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "API timed out - try again"}), 504
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ─── /neighborhood ENDPOINT ──────────────────────────────────────────────────
+@app.route("/neighborhood")
+def neighborhood():
+    """
+    GET /neighborhood?location=springfield-mo  (or 65807 or "Springfield MO")
+    Dual source:
+      1. housingMarket  → ZHVI median SFR value + 1yr trend (confirmed working)
+      2. bylocation     → active listing &#36;/sqft, DOM, inventory (same as scraper, confirmed working)
+    """
+    location = request.args.get("location", "").strip()
+    filter_beds  = request.args.get("beds", "").strip()
+    filter_baths = request.args.get("baths", "").strip()
+    if not location or len(location) < 3:
+        return jsonify({"error": "location is required (min 3 chars)"}), 400
+    if not RAPIDAPI_KEY:
+        return jsonify({"error": "RAPIDAPI_KEY not set - contact admin"}), 500
+    # Sanitize filter params
+    if filter_beds:
+        try:
+            filter_beds = str(max(1, min(int(filter_beds), 10)))
+        except ValueError:
+            filter_beds = ""
+    if filter_baths:
+        try:
+            filter_baths = str(max(0.5, min(float(filter_baths), 6)))
+        except ValueError:
+            filter_baths = ""
+
+    cache_key = f"nbhd2|{location}|{filter_beds}|{filter_baths}"
+    cached    = _neighborhood_cache.get(cache_key)
+    if cached and (time.time() - cached["ts"]) < CACHE_TTL:
+        result = cached["data"].copy()
+        result["cached"] = True
+        return jsonify(result)
+
+    headers = {
+        "x-rapidapi-key":  RAPIDAPI_KEY,
+        "x-rapidapi-host": "real-estate101.p.rapidapi.com"
+    }
+
+    # ── Smart location parsing ───────────────────────────────────────────────
+    # Handles: full address, city+state, ZIP, city-state slug
+    # For ZHVI we need city-state slug e.g. "springfield-mo"
+    # For bylocation we use the input as-is (handles full addresses)
+
+    loc_lower = location.lower().strip()
+
+    # Detect if full address (has digits at start = street number)
+    is_full_address = bool(re.match(r'^\d+\s+', location.strip()))
+
+    if is_full_address:
+        # Extract city and state from address for ZHVI
+        # e.g. "412 Elm St Springfield MO 65807" → "springfield-mo"
+        parts = location.strip().split()
+        # Find state abbreviation (2 uppercase letters)
+        state = next((p.lower() for p in parts if re.match(r'^[A-Z]{2}$', p)), 'mo')
+        # City is usually 2nd to last word before state/ZIP
+        state_idx = next((i for i,p in enumerate(parts) if re.match(r'^[A-Z]{2}$', p)), -1)
+        city = parts[state_idx - 1].lower() if state_idx > 0 else 'springfield'
+        city_param = f"{city}-{state}"
+        # bylocation gets the full address for hyper-local results
+        bylocation_param = location
+    else:
+        # ZIP, city name, or city-state slug
+        city_param = re.sub(r'\s+', '-', loc_lower)
+        city_param = re.sub(r'[^a-z0-9\-]', '', city_param)
+        bylocation_param = location
+
+    try:
+        # ── SOURCE 1: housingMarket ZHVI (confirmed working) ─────────────────
+        zhvi_resp = requests.get(
+            "https://real-estate101.p.rapidapi.com/api/analysis/housing-market",
+            headers=headers,
+            params={"city": city_param},
+            timeout=20
+        )
+
+        # ── SOURCE 2: bylocation active listings (same as scraper) ───────────
+        active_resp = requests.get(
+            "https://real-estate101.p.rapidapi.com/api/search",
+            headers=headers,
+            params={
+                "location":    bylocation_param,
+                "status_type": "ForSale",
+                "home_type":   "Houses",
+            },
+            timeout=20
+        )
+
+        # ── Parse ZHVI ───────────────────────────────────────────────────────
+        zhvi_current  = None
+        zhvi_year_ago = None
+        zhvi_trend    = None
+        zhvi_pct_change = None
+
+        if zhvi_resp.status_code == 200:
+            try:
+                zd = zhvi_resp.json()
+                results = zd.get("results", [])
+                # Use uc_sfr_tier (single family only) — best match for your flips
+                sfr = next((r for r in results if r.get("key") == "uc_sfr_tier_0.33_0.67_sm_sa"), None)
+                if not sfr:
+                    # fallback to sfr+condo combined
+                    sfr = next((r for r in results if "sfrcondo" in r.get("key", "")), None)
+                if sfr:
+                    zhvi_range = sfr["data"]["data"]["odpMarketAnalytics"]["zhviRange"]
+                    if zhvi_range:
+                        # Most recent = index 0, 12 months ago = index 12
+                        zhvi_current  = round(zhvi_range[0]["dataValue"])
+                        zhvi_year_ago = round(zhvi_range[12]["dataValue"]) if len(zhvi_range) > 12 else None
+                        if zhvi_year_ago:
+                            zhvi_pct_change = round((zhvi_current - zhvi_year_ago) / zhvi_year_ago * 100, 1)
+                            zhvi_trend = (
+                                "🔥 Appreciating fast" if zhvi_pct_change >= 5 else
+                                "📈 Rising"            if zhvi_pct_change >= 2 else
+                                "➡️ Flat"              if zhvi_pct_change >= -1 else
+                                "📉 Declining"
+                            )
+            except Exception as e:
+                logger.warning(f"  ZHVI parse error: {e}")
+
+        # ── Parse active listings ─────────────────────────────────────────────
+        active_ppsf   = []
+        active_doms   = []
+        active_prices = []
+        active_count  = 0
+        distressed    = 0
+
+        if active_resp.status_code == 200:
+            try:
+                ad = active_resp.json()
+                props = ad.get("results") or ad.get("props") or (ad if isinstance(ad, list) else [])
+                active_count = len(props)
+                for p in props:
+                    try:
+                        price = p.get("price", 0) or p.get("unformattedPrice", 0)
+                        if isinstance(price, str):
+                            price = int("".join(filter(str.isdigit, price))) if price else 0
+                        sqft = int(p.get("livingArea", 0) or p.get("area", 0) or 0)
+                        dom  = int(p.get("daysOnZillow", 0) or p.get("daysOnMarket", 0) or 0)
+                        status = (p.get("listingStatus", "") or "").lower()
+
+                        # Apply bed/bath filters if specified
+                        p_beds  = int(p.get("bedrooms", 0) or p.get("beds", 0) or 0)
+                        p_baths = float(p.get("bathrooms", 0) or p.get("baths", 0) or 0)
+                        if filter_beds  and p_beds  and abs(p_beds - int(filter_beds)) > 1: continue
+                        if filter_baths and p_baths and p_baths < float(filter_baths): continue
+
+                        if price > 20000:
+                            active_prices.append(price)
+                        if price > 0 and sqft > 400:
+                            active_ppsf.append(round(price / sqft))
+                        if dom > 0:
+                            active_doms.append(dom)
+                        if any(t in status for t in ["foreclos", "reo", "bank", "auction"]):
+                            distressed += 1
+                    except Exception:
+                        continue
+            except Exception as e:
+                logger.warning(f"  Active parse error: {e}")
+
+        # ── Must have at least one data source ───────────────────────────────
+        if not zhvi_current and not active_prices:
+            return jsonify({
+                "error": f"No data found for '{location}'. Try format: springfield-mo or city-state",
+                "location": location
+            })
+
+        # ── Derived stats from active listings ───────────────────────────────
+        avg_ppsf    = round(sum(active_ppsf) / len(active_ppsf))       if active_ppsf   else None
+        median_dom  = sorted(active_doms)[len(active_doms) // 2]        if active_doms   else None
+        avg_price   = round(sum(active_prices) / len(active_prices))    if active_prices else None
+        distress_pct = round(distressed / active_count * 100)           if active_count  else 0
+
+        # Market velocity from active DOM
+        if median_dom:
+            velocity = (
+                "🔥 Fast - under 20 days"    if median_dom <= 20 else
+                "✓ Healthy - 20-45 days"     if median_dom <= 45 else
+                "⚠ Slow - 45-75 days"        if median_dom <= 75 else
+                "🐢 Very slow - 75+ days"
+            )
+        else:
+            velocity = "Unknown"
+
+        # Inventory health
+        inventory = (
+            "Tight - seller's market"  if active_count <= 10 else
+            "Balanced"                 if active_count <= 25 else
+            "High - buyer's market"
+        )
+
+        profile = {
+            "location":       location,
+            # ZHVI data (market-level truth)
+            "zhviCurrent":    zhvi_current,     # median SFR value right now
+            "zhviYearAgo":    zhvi_year_ago,
+            "zhviPctChange":  zhvi_pct_change,  # 1yr appreciation %
+            "zhviTrend":      zhvi_trend,        # human-readable direction
+            # Active listing data (ground-level reality)
+            "avgPpsf":        avg_ppsf,          # avg asking &#36;/sqft → ARV benchmark
+            "medianDom":      median_dom,         # how fast stuff moves
+            "avgActivePrice": avg_price,
+            "activeCount":    active_count,
+            "distressedPct":  distress_pct,
+            "velocity":       velocity,
+            "inventory":      inventory,
+            "cached":         False
+        }
+
+        _neighborhood_cache[cache_key] = {"data": profile, "ts": time.time()}
+        return jsonify(profile)
+
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "API timed out - try again"}), 504
+    except Exception as e:
+        logger.error(f"  Neighborhood error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ─── SCORING HELPERS ──────────────────────────────────────────────────────────
+def score_days_on_market(dom):
+    if dom <= 3:   return 4, "&#127381; JUST LISTED"
+    if dom >= 90:  return 5, f"💀 {dom} Days - Seller Desperate"
+    if dom >= 60:  return 4, f"⏰ {dom} Days - Lowball Window Open"
+    if dom >= 30:  return 2, f"📅 {dom} Days on Market"
+    return 0, None
+
+def score_distressed_signals(prop_type, desc):
+    if any(t in prop_type + desc for t in ["foreclosure", "reo", "bank owned", "bank-owned"]):
+        return 4, "🏦 Bank/REO"
+    if any(t in desc for t in ["estate", "probate"]):
+        return 3, "⚖️ Estate/Probate"
+    if "auction" in desc:
+        return 3, "🔨 Auction"
+    return 0, None
+
+def score_price_reduction(reduction_pct):
+    if reduction_pct >= 15: return 5, f"🔴 {reduction_pct:.0f}% Price Slash"
+    if reduction_pct >= 10: return 4, f"🔴 {reduction_pct:.0f}% Price Drop"
+    if reduction_pct >= 5:  return 2, f"📉 {reduction_pct:.0f}% Price Drop"
+    if reduction_pct > 0:   return 1, "📉 Price Reduced"
+    return 0, None
+
+def score_price_per_sqft(price, sqft, county, listing):
+    if not sqft or sqft <= 400:
+        listing["implied_arv"] = None
+        listing["equity_gap"]  = None
+        listing["equity_pct"]  = None
+        return 0, []
+    ppsf        = price / sqft
+    arv_bench   = MARKET_ARV_PPSF.get(county, 70)
+    implied_arv = sqft * arv_bench
+    equity_gap  = implied_arv - price
+    equity_pct  = (equity_gap / implied_arv * 100) if implied_arv else 0
+    listing["implied_arv"]    = round(implied_arv)
+    listing["equity_gap"]     = round(equity_gap)
+    listing["equity_pct"]     = round(equity_pct, 1)
+    listing["price_per_sqft"] = round(ppsf, 0)
+    points, flags = 0, []
+    if ppsf <= 35:   points += 5; flags.append(f"💰 ${ppsf:.0f}/sqft - Deep Value")
+    elif ppsf <= 50: points += 4; flags.append(f"💰 ${ppsf:.0f}/sqft - Strong Value")
+    elif ppsf <= 65: points += 2; flags.append(f"📊 ${ppsf:.0f}/sqft")
+    elif ppsf >= 150: points -= 3
+    if equity_gap >= 50000:   points += 4; flags.append(f"🚀 ~${equity_gap:,} Implied Equity ({equity_pct:.0f}%)")
+    elif equity_gap >= 30000: points += 3; flags.append(f"📈 ~${equity_gap:,} Implied Equity ({equity_pct:.0f}%)")
+    elif equity_gap >= 15000: points += 1; flags.append(f"📈 ~${equity_gap:,} Implied Equity")
+    return points, flags
+
+def score_zestimate_gap(zestimate_gap, zestimate_gap_pct):
+    if zestimate_gap >= 25000 and zestimate_gap_pct >= 25:
+        return 5, f"🎯 {zestimate_gap_pct:.0f}% Below Zestimate (${zestimate_gap:,})"
+    if zestimate_gap >= 15000 and zestimate_gap_pct >= 15:
+        return 3, f"🎯 {zestimate_gap_pct:.0f}% Below Zestimate (${zestimate_gap:,})"
+    if zestimate_gap >= 8000:
+        return 2, f"📊 Below Zestimate ${zestimate_gap:,}"
+    if zestimate_gap < -8000:
+        return -3, "⚠️ Over Zestimate - walk carefully"
+    return 0, None
+
+def score_size(sqft):
+    if sqft and sqft < 600: return -4, "❌ Too small (<600 sqft)"
+    if sqft and sqft < 900: return -1, "⚠️ Small (< 900 sqft)"
+    return 0, None
+
+# ─── SCORING — MAIN ───────────────────────────────────────────────────────────
+def score_listing(listing):
+    score = 0
+    flags = []
+    dom       = listing.get("days_on_market", 999)
+    desc      = listing.get("description", "").lower()
+    prop_type = listing.get("type", "").lower()
+    county    = listing.get("county", "")
+    price     = listing.get("price", 0)
+    sqft      = listing.get("sqft", 0)
+
+    pts, flag = score_days_on_market(dom)
+    score += pts
+    if flag: flags.append(flag)
+
+    pts, flag = score_distressed_signals(prop_type, desc)
+    score += pts
+    if flag: flags.append(flag)
+
+    pts, flag = score_price_reduction(listing.get("price_reduction_pct", 0))
+    score += pts
+    if flag: flags.append(flag)
+
+    pts, flag_list = score_price_per_sqft(price, sqft, county, listing)
+    score += pts
+    flags.extend(flag_list)
+
+    pts, flag = score_zestimate_gap(listing.get("zestimate_gap", 0), listing.get("zestimate_gap_pct", 0))
+    score += pts
+    if flag: flags.append(flag)
+
+    pts, flag = score_size(sqft)
+    score += pts
+    if flag: flags.append(flag)
+
+    if county in ["Greene", "Christian"]:
+        score += 1  # strongest buyer pools
+
+    listing["score"]  = max(0, score)
+    listing["flags"]  = flags
+    ppsf  = listing.get("price_per_sqft", 0)
+    bench = MARKET_ARV_PPSF.get(county, 65)
+    listing["rating"] = get_rating(ppsf, bench, dom)
+    listing["bench"]  = bench
+    return listing
+
+
+# ─── WEEK-OVER-WEEK COMPARISON ────────────────────────────────────────────────
+def compare_to_last_week(current_listings):
+    """
+    Compares this week's listings to last week's in-memory snapshot.
+    Returns list of ACT NOW deals with reason codes.
+    """
+    global _last_week
+    act_now = []
+
+    for listing in current_listings:
+        key       = f"zpid_{listing.get('zpid')}" if listing.get("zpid") else listing.get("address", "").lower().strip()
+        prev      = _last_week.get(key)
+        reasons   = []
+        urgency   = 0
+
+        if prev:
+            # Price drop
+            price_drop = prev.get("price", 0) - listing.get("price", 0)
+            if price_drop >= 2500:
+                pct = round(price_drop / prev["price"] * 100, 1)
+                reasons.append(f"🔴 Price dropped ${price_drop:,} ({pct}%) since last week")
+                urgency += 4 if price_drop >= 8000 else 2
+
+            # Day threshold crossings
+            dom      = listing.get("days_on_market", 0)
+            prev_dom = prev.get("days_on_market", 0)
+            for threshold in [60, 75, 90]:
+                if prev_dom < threshold <= dom:
+                    reasons.append(f"⏰ Just crossed {threshold} days - seller is bleeding carrying costs")
+                    urgency += 3
+                    break
+
+            # Score improved
+            score_jump = listing.get("score", 0) - prev.get("score", 0)
+            if score_jump >= 2:
+                reasons.append(f"📈 Score jumped {prev['score']} → {listing['score']} - better deal than last week")
+                urgency += 2
+
+            # Zestimate gap widening — seller chasing market down
+            # Movie vs snapshot: gap growing means seller is losing ground fast
+            prev_zest_gap = prev.get("zestimate_gap", 0)
+            curr_zest_gap = listing.get("zestimate_gap", 0)
+            gap_growth    = curr_zest_gap - prev_zest_gap
+            if curr_zest_gap > 0 and gap_growth >= 3000:
+                reasons.append(
+                    f"📉 Zestimate gap grew ${gap_growth:,} this week "
+                    f"(now ${curr_zest_gap:,} below Zestimate) - seller losing ground, call now"
+                )
+                urgency += 3 if gap_growth >= 8000 else 2
+
+        else:
+            # Not seen before — check if it was previously delisted (back on market)
+            # We detect this by checking if the zpid was in a separate "seen_zpids" tracker
+            # For simplicity: if dom > 7 but not in last week, it likely relisted
+            dom = listing.get("days_on_market", 0)
+            if dom > 7 and dom < 30:
+                reasons.append(f"&#127381; Back on market or missed last week - {dom} days in")
+                urgency += 1
+
+        if reasons and listing.get("score", 0) >= 5:
+            act_now.append({
+                **listing,
+                "act_reasons": reasons,
+                "urgency": urgency
+            })
+
+    # Sort by urgency descending
+    act_now.sort(key=lambda x: x["urgency"], reverse=True)
+    return act_now[:MAX_ACT_NOW]  # cap - you only have so many hours
+
+
+def save_this_week(listings):
+    """Persist this week to SQLite so it survives Railway restarts."""
+    global _last_week
+    _last_week = {}
+    for l in listings:
+        key = f"zpid_{l.get('zpid')}" if l.get("zpid") else l.get("address", "").lower().strip()
+        if key:
+            _last_week[key] = {
+                "price":          l.get("price", 0),
+                "days_on_market": l.get("days_on_market", 999),
+                "score":          l.get("score", 0),
+                "address":        l.get("address", ""),
+                "zestimate_gap":  l.get("zestimate_gap", 0),
+            }
+    db_save_last_week(listings)  # also logs save count
+
+
+# ─── ZILLOW SCRAPER ───────────────────────────────────────────────────────────
+def scrape_zillow_rapidapi():
+    listings = []
+    if not RAPIDAPI_KEY:
+        logger.error("RAPIDAPI_KEY not set - skipping scrape"); return listings
+
+    headers = {
+        "x-rapidapi-key":  RAPIDAPI_KEY,
+        "x-rapidapi-host": "real-estate101.p.rapidapi.com"
+    }
+
+    for county in COUNTIES:
+        location = f"{county} County, {COUNTY_STATE}"
+        try:
+            county_listings = []
+            for page in range(1, 6):
+                params = {
+                    "location": location,
+                    "minPrice": MIN_PRICE,
+                    "maxPrice": MAX_PRICE,
+                    "page":     str(page)
+                }
+                logger.info(f"  {location} p{page}...")
+                # Retry once on timeout — RapidAPI occasionally drops connections
+                resp = None
+                for attempt in range(2):
+                    try:
+                        resp = requests.get(
+                            "https://real-estate101.p.rapidapi.com/api/search",
+                            headers=headers, params=params, timeout=30
+                        )
+                        break
+                    except requests.exceptions.Timeout:
+                        if attempt == 0:
+                            logger.warning(f"  Timeout on {location} p{page} - retrying...")
+                            time.sleep(5)
+                        else:
+                            logger.warning(f"  Timeout again - skipping {location} p{page}")
+                if resp is None: break
+                if resp.status_code == 429:
+                    logger.warning("  Rate limited - waiting 15s..."); time.sleep(15); continue
+                if resp.status_code != 200:
+                    logger.warning(f"  Error {resp.status_code}"); break
+
+                data  = resp.json()
+                props = data.get("results") or data.get("props") or []
+                if isinstance(data, list): props = data
+                if not props: break
+
+                county_listings += props
+                logger.info(f"  → {len(props)} listings")
+                if len(props) < 41: break
+                time.sleep(2)
+
+            for prop in county_listings:
+                try:
+                    price = prop.get("price", 0) or prop.get("unformattedPrice", 0)
+                    if isinstance(price, str):
+                        price = int("".join(filter(str.isdigit, price)))
+                    if not price or not (MIN_PRICE <= price <= MAX_PRICE):
+                        continue
+
+                    home_type = prop.get("homeType", "").lower()
+                    # Block all non-stick-built home types
+                    if any(t in home_type for t in [
+                        "land", "lot", "mobile", "manufactured", "modular",
+                        "vacant", "unimproved", "mobile_home", "manufactured_home"
+                    ]): continue
+
+                    raw_addr = prop.get("address", {})
+                    if isinstance(raw_addr, dict):
+                        address = f"{raw_addr.get('streetAddress','')} {raw_addr.get('city','')} {raw_addr.get('state','')} {raw_addr.get('zipcode','')}".strip()
+                    elif isinstance(raw_addr, str):
+                        address = raw_addr
+                    else:
+                        address = prop.get("streetAddress", "Unknown")
+                    if not address: address = "Unknown"
+
+                    addr_low = address.lower()
+                    if addr_low.startswith(("000 ", "tbd ", "tract ", "xxx ", "na ", "n/a ")): continue
+                    if re.match(r"lot\s+\d+", addr_low): continue
+                    if re.match(r"^[0-9]+\s+acres?\b", addr_low): continue
+                    if any(p in addr_low for p in [
+                        "tbd ", " lot ", "tract ", " acr", " hwy ", "highway ",
+                        "county rd", "county road", "rural route", " rr ",
+                        "unplatted", "parcel", "survey", "section "
+                    ]): continue
+
+                    # Filter mobile/manufactured keywords in address or description
+                    EXCLUDE_ADDR = ["mobile home", "manufactured", "modular home", "trailer",
+                               "doublewide", "double wide", "singlewide", "single wide",
+                               "mobile/manufactured", "mobilehome",
+                               "trailer park", "mh park", "mobile park",
+                               "rv park", "camper", "tiny home", "tiny house",
+                               "storage unit", "storage building", "barn only",
+                               "no dwelling", "no house", "land only"]
+                    if any(t in addr_low for t in EXCLUDE_ADDR): continue
+
+                    # Pull listing status + description once — used for filtering AND later appended to listing
+                    listing_status = (prop.get("listingStatus", "") or prop.get("statusText", "") or "").lower()
+                    desc_text      = (prop.get("description", "") or prop.get("homeStatus", "") or "").lower()
+                    combined_text  = f"{addr_low} {listing_status} {desc_text}"
+
+                    # Check listing status + description for mobile/lot signals
+                    EXCLUDE_COMBINED = [
+                        "mobile home", "manufactured home", "modular home",
+                        "mobile", "manufactured", "modular",
+                        "vacant land", "vacant lot", "unimproved land",
+                        "land only", "lot only", "no structure", "no improvements"
+                    ]
+                    if any(t in combined_text for t in EXCLUDE_COMBINED): continue
+
+                    # Skip suspiciously small listings — likely mobile or studio
+                    # 1 bed + under 500 sqft = almost certainly not a flip candidate
+                    early_sqft = int(prop.get("livingArea", 0) or prop.get("area", 0) or 0)
+                    early_beds = int(prop.get("bedrooms", 0) or prop.get("beds", 0) or 0)
+                    if early_sqft > 0 and early_sqft < 500: continue
+                    if early_beds == 1 and early_sqft > 0 and early_sqft < 700: continue
+                    # No sqft + under $40k = almost certainly vacant land or mobile
+                    if early_sqft == 0 and price < 40000: continue
+                    # No beds AND no sqft = not a real house listing
+                    if early_beds == 0 and early_sqft == 0: continue
+
+                    zpid = prop.get("zpid", prop.get("id", ""))
+                    link = prop.get("detailUrl", prop.get("url", f"https://www.zillow.com/homedetails/{zpid}_zpid/"))
+                    if link and not link.startswith("http"): link = "https://www.zillow.com" + link
+
+                    days_on = prop.get("daysOnZillow", prop.get("daysOnMarket", 999)) or 999
+
+                    price_reduction = prop.get("priceReduction", "") or ""
+                    reduction_pct   = 0
+                    if price_reduction:
+                        try:
+                            amt = int("".join(filter(str.isdigit, str(price_reduction))))
+                            if amt and price: reduction_pct = round((amt / (price + amt)) * 100, 1)
+                        except Exception: pass
+
+                    listing_type = "foreclosure" if any(t in listing_status for t in ["foreclos", "reo"]) else ""
+
+                    zestimate = prop.get("zestimate", 0) or 0
+                    if isinstance(zestimate, str):
+                        zestimate = int("".join(filter(str.isdigit, zestimate))) if zestimate else 0
+                    zestimate_gap     = zestimate - price if zestimate and price else 0
+                    zestimate_gap_pct = round((zestimate_gap / zestimate) * 100, 1) if zestimate else 0
+
+                    sqft           = prop.get("livingArea", 0) or prop.get("area", 0) or 0
+                    price_per_sqft = round(price / sqft, 0) if sqft else 0
+                    beds           = prop.get("bedrooms", 0) or prop.get("beds", 0) or 0
+                    baths          = prop.get("bathrooms", 0) or prop.get("baths", 0) or 0
+                    photo          = (
+                        prop.get("imgSrc") or
+                        prop.get("img") or
+                        prop.get("thumbnail") or
+                        (prop.get("carouselPhotos") or [{}])[0].get("url", "") or
+                        (prop.get("hdpData", {}) or {}).get("homeInfo", {}).get("streetViewThumbnailUrl", "") or
+                        ""
+                    )
+
+                    listings.append({
+                        "source": "Zillow", "address": address,
+                        "price": price, "price_text": f"${price:,}",
+                        "description": listing_status, "title": address,
+                        "link": link, "county": county,
+                        "days_on_market": days_on, "price_reduction_pct": reduction_pct,
+                        "type": listing_type, "zestimate": zestimate,
+                        "zestimate_gap": zestimate_gap, "zestimate_gap_pct": zestimate_gap_pct,
+                        "sqft": sqft, "price_per_sqft": price_per_sqft,
+                        "zpid": str(zpid), "beds": beds, "baths": baths,
+                        "photo": photo,
+                    })
+                except Exception as e:
+                    logger.warning(f"    Parse error: {e}"); continue
+
+            time.sleep(6)
+        except Exception as e:
+            logger.error(f"  Exception scraping {county}: {e}")
+
+    return listings
+
+
+# ─── FORECLOSURE.COM ─────────────────────────────────────────────────────────
+def scrape_foreclosure_com():
+    listings = []
+    for county in COUNTIES:
+        try:
+            url  = f"https://www.foreclosure.com/listing/search.html?state=MO&county={county.lower()}&minprice={MIN_PRICE}&maxprice={MAX_PRICE}"
+            resp = requests.get(url, headers=SCRAPE_HEADERS, timeout=15)
+            soup = BeautifulSoup(resp.text, "html.parser")
+            for card in soup.select(".listing-item, .property-item, .srp-item"):
+                try:
+                    price_el   = card.select_one(".price, .listing-price")
+                    address_el = card.select_one(".address, .listing-address")
+                    link_el    = card.select_one("a[href]")
+                    price_text = price_el.text.strip() if price_el else ""
+                    price      = int("".join(filter(str.isdigit, price_text))) if price_text else 0
+                    if not (MIN_PRICE <= price <= MAX_PRICE): continue
+                    listings.append({
+                        "source": "Foreclosure.com",
+                        "address": address_el.text.strip() if address_el else "Unknown",
+                        "price": price, "price_text": price_text or f"${price:,}",
+                        "description": "foreclosure reo bank owned",
+                        "title": address_el.text.strip() if address_el else "Unknown",
+                        "link": link_el["href"] if link_el else url,
+                        "county": county, "days_on_market": 999,
+                        "price_reduction_pct": 0, "type": "foreclosure",
+                        "zestimate": 0, "zestimate_gap": 0, "zestimate_gap_pct": 0,
+                        "sqft": 0, "price_per_sqft": 0, "zpid": "",
+                        "beds": 0, "baths": 0,
+                    })
+                except Exception: continue
+            time.sleep(2)
+        except Exception as e:
+            logger.error(f"  Foreclosure.com error {county}: {e}")
+    return listings
+
+
+# ─── DEDUP ────────────────────────────────────────────────────────────────────
+def deduplicate(listings):
+    seen, unique = set(), []
+    for l in listings:
+        zpid = l.get("zpid", "")
+        key  = f"zpid_{zpid}" if zpid else l.get("address", "unknown").lower().strip()
+        if key and key not in seen and key not in ("unknown", ""):
+            seen.add(key); unique.append(l)
+    return unique
+
+
+# ─── EMAIL BUILDER ────────────────────────────────────────────────────────────
+def listing_block(l, show_implied_arv=True):
+    rating  = l.get("rating", "lebron")
+    price   = l["price"]
+    ppsf    = l.get("price_per_sqft", 0)
+    bench   = l.get("bench", MARKET_ARV_PPSF.get(l.get("county",""), 65))
+    dom     = l.get("days_on_market", 999)
+    sqft    = l.get("sqft", 0)
+    beds    = l.get("beds", 0)
+    baths   = l.get("baths", 0)
+    score   = l["score"]
+
+    # Unified dark card — border and price color change by rating only
+    if rating == "mj":
+        card_border = "#2ecc71"
+        price_color = "#2ecc71"
+        score_color = "#2ecc71"
+    elif rating == "kobe":
+        card_border = "#c9a84c"
+        price_color = "#c9a84c"
+        score_color = "#c9a84c"
+    else:
+        card_border = "#2d2d44"
+        price_color = "#ffffff"
+        score_color = "#666"
+    card_bg = "#0f0f1e"
+
+    # $/sqft vs benchmark bar
+    ppsf_html = ""
+    if ppsf and bench:
+        discount = round((bench - ppsf) / bench * 100)
+        discount_label = f"{discount}% below" if discount > 0 else f"{abs(discount)}% above"
+        ppsf_html = f"""
+        <div style="margin-top:6px;padding:5px 8px;background:rgba(255,255,255,0.04);border-radius:4px;font-size:11px;color:#777;">
+            ${ppsf:.0f}/sqft &nbsp;&middot;&nbsp; <span style="color:{score_color};font-weight:bold;">{discount_label} benchmark</span> &nbsp;&middot;&nbsp; target ${bench}/sqft
+        </div>"""
+
+    # Key facts row
+    facts = []
+    if sqft: facts.append(f"{sqft:,} sqft")
+    if beds: facts.append(f"{int(beds)} bed")
+    if baths: facts.append(f"{baths} bath")
+    if dom < 999: facts.append(f"{dom} days on market")
+    facts_html = " &middot; ".join(facts)
+
+    # Zestimate signal
+    zest_gap = l.get("zestimate_gap", 0)
+    zest_html = ""
+    if zest_gap >= 15000:
+        zest_html = f'<div style="font-size:12px;color:#2ecc71;margin-top:4px;">Zillow values it ${zest_gap:,} higher than asking</div>'
+
+    # Distressed flags — 1-2 max
+    key_flags = [f for f in l.get("flags", []) if any(x in f for x in ["💀","⏰","&#127381;","🏦","⚖️","🔴","🔨"])][:2]
+    flags_html = " ".join(
+        f'<span style="background:rgba(255,255,255,0.08);color:#ccc;padding:3px 10px;border-radius:12px;font-size:11px;margin-right:4px;">{f}</span>'
+        for f in key_flags
+    )
+
+    photo     = l.get("photo", "")
+    photo_html = f'<div style="margin:-16px -16px 12px -16px;border-radius:8px 8px 0 0;overflow:hidden;height:160px;"><img src="{photo}" alt="" style="width:100%;height:160px;object-fit:cover;object-position:center;display:block;"></div>' if photo else ""
+
+    return f"""
+    <div style="background:{card_bg};border:1px solid {card_border};border-radius:8px;margin-bottom:10px;overflow:hidden;">
+        {photo_html}
+        <div style="padding:12px 14px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                <div>
+                    <div style="font-size:22px;font-weight:900;color:{price_color};line-height:1;">${price:,}</div>
+                    <div style="font-size:12px;color:#ccc;margin-top:4px;">{l["address"]}</div>
+                    <div style="font-size:11px;color:#666;margin-top:1px;">{l["county"]} Co. &middot; {l["source"]}{f" &middot; {facts_html}" if facts_html else ""}</div>
+                    {zest_html}
+                </div>
+                <div style="text-align:right;flex-shrink:0;">
+                    <div style="font-size:9px;color:#555;letter-spacing:2px;font-family:monospace;">SCORE</div>
+                    <div style="font-size:26px;font-weight:900;color:{score_color};line-height:1;">{score}<span style="font-size:12px;color:#444;">/10</span></div>
+                </div>
+            </div>
+            {ppsf_html}
+            {f'<div style="margin-top:6px;">{flags_html}</div>' if flags_html else ""}
+            <div style="margin-top:10px;display:flex;gap:6px;">
+                <a href="{l["link"]}" style="background:#2d2d44;color:#fff;padding:5px 12px;border-radius:5px;text-decoration:none;font-size:11px;font-weight:bold;border:1px solid #555;">View →</a>
+                <a href="mailto:{TO_EMAIL}?subject=PURSUING - {l['address']}&body=Status: PURSUING%0AAddress: {l['address']}%0APrice: ${l['price']:,}%0ARating: {rating.upper()}%0ALink: {l['link']}" style="background:#1a472a;color:#2ecc71;padding:5px 12px;border-radius:5px;text-decoration:none;font-size:11px;border:1px solid #2ecc71;">Pursuing</a>
+                <a href="mailto:{TO_EMAIL}?subject=WATCHING - {l['address']}&body=Status: WATCHING%0AAddress: {l['address']}%0APrice: ${l['price']:,}%0ARating: {rating.upper()}%0ALink: {l['link']}" style="background:#3d2000;color:#c9a84c;padding:5px 12px;border-radius:5px;text-decoration:none;font-size:11px;border:1px solid #c9a84c;">Watching</a>
+                <a href="mailto:{TO_EMAIL}?subject=PASS - {l['address']}&body=Status: PASS%0AAddress: {l['address']}%0APrice: ${l['price']:,}%0ARating: {rating.upper()}" style="background:#1a1a2e;color:#666;padding:5px 12px;border-radius:5px;text-decoration:none;font-size:11px;border:1px solid #333;">Pass</a>
+            </div>
+        </div>
+    </div>"""
+
+
+def build_email(new_listings, active_listings, act_now, total_scraped):
+    today = datetime.now(pytz.timezone("US/Central")).strftime("%B %d, %Y")
+
+    # ── ACT NOW section ───────────────────────────────────────────────────────
+    act_now_html = ""
+    if act_now:
+        act_blocks = ""
+        for l in act_now:
+            reasons_html = "".join(
+                f'<div style="font-size:13px;color:#c0392b;margin-bottom:4px;">• {r}</div>'
+                for r in l.get("act_reasons", [])
+            )
+            a_price    = "${:,}".format(l['price'])
+            a_addr     = l['address']
+            a_county   = l['county']
+            a_score    = l['score']
+            a_link     = l['link']
+            a_price_enc = "%24{:,}".format(l['price'])
+            act_blocks += (
+                f'<div style="background:#2a0808;border:2px solid #e74c3c;border-radius:8px;padding:16px;margin-bottom:12px;">'
+                f'<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;">'
+                f'<div>'
+                f'<div style="font-size:18px;font-weight:bold;color:#ffffff;">{a_price}</div>'
+                f'<div style="font-size:14px;color:#333;margin-top:2px;">{a_addr}</div>'
+                f'<div style="font-size:12px;color:#888;">{a_county} County &middot; Score: {a_score}</div>'
+                f'</div>'
+                f'<div style="background:#e74c3c;color:#fff;border-radius:6px;padding:6px 12px;font-weight:bold;font-size:13px;flex-shrink:0;">CALL TODAY</div>'
+                f'</div>'
+                f'<div style="margin-top:10px;padding:10px;background:rgba(231,76,60,0.1);border-radius:6px;">{reasons_html}</div>'
+                f'<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">'
+                f'<a href="{a_link}" style="background:#e74c3c;color:#fff;padding:7px 16px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:bold;">View Listing →</a>'
+                f'<a href="mailto:{TO_EMAIL}?subject=PURSUING - {a_addr}&body=Status: PURSUING%0AAddress: {a_addr}%0APrice: {a_price_enc}%0AScore: {a_score}%0ALink: {a_link}" style="background:#27ae60;color:#fff;padding:7px 16px;border-radius:6px;text-decoration:none;font-size:13px;">🎯 Pursuing</a>'
+                f'<a href="mailto:{TO_EMAIL}?subject=WATCHING - {a_addr}&body=Status: WATCHING%0AAddress: {a_addr}%0APrice: {a_price_enc}%0AScore: {a_score}%0ALink: {a_link}" style="background:#e67e22;color:#fff;padding:7px 16px;border-radius:6px;text-decoration:none;font-size:13px;">👀 Watching</a>'
+                f'</div></div>'
+            )
+
+        act_label    = "deals" if len(act_now) > 1 else "deal"
+        act_now_html = (
+            '<div style="background:#e74c3c;border-radius:8px 8px 0 0;padding:14px 16px;">'
+            '<span style="color:#fff;font-weight:bold;font-size:18px;">&#128680; ACT ON THESE NOW - '
+            + str(len(act_now)) + ' ' + act_label + ' need your attention</span></div>'
+            '<div style="background:#1a0808;border:1px solid #e74c3c;border-top:none;border-radius:0 0 8px 8px;padding:16px;margin-bottom:24px;">'
+            + act_blocks + '</div>'
+        )
+
+    new_html    = "".join(listing_block(l) for l in new_listings) or '<p style="color:#888;font-style:italic;">No brand new listings this week.</p>'
+    active_html = "".join(listing_block(l) for l in active_listings) or '<p style="color:#888;font-style:italic;">No active deals this week.</p>'
+
+    # County breakdown stats
+    county_stats = {}
+    for l in new_listings + active_listings:
+        c = l.get("county", "Unknown")
+        if c not in county_stats: county_stats[c] = 0
+        county_stats[c] += 1
+    county_html = " &middot; ".join(f"<strong>{c}</strong>: {n}" for c, n in sorted(county_stats.items(), key=lambda x: -x[1]))
+
+    # Benchmark source indicator
+    live_counties = [c for c in COUNTIES if c in MARKET_ARV_PPSF and MARKET_ARV_PPSF[c] != HARDCODED_BENCHMARKS.get(c)]
+    bench_source = f"LIVE DATA ({len(live_counties)}/{len(COUNTIES)} counties)" if live_counties else "ESTIMATED"
+    bench_details = " &middot; ".join(f"{c}: ${MARKET_ARV_PPSF.get(c, '?')}" for c in COUNTIES)
+
+    return f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="font-family:Arial,sans-serif;background:#0d0a1a;margin:0;padding:0;">
+<div style="max-width:680px;margin:0 auto;padding:16px 12px;">
+
+    <!-- THIN PHOTO BANNER -->
+    <div style="border-radius:8px 8px 0 0;overflow:hidden;position:relative;height:90px;">
+        <img src="https://raw.githubusercontent.com/ghanriley4-art/pecos-grant-tools/main/kobe-bryant-jordan-41316-getty-ftrjpg_1bprokuhfhlqa106u03zt45aet.jpg" alt="Pecos Grant" style="width:100%;height:90px;object-fit:cover;object-position:center 30%;display:block;">
+        <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,0,30,0.82) 0%,rgba(10,0,30,0.5) 60%,rgba(10,0,30,0.75) 100%);"></div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;">
+            <div>
+                <div style="color:#c9a84c;font-size:9px;letter-spacing:3px;text-transform:uppercase;font-weight:bold;">Pecos Grant Development LLC</div>
+                <div style="color:#fff;font-size:20px;font-weight:900;letter-spacing:2px;margin-top:2px;">WEEKLY DEAL INTELLIGENCE</div>
+                <div style="color:#c9a84c;font-size:11px;margin-top:2px;">{today}</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="color:#fff;font-size:22px;font-weight:900;">{total_scraped}</div>
+                <div style="color:#c9a84c;font-size:9px;letter-spacing:2px;">SCANNED</div>
+            </div>
+        </div>
     </div>
-    <div class="comp-avg-row">
-      <div class="avg-label">Comp Average</div>
-      <div class="avg-vals">
-        <span>${fmt(summary.avgPrice)}</span>
-        ${summary.avgPpsf?`<span>${fmt(summary.avgPpsf)}/sf</span>`:''}
-        <span>${comps.length} comps</span>
-      </div>
-    </div>`;
-  const arvVal=parseFloat(document.getElementById('arv').value)||0;
-  renderArvSuggest(summary,arvVal);
-}
 
-function renderArvSuggest(summary,arvVal){
-  const el=document.getElementById('compArvSuggest');
-  if(!summary||!summary.avgPrice){el.style.display='none';return;}
-  const dev=arvVal?((arvVal-summary.avgPrice)/summary.avgPrice*100):null;
-  let html=`<div class="arv-suggest"><strong>Comp Avg: ${fmt(summary.avgPrice)}</strong>`;
-  if(dev!==null){
-    const dir=dev>0?'above':'below';
-    const color=Math.abs(dev)>10?'#e03c3c':'#4a9eff';
-    html+=` — your ARV of ${fmt(arvVal)} is <strong style="color:${color}">${Math.abs(dev).toFixed(1)}% ${dir}</strong> comp avg.`;
-    if(dev>10)html+=' Consider lowering your ARV to be safe.';
-  }else{html+=' — enter your ARV above to compare.';}
-  html+=`<br><button class="use-arv-btn" onclick="useCompAvg(${summary.avgPrice})">← Use ${fmt(summary.avgPrice)} as ARV</button></div>`;
-  el.innerHTML=html;el.style.display='block';
-}
-
-function removeComp(i){
-  fetchedComps.splice(i,1);
-  if(!fetchedComps.length){
-    document.getElementById('compCardsList').innerHTML='';
-    document.getElementById('compArvSuggest').style.display='none';
-    return;
-  }
-  const s=buildSummary(fetchedComps);
-  renderCompCards(fetchedComps,s);
-}
-
-function buildSummary(comps){
-  const prices=comps.map(c=>c.price).filter(Boolean);
-  const ppsfs =comps.map(c=>c.ppsf).filter(Boolean);
-  return{
-    avgPrice:prices.length?Math.round(prices.reduce((a,b)=>a+b,0)/prices.length):null,
-    avgPpsf :ppsfs.length ?Math.round(ppsfs.reduce((a,b)=>a+b,0)/ppsfs.length):null,
-    count:comps.length
-  };
-}
-
-function useCompAvg(avg){
-  const el=document.getElementById('arv');
-  el.value=avg;el.style.borderColor='var(--gold)';
-  setTimeout(()=>el.style.borderColor='',1500);
-  renderArvSuggest(buildSummary(fetchedComps),avg);
-}
-
-// ════════════════════════════════════════════
-// AUTO-FILL FROM ZILLOW URL / ADDRESS
-// ════════════════════════════════════════════
-async function autoFillFromLookup(){
-  const input = document.getElementById('lookupInput').value.trim();
-  if(!input){ alert('Paste a Zillow URL or type an address.'); return; }
-
-  const btn    = document.getElementById('lookupBtn');
-  const status = document.getElementById('lookupStatus');
-  btn.textContent = '...';
-  btn.disabled = true;
-  status.className   = 'fetch-status loading';
-  status.style.display = 'block';
-  status.textContent = 'Pulling property data...';
-
-  try{
-    // Determine if URL or address
-    const isUrl = input.includes('zillow.com') || input.includes('http');
-    const params = new URLSearchParams();
-    if(isUrl){
-      // Strip tracking params and clean the URL
-      let cleanUrl = input.split('?')[0];
-      params.set('url', cleanUrl);
-    } else {
-      params.set('address', input);
-    }
-
-    const resp = await fetch(`${BACKEND_URL}/lookup?${params}`, {
-      signal: AbortSignal.timeout(50000)
-    });
-
-    if(!resp.ok){
-      const err = await resp.json().catch(()=>({}));
-      throw new Error(err.error || `Server error ${resp.status}`);
-    }
-
-    const d = await resp.json();
-    if(d.error) throw new Error(d.error);
-
-    // Auto-fill all form fields
-    const setField = (id, val) => { const el = document.getElementById(id); if(el && val) el.value = val; };
-
-    setField('address',   d.address);
-    setField('listPrice', d.price);
-    setField('sqft',      d.sqft);
-    setField('bedBath',   d.bedBath);
-
-    // Don't set offer — that's the user's decision
-    // Don't set ARV — user needs to determine this
-
-    // Show photo if available
-    const photoBox = document.getElementById('lookupPhoto');
-    if(d.photo){
-      photoBox.innerHTML = `<img src="${d.photo}" alt="" style="width:100%;height:140px;object-fit:cover;display:block;">`;
-      photoBox.style.display = 'block';
-    } else {
-      photoBox.style.display = 'none';
-    }
-
-    // Build a rich status message
-    let statusParts = [`✓ ${d.address}`];
-    if(d.price) statusParts.push(`List: $${d.price.toLocaleString()}`);
-    if(d.sqft)  statusParts.push(`${d.sqft.toLocaleString()} sqft`);
-    if(d.beds)  statusParts.push(`${d.beds}bd/${d.baths}ba`);
-    if(d.dom)   statusParts.push(`${d.dom} DOM`);
-    if(d.yearBuilt) statusParts.push(`Built ${d.yearBuilt}`);
-
-    status.className   = 'fetch-status success';
-    status.textContent = statusParts.join(' · ');
-
-    // Show additional intel below status
-    let intel = [];
-    if(d.zestimate && d.zestimateGap > 0) intel.push(`Zestimate: $${d.zestimate.toLocaleString()} (+$${d.zestimateGap.toLocaleString()} above list)`);
-    if(d.zestimate && d.zestimateGap < 0) intel.push(`Zestimate: $${d.zestimate.toLocaleString()} ($${Math.abs(d.zestimateGap).toLocaleString()} below list)`);
-    if(d.county && d.countyBench) intel.push(`${d.county} Co. benchmark: $${d.countyBench}/sqft`);
-    if(d.pricePerSqft && d.countyBench) intel.push(`Buy at $${d.pricePerSqft}/sqft (${d.discountPct > 0 ? d.discountPct+'% below' : Math.abs(d.discountPct)+'% above'} bench)`);
-    if(d.priceReduction) intel.push(`Price reduced $${d.priceReduction.toLocaleString()}`);
-    if(d.yearBuilt && d.yearBuilt < 1950) intel.push(`⚠ ${d.yearBuilt} build — check electrical, plumbing, foundation`);
-
-    if(intel.length){
-      status.innerHTML += `<div style="margin-top:6px;padding:8px 10px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.15);border-radius:3px;font-size:11px;color:var(--muted2);line-height:1.7;">${intel.join('<br>')}</div>`;
-    }
-
-    // Suggest offer based on data
-    if(d.price && d.countyBench && d.sqft){
-      const impliedArv = d.countyBench * d.sqft;
-      const suggestOffer = Math.round(impliedArv * 0.65 - 25000); // 65% rule minus est rehab
-      if(suggestOffer > 0 && suggestOffer < d.price){
-        status.innerHTML += `<div style="margin-top:6px;font-size:11px;color:var(--gold);">💡 Benchmark suggests offer around <strong>$${suggestOffer.toLocaleString()}</strong> (65% of implied ARV $${impliedArv.toLocaleString()} minus ~$25k rehab)</div>`;
-      }
-    }
-
-    btn.textContent = 'PULL';
-    btn.disabled = false;
-
-  }catch(err){
-    status.className   = 'fetch-status error';
-    status.textContent = '✗ ' + err.message;
-    status.style.display = 'block';
-    btn.textContent = 'PULL';
-    btn.disabled = false;
-  }
-}
-
-// ════════════════════════════════════════════
-// TABS
-// ════════════════════════════════════════════
-function switchTab(tab) {
-  document.querySelectorAll('.nav-tab').forEach((t,i) =>
-    t.classList.toggle('active', ['analyzer','saved','pipeline','neighborhood'][i] === tab));
-  document.querySelectorAll('.tab-panel').forEach(p =>
-    p.classList.toggle('active', p.id === 'tab-'+tab));
-  if(tab==='saved')       renderSaved();
-  if(tab==='pipeline')    renderPipeline();
-  if(tab==='neighborhood') renderSavedProfiles();
-}
-function switchStrategy(s){
-  document.querySelectorAll('.strategy-tab').forEach((t,i)=>
-    t.classList.toggle('active',['flip','brrrr'][i]===s));
-  document.querySelectorAll('.strategy-panel').forEach(p=>
-    p.classList.toggle('active',p.id==='strategy-'+s));
-}
-function buildRehabGrid(){
-  const grid = document.getElementById('rehabItemGrid');
-  if(!grid) return;
-  grid.innerHTML = Object.entries(REHAB_ITEMS).map(([key,item])=>{
-    const sel = rehabSelected[key];
-    const mid = Math.round((item.low+item.high)/2);
-    return `<button onclick="toggleRehabItem('${key}')" title="${item.note}"
-      style="background:${sel?'rgba(201,168,76,0.15)':'var(--surface2)'};
-             border:1px solid ${sel?'var(--gold)':'var(--border)'};
-             border-radius:6px;padding:8px 10px;cursor:pointer;text-align:left;
-             transition:all 0.15s;color:${sel?'var(--gold)':'var(--muted)'};">
-      <div style="font-size:13px;margin-bottom:2px;">${item.icon}</div>
-      <div style="font-size:10px;font-weight:700;font-family:var(--font);color:${sel?'var(--gold)':'var(--white)'};">${item.label}</div>
-      <div style="font-size:9px;color:var(--muted);margin-top:2px;">~$${(item.low/1000).toFixed(0)}k-$${(item.high/1000).toFixed(0)}k</div>
-    </button>`;
-  }).join('');
-}
-
-function toggleRehabItem(key){
-  rehabSelected[key] = !rehabSelected[key];
-  buildRehabGrid();
-  updateRehabDisplay();
-}
-
-function clearRehab(){
-  rehabSelected = {};
-  buildRehabGrid();
-  updateRehabDisplay();
-}
-
-function updateRehabDisplay(){
-  let low=0, high=0;
-  Object.entries(rehabSelected).forEach(([key,sel])=>{
-    if(sel){ low+=REHAB_ITEMS[key].low; high+=REHAB_ITEMS[key].high; }
-  });
-  const el = document.getElementById('rehabRangeDisplay');
-  if(!el) return;
-  if(low===0){
-    el.textContent='$0 — select items above';
-    el.style.color='var(--muted)';
-  } else {
-    el.textContent=`$${(low/1000).toFixed(0)}k – $${(high/1000).toFixed(0)}k  (mid $${Math.round((low+high)/2/1000)}k)`;
-    el.style.color='var(--gold)';
-  }
-}
-
-function getRehabMid(){
-  const ovr = parseFloat(document.getElementById('rehabOverride').value)||0;
-  if(ovr>0) return {low:ovr,high:ovr,mid:ovr};
-  let low=0,high=0;
-  Object.entries(rehabSelected).forEach(([key,sel])=>{
-    if(sel){ low+=REHAB_ITEMS[key].low; high+=REHAB_ITEMS[key].high; }
-  });
-  return {low,high,mid:Math.round((low+high)/2)};
-}
-
-function selectRehab(level){} // legacy stub — no-op
-function toggleFinanceFields(){
-  document.getElementById('loanFields').style.display=
-    document.getElementById('financingType').value==='cash'?'none':'block';
-}
-
-// ════════════════════════════════════════════
-// DEAL SCORE
-// ════════════════════════════════════════════
-function calcScore(offer,maxOffer,netProfit,totalIn,arv,rehabMid){
-  let score=0;const criteria=[];
-  const or=offer/maxOffer;
-  const mPts=or<=0.9?25:or<=1.0?18:or<=1.05?8:0;
-  score+=mPts;criteria.push({label:'Offer vs Max',pts:mPts,max:25});
-  const pPts=netProfit>=40000?25:netProfit>=25000?18:netProfit>=15000?10:netProfit>=0?4:0;
-  score+=pPts;criteria.push({label:'Net Profit',pts:pPts,max:25});
-  const roi=netProfit/totalIn*100;
-  const rPts=roi>=25?20:roi>=18?15:roi>=12?9:roi>=0?3:0;
-  score+=rPts;criteria.push({label:'ROI %',pts:rPts,max:20});
-  const rr=rehabMid/offer;
-  const rhPts=rr<0.2?15:rr<0.35?10:rr<0.5?5:0;
-  score+=rhPts;criteria.push({label:'Rehab Risk',pts:rhPts,max:15});
-  let cPts=7;
-  if(fetchedComps.length>0){
-    const avg=fetchedComps.reduce((a,c)=>a+c.price,0)/fetchedComps.length;
-    const dev=Math.abs(arv-avg)/avg;
-    cPts=dev<0.05&&fetchedComps.length>=3?15:dev<0.10&&fetchedComps.length>=2?11:dev<0.15?7:2;
-  }
-  score+=cPts;criteria.push({label:'Comps Support',pts:cPts,max:15});
-  return{score:Math.min(100,Math.round(score)),criteria};
-}
-
-function renderScore(score,criteria){
-  const circ=document.getElementById('scoreCircle');
-  const C=289;circ.style.strokeDashoffset=C;
-  setTimeout(()=>{
-    circ.style.transition='stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)';
-    circ.style.strokeDashoffset=C-(score/100)*C;
-  },100);
-  let color,cls,verdict,sub;
-  if(score>=75){color='var(--green)';cls='fire';verdict='🔥 FIRE DEAL';sub=`Score ${score}/100 — Hits on all cylinders. Pull the trigger.`;}
-  else if(score>=55){color='#7ecb8d';cls='good';verdict='✓ SOLID DEAL';sub=`Score ${score}/100 — Numbers work. Make the offer.`;}
-  else if(score>=35){color='var(--yellow)';cls='marginal';verdict='⚠ MARGINAL';sub=`Score ${score}/100 — Needs better terms. Negotiate down.`;}
-  else{color='var(--red)';cls='pass';verdict='✗ PASS';sub=`Score ${score}/100 — Doesn't pencil at current price.`;}
-  circ.style.stroke=color;
-  document.getElementById('scoreNumber').textContent=score;
-  document.getElementById('scoreNumber').style.color=color;
-  document.getElementById('scoreVerdict').textContent=verdict;
-  document.getElementById('scoreVerdict').className='score-verdict '+cls;
-  document.getElementById('scoreSub').textContent=sub;
-  document.getElementById('scoreBars').innerHTML=criteria.map(c=>{
-    const pct=Math.round(c.pts/c.max*100);
-    const bc=pct>=75?'var(--green)':pct>=40?'var(--yellow)':'var(--red)';
-    return`<div class="score-bar-row">
-      <div class="score-bar-label">${c.label}</div>
-      <div class="score-bar-track"><div class="score-bar-fill" style="width:0%;background:${bc}" data-target="${pct}"></div></div>
-      <div class="score-bar-val">${c.pts}/${c.max}</div>
-    </div>`;
-  }).join('');
-  setTimeout(()=>{
-    document.querySelectorAll('.score-bar-fill').forEach(b=>{
-      b.style.transition='width 0.8s cubic-bezier(0.4,0,0.2,1)';
-      b.style.width=b.dataset.target+'%';
-    });
-  },200);
-}
-
-// ════════════════════════════════════════════
-// ANALYZE
-// ════════════════════════════════════════════
-function analyze(){
-  const offer      =parseFloat(document.getElementById('offerPrice').value)||0;
-  const sqft       =parseFloat(document.getElementById('sqft').value)||0;
-  const arvInput   =parseFloat(document.getElementById('arv').value)||0;
-  // rehabOverride handled inside getRehabMid()
-  const finType    =document.getElementById('financingType').value;
-  const holdMos    =parseFloat(document.getElementById('holdingMonths').value)||3;
-  const loanRate   =parseFloat(document.getElementById('loanRate').value)||12;
-  const loanPts    =parseFloat(document.getElementById('loanPoints').value)||2;
-  const monthlyRent=parseFloat(document.getElementById('monthlyRent').value)||0;
-  const refiLtv    =(parseFloat(document.getElementById('refiLtv').value)||75)/100;
-  const refiRate   =(parseFloat(document.getElementById('refiRate').value)||7.5)/100;
-  const refiTerm   =parseFloat(document.getElementById('refiTerm').value)||30;
-
-  if(!offer||!arvInput){alert('Enter at least an offer price and ARV.');return;}
-
-  // Rehab — item-based estimator
-  const rh=getRehabMid();
-  let rehabLow=rh.low,rehabHigh=rh.high,rehabMid=rh.mid;
-
-  // Show rehab range in results
-  const rehabRangeStr = rehabLow===rehabHigh
-    ? fmt(rehabMid)
-    : `${fmt(rehabLow)} – ${fmt(rehabHigh)}`;
-  const contingency=rehabMid*0.10;
-  let interestCost=0,pointsCost=0,finLabel='Cash';
-  if(finType!=='cash'){
-    interestCost=offer*(loanRate/100)*(holdMos/12);
-    pointsCost=offer*(loanPts/100);
-    finLabel={hard:'Hard Money',conv:'Conventional',private:'Private Lender'}[finType];
-  }
-  const finCost     =interestCost+pointsCost;
-  const holdingCosts=offer*0.005*holdMos;
-  const totalIn     =offer+rehabMid+contingency+finCost+holdingCosts;
-  const arv         =arvInput;
-  const agentFees   =arv*0.06;
-  const closing     =arv*0.02;
-  const netProfit   =arv-totalIn-agentFees-closing;
-  const maxOffer    =arv*0.65-rehabMid;
-  const roi         =netProfit/totalIn*100;
-  const annualRoi   =roi/holdMos*12;
-  const equitySpread=arv-totalIn;
-  const ppsf        =sqft?offer/sqft:null;
-  const arvpsf      =sqft?arv/sqft:null;
-
-  const{score,criteria}=calcScore(offer,maxOffer,netProfit,totalIn,arv,rehabMid);
-
-  // BRRRR
-  let brrrr=null;
-  if(monthlyRent>0){
-    const refiAmt=arv*refiLtv;
-    const cashLeft=Math.max(0,totalIn-refiAmt);
-    const r=refiRate/12,n=refiTerm*12;
-    const mortgage=refiAmt*(r*Math.pow(1+r,n))/(Math.pow(1+r,n)-1);
-    const piti=mortgage+arv*0.0013/12;
-    const cashflow=monthlyRent-piti;
-    brrrr={refiAmt,cashLeft,piti,cashflow,annualCF:cashflow*12,
-      grY:(monthlyRent*12)/arv*100,
-      cocRoi:cashLeft>0?(cashflow*12/cashLeft)*100:999,
-      capRate:(monthlyRent*0.55*12)/arv*100};
-  }
-
-  // Comps results
-  if(fetchedComps.length>0){
-    document.getElementById('compsResultsSection').style.display='block';
-    const avg=Math.round(fetchedComps.reduce((a,c)=>a+c.price,0)/fetchedComps.length);
-    const avgP=fetchedComps.filter(c=>c.ppsf).length
-      ?Math.round(fetchedComps.filter(c=>c.ppsf).reduce((a,c)=>a+c.ppsf,0)/fetchedComps.filter(c=>c.ppsf).length):null;
-    document.getElementById('compsResultsBody').innerHTML=
-      fetchedComps.map(c=>`<tr><td>${c.address}</td><td>${fmt(c.price)}</td><td>${c.sqft?c.sqft.toLocaleString():'—'}</td><td>${c.ppsf?fmt(c.ppsf):'—'}</td><td>${c.daysAgo?c.daysAgo+'d':'—'}</td></tr>`).join('')+
-      `<tr class="avg-row"><td>AVG (${fetchedComps.length} comps)</td><td>${fmt(avg)}</td><td>—</td><td>${avgP?fmt(avgP):'—'}</td><td>—</td></tr>`;
-    const dev=Math.abs(arv-avg)/avg*100;
-    const conf=fetchedComps.length>=3&&dev<10?'HIGH':fetchedComps.length>=2&&dev<15?'MEDIUM':'LOW';
-    const cc=conf==='HIGH'?'var(--green)':conf==='MEDIUM'?'var(--yellow)':'var(--red)';
-    document.getElementById('arvConfidence').innerHTML=
-      `<strong>ARV Confidence: <span style="color:${cc}">${conf}</span></strong> — `+
-      `${fetchedComps.length} comp${fetchedComps.length>1?'s':''}, avg ${fmt(avg)}. `+
-      `Your ARV of ${fmt(arv)} is ${dev.toFixed(1)}% ${arv>avg?'above':'below'} avg.`+
-      (avgP&&sqft?` Implied: ${sqft.toLocaleString()}sf × ${fmt(avgP)}/sf = <strong>${fmt(avgP*sqft)}</strong>.`:'');
-  }else{document.getElementById('compsResultsSection').style.display='none';}
-
-  // Flags — SMARTER CONTEXTUAL SIGNALS
-  const flags=[];
-  const listPrice = parseFloat(document.getElementById('listPrice').value)||0;
-  const address = document.getElementById('address').value||'';
-  const bedBath = document.getElementById('bedBath').value||'';
-  const bedCount = bedBath.match(/(\d+)/) ? parseInt(bedBath.match(/(\d+)/)[1]) : 0;
-
-  // Price signals
-  if(offer>maxOffer) flags.push({icon:'🔴',cls:'warn',text:`<strong>Over max offer</strong> — ${fmt(offer)} is ${fmt(offer-maxOffer)} above the 65% rule max of ${fmt(maxOffer)}. You're eating into your safety margin.`});
-  if(offer<=maxOffer&&offer>=maxOffer*0.9) flags.push({icon:'🟢',cls:'good',text:`<strong>Right at max</strong> — ${fmt(offer)} is within 10% of your ${fmt(maxOffer)} ceiling. Tight but workable if rehab stays on budget.`});
-  if(offer<maxOffer*0.9) flags.push({icon:'🟢',cls:'good',text:`<strong>Strong entry</strong> — ${fmt(offer)} is ${fmt(maxOffer-offer)} below your max of ${fmt(maxOffer)}. Good cushion for surprises.`});
-
-  // List price discount
-  if(listPrice && offer < listPrice){
-    const discount = ((listPrice-offer)/listPrice*100).toFixed(0);
-    if(discount >= 25) flags.push({icon:'💰',cls:'good',text:`<strong>${discount}% below list</strong> — aggressive offer. Seller needs to be motivated for this to land. Look for 60+ DOM or multiple price drops.`});
-    else if(discount >= 15) flags.push({icon:'💰',cls:'info',text:`<strong>${discount}% below list</strong> — reasonable discount. Most likely to get accepted at 90+ DOM or with cash/fast close.`});
-  }
-
-  // Rehab risk
-  if(rehabMid>offer*0.5) flags.push({icon:'🔴',cls:'warn',text:`<strong>Rehab exceeds 50% of purchase</strong> — ${fmt(rehabMid)} rehab on a ${fmt(offer)} buy is heavy. Get 3 contractor bids minimum before committing.`});
-  else if(rehabMid>offer*0.35) flags.push({icon:'⚠️',cls:'warn',text:`<strong>Rehab is ${Math.round(rehabMid/offer*100)}% of purchase</strong> — ${fmt(rehabMid)} on ${fmt(offer)}. Moderate risk. Lock in contractor pricing before offer.`});
-  else if(rehabMid>0&&rehabMid<=offer*0.2) flags.push({icon:'🟢',cls:'good',text:`<strong>Light rehab</strong> — ${fmt(rehabMid)} is only ${Math.round(rehabMid/offer*100)}% of purchase. Cosmetic flip territory.`});
-
-  // Profit thresholds
-  if(netProfit<0) flags.push({icon:'🔴',cls:'warn',text:`<strong>Negative profit</strong> — you'd lose ${fmt(Math.abs(netProfit))} on this deal. Walk away or renegotiate down to ${fmt(maxOffer)}.`});
-  else if(netProfit<15000) flags.push({icon:'⚠️',cls:'warn',text:`<strong>Thin margin</strong> — ${fmt(netProfit)} net doesn't leave room for surprises. One blown HVAC and you're underwater.`});
-  else if(netProfit>=25000&&netProfit<40000) flags.push({icon:'🟢',cls:'good',text:`<strong>Solid profit</strong> — ${fmt(netProfit)} net with ${fmtPct(roi)} ROI. Meets your minimum threshold.`});
-  else if(netProfit>=40000) flags.push({icon:'🔥',cls:'good',text:`<strong>Strong profit</strong> — ${fmt(netProfit)} net. This is a clear green light if comps support it.`});
-
-  // $/sqft analysis
-  if(ppsf && sqft){
-    // Try to get county benchmark
-    const benchmarks = {Greene:82,Christian:75,Webster:65,Lawrence:55,Stone:68,Taney:65,Polk:52};
-    const addrLow = address.toLowerCase();
-    let bench = null;
-    if(addrLow.includes('springfield')||addrLow.includes('6580')||addrLow.includes('6560')) bench = benchmarks.Greene;
-    else if(addrLow.includes('ozark')||addrLow.includes('nixa')) bench = benchmarks.Christian;
-    if(bench && ppsf < bench * 0.7) flags.push({icon:'💰',cls:'good',text:`<strong>Deep value at ${fmt(ppsf)}/sqft</strong> — ${Math.round((1-ppsf/bench)*100)}% below the ${fmt(bench)}/sqft county benchmark. Strong entry price.`});
-    else if(bench && ppsf < bench * 0.85) flags.push({icon:'📊',cls:'info',text:`<strong>${fmt(ppsf)}/sqft buy</strong> — ${Math.round((1-ppsf/bench)*100)}% below ${fmt(bench)}/sqft benchmark. Decent but not a steal.`});
-    else if(bench && ppsf >= bench) flags.push({icon:'⚠️',cls:'warn',text:`<strong>${fmt(ppsf)}/sqft buy is at or above benchmark</strong> — limited discount. Need a strong ARV to make this work.`});
-  }
-
-  // Bed/bath signals
-  if(bedCount === 2) flags.push({icon:'🛏️',cls:'info',text:`<strong>2 bed limits buyer pool</strong> — consider adding a 3rd bedroom (attic, bonus room, porch conversion) to boost ARV 10-15%. 3/2 sells faster and for more.`});
-  if(bedCount >= 4) flags.push({icon:'🟢',cls:'good',text:`<strong>4+ beds = strong buyer pool</strong> — families will pay a premium. Price accordingly.`});
-
-  // Comps signals
-  if(fetchedComps.length>0){
-    const avg=fetchedComps.reduce((a,c)=>a+c.price,0)/fetchedComps.length;
-    if(arv>avg*1.15) flags.push({icon:'🔴',cls:'warn',text:`<strong>ARV ${Math.round((arv/avg-1)*100)}% above comp avg</strong> — ${fmt(arv)} vs comp avg ${fmt(avg)}. You're projecting above what's selling. Get more data or lower your ARV.`});
-    else if(arv>avg*1.05) flags.push({icon:'⚠️',cls:'warn',text:`<strong>ARV ${Math.round((arv/avg-1)*100)}% above comps</strong> — slightly aggressive. Make sure your rehab justifies the premium over ${fmt(avg)} avg.`});
-    else flags.push({icon:'🟢',cls:'good',text:`<strong>ARV well-supported by comps</strong> — ${fmt(arv)} is in line with avg ${fmt(avg)} from ${fetchedComps.length} comparable sales.`});
-  } else {
-    flags.push({icon:'📋',cls:'info',text:`<strong>No comps loaded</strong> — hit "Profile Area" to pull real sold data and validate your ARV. Don't trust your gut on this one.`});
-  }
-
-  // BRRRR signal
-  if(brrrr){
-    if(brrrr.cashLeft < 1000) flags.push({icon:'♾️',cls:'good',text:`<strong>Infinite BRRRR</strong> — refi at ${fmt(brrrr.refiAmt)} covers your ${fmt(totalIn)} all-in. All cash out + ${fmt(brrrr.refiAmt-totalIn)} in pocket. ${brrrr.cashflow>0?'Cash flows '+fmt(brrrr.cashflow)+'/mo.':'But negative cash flow — check rent assumptions.'}`});
-    else if(brrrr.cashLeft < 15000) flags.push({icon:'📈',cls:'good',text:`<strong>Near-full BRRRR</strong> — only ${fmt(brrrr.cashLeft)} left in deal after refi. ${brrrr.cashflow>0?'Cash flows '+fmt(brrrr.cashflow)+'/mo.':''}`});
-    if(brrrr.cashflow < 0) flags.push({icon:'🔴',cls:'warn',text:`<strong>Negative cash flow</strong> — PITI of ${fmt(brrrr.piti)}/mo exceeds rent. This doesn't work as a hold unless rents increase.`});
-  }
-
-  // ── ARV STRESS TEST ───────────────────────────────────────────────────────
-  const bearArv  = Math.round(arv * 0.90);  // 10% below your estimate
-  const bullArv  = Math.round(arv * 1.08);  // 8% above
-  const scenarios = [
-    { name: '🔻 Bear — comps disappoint', arv: bearArv },
-    { name: '⚖️ Base — your estimate',     arv: arv },
-    { name: '🔺 Bull — area premium',      arv: bullArv },
-  ];
-  const stressRows = scenarios.map(s => {
-    const sAgent   = s.arv * 0.06;
-    const sClosing = s.arv * 0.02;
-    const sNet     = s.arv - totalIn - sAgent - sClosing;
-    const sRoi     = (sNet / totalIn * 100);
-    const isBest   = s.arv === arv;
-    const verdict  = sNet >= 25000 ? '✓ Strong' : sNet >= 10000 ? '✓ Works' : sNet >= 0 ? '⚠ Thin' : '✗ Loss';
-    const vColor   = sNet >= 25000 ? 'var(--green)' : sNet >= 10000 ? '#7ecb8d' : sNet >= 0 ? 'var(--yellow)' : 'var(--red)';
-    const nColor   = sNet >= 0 ? 'var(--green)' : 'var(--red)';
-    return `<tr style="${isBest ? 'background:rgba(46,204,113,0.06);' : ''}">
-      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border);color:${s.arv < arv ? 'var(--red)' : s.arv > arv ? 'var(--blue)' : 'var(--green)'};">${s.name}</td>
-      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border);color:var(--white);">${fmt(s.arv)}</td>
-      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border);color:${nColor};">${fmt(sNet)}</td>
-      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border);color:var(--white);">${fmtPct(sRoi)}</td>
-      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border);color:${vColor};font-weight:700;">${verdict}</td>
-    </tr>`;
-  });
-  document.getElementById('stressTestBody').innerHTML = stressRows.join('');
-  const bearNet = bearArv - totalIn - bearArv*0.06 - bearArv*0.02;
-  document.getElementById('stressTestNote').innerHTML = 
-    `Bear = 10% below your ARV, Bull = 8% above · All-in: ${fmt(totalIn)} (offer + rehab + costs)<br>` +
-    (bearNet >= 0 ? `<span style="color:var(--green);">✓ Deal survives bear case — ${fmt(bearNet)} profit even if ARV drops to ${fmt(bearArv)}</span>` :
-     `<span style="color:var(--red);">✗ Deal breaks in bear case — you'd lose ${fmt(Math.abs(bearNet))} if ARV only hits ${fmt(bearArv)}</span>`);
-  document.getElementById('stressTestSection').style.display = 'block';
-
-  // ── SMARTER RECOMMENDATION ────────────────────────────────────────────────
-  let recText;
-  const bearSurvives = bearNet >= 0;
-  if(netProfit >= 25000 && offer <= maxOffer && bearSurvives){
-    recText = `<strong>🔥 MAKE THE OFFER.</strong> ${fmt(offer)} is under your max of ${fmt(maxOffer)}. Net profit ${fmt(netProfit)} at ${fmtPct(roi)} ROI. Even in the bear case (ARV ${fmt(bearArv)}), you still clear ${fmt(bearNet)}.<br><br>`;
-    recText += `<strong>Next steps:</strong><br>`;
-    if(rehabMid > 10000) recText += `1. Get 3 contractor bids to lock in rehab at ${fmt(rehabMid)} ± 10%<br>`;
-    if(!fetchedComps.length) recText += `${rehabMid>10000?'2':'1'}. Pull comps to validate your ${fmt(arv)} ARV — don't skip this<br>`;
-    recText += `${!fetchedComps.length&&rehabMid>10000?'3':rehabMid>10000?'2':'1'}. Submit: ${fmt(offer)} cash, 14-day close, as-is. Seller pays title.`;
-    if(brrrr && brrrr.cashLeft < 5000) recText += `<br><br><strong>BRRRR play:</strong> Refi covers all-in. Infinite cash-on-cash if you hold.`;
-  } else if(netProfit >= 15000 && offer <= maxOffer * 1.05){
-    recText = `<strong>⚠ NEGOTIATE DOWN.</strong> Numbers work at ${fmt(offer)} but margin is tight. Target <strong>${fmt(maxOffer)}</strong> to hit your $25k profit floor.`;
-    if(listPrice && offer < listPrice) recText += ` That's ${Math.round((1-maxOffer/listPrice)*100)}% off list — ${listPrice > maxOffer * 1.3 ? 'aggressive ask, needs a motivated seller.' : 'reasonable if it\'s been sitting.'}`;
-    if(!bearSurvives) recText += `<br><br><span style="color:var(--red);">⚠ Doesn't survive bear case.</span> If ARV disappoints by 10%, you lose money. Get comps nailed down before offering.`;
-  } else if(netProfit >= 0){
-    recText = `<strong>⚠ MARGINAL.</strong> ${fmt(netProfit)} profit doesn't justify the risk. You need to buy at <strong>${fmt(maxOffer)}</strong> — that's ${fmt(offer - maxOffer)} below your current offer.`;
-    recText += listPrice ? ` Would be ${Math.round((1-maxOffer/listPrice)*100)}% off list price.` : '';
-    recText += `<br><br>Watch this one. Revisit if: price drops, DOM crosses 90 days, or you find comps supporting a higher ARV.`;
-  } else {
-    recText = `<strong>✗ PASS.</strong> You'd lose ${fmt(Math.abs(netProfit))} at current numbers. Max offer is ${fmt(maxOffer)} — that's ${fmt(offer-maxOffer)} gap from where you are.`;
-    recText += `<br><br>${offer - maxOffer > offer * 0.25 ? 'Gap is too wide. Move on to the next deal.' : 'Close enough to watch. If price drops significantly, re-run the numbers.'}`;
-  }
-
-  // Render
-  renderScore(score,criteria);
-  set('maxOffer',fmt(maxOffer));
-  set('totalIn',fmt(totalIn));
-  set('arvDisplay',fmt(arv));
-  const npEl=document.getElementById('netProfit');
-  npEl.textContent=fmt(netProfit);
-  npEl.className=`num-value ${netProfit>=25000?'green':netProfit>=0?'yellow':'red'}`;
-  set('roiDisplay',fmtPct(roi)+' ROI');
-  set('ppsf',ppsf?fmt(ppsf)+'/sf':'—');
-  set('arvpsf',arvpsf?fmt(arvpsf)+'/sf':'—');
-  const esEl=document.getElementById('equitySpread');
-  esEl.textContent=fmt(equitySpread);
-  esEl.className=`num-value ${equitySpread>0?'green':'red'}`;
-  set('equityPct',fmtPct(equitySpread/arv*100)+' of ARV');
-  set('bOffer',fmt(offer));
-  set('bRehab',rehabRangeStr);
-  set('bContingency',fmt(contingency));
-  set('bFinancing',finType==='cash'?'$0 (cash)':fmt(finCost));
-  set('bHolding',fmt(holdingCosts));
-  set('bTotal',fmt(totalIn));
-  set('bArv',fmt(arv));
-  set('bAgent','-'+fmt(agentFees));
-  set('bClosing','-'+fmt(closing));
-  const bNetEl=document.getElementById('bNet');
-  bNetEl.textContent=fmt(netProfit);
-  bNetEl.style.color=netProfit>=25000?'var(--green)':netProfit>=0?'var(--yellow)':'var(--red)';
-  set('f-totalIn',fmt(totalIn));
-  const fnEl=document.getElementById('f-netProfit');
-  fnEl.textContent=fmt(netProfit);
-  fnEl.style.color=netProfit>=25000?'var(--green)':netProfit>=0?'var(--yellow)':'var(--red)';
-  set('f-roi',fmtPct(roi));
-  set('f-annualRoi',fmtPct(annualRoi));
-  set('f-emx',fmtX(arv/totalIn));
-  set('f-finType',finLabel);
-  set('f-interest',fmt(interestCost));
-  set('f-points',fmt(pointsCost));
-  set('f-hold',holdMos+' months');
-  set('f-finTotal',fmt(finCost));
-  if(brrrr){
-    document.getElementById('brrrrNoRent').style.display='none';
-    document.getElementById('brrrrContent').style.display='block';
-    set('b-arv',fmt(arv));
-    set('b-refi',fmt(brrrr.refiAmt)+' ('+Math.round(refiLtv*100)+'% LTV)');
-    const ciEl=document.getElementById('b-cashIn');
-    ciEl.textContent=fmt(brrrr.cashLeft);
-    ciEl.style.color=brrrr.cashLeft<5000?'var(--green)':brrrr.cashLeft<20000?'var(--yellow)':'var(--white)';
-    set('b-piti',fmt(brrrr.piti)+'/mo');
-    const cfEl=document.getElementById('b-cashflow');
-    cfEl.textContent=fmt(brrrr.cashflow)+'/mo';
-    cfEl.style.color=brrrr.cashflow>0?'var(--green)':'var(--red)';
-    set('b-gry',fmtPct(brrrr.grY));
-    set('b-coc',brrrr.cashLeft<1000?'∞ (infinite)':fmtPct(brrrr.cocRoi));
-    const acfEl=document.getElementById('b-annualCF');
-    acfEl.textContent=fmt(brrrr.annualCF)+'/yr';
-    acfEl.style.color=brrrr.annualCF>0?'var(--green)':'var(--red)';
-    set('b-cap',fmtPct(brrrr.capRate));
-    const bvEl=document.getElementById('b-verdict');
-    bvEl.textContent=brrrr.cashflow>200?'✓ Cash flows well':brrrr.cashflow>0?'⚠ Marginal':'✗ Negative cash flow';
-    bvEl.style.color=brrrr.cashflow>200?'var(--green)':brrrr.cashflow>0?'var(--yellow)':'var(--red)';
-  }else{
-    document.getElementById('brrrrNoRent').style.display='block';
-    document.getElementById('brrrrContent').style.display='none';
-  }
-  document.getElementById('flagsBox').innerHTML=flags.map(f=>{
-    const borderColor = f.cls==='warn'?'var(--red)':f.cls==='good'?'var(--green)':'var(--blue)';
-    return`<div class="flag" style="border-left:3px solid ${borderColor};"><span class="flag-icon">${f.icon}</span><span>${f.text}</span></div>`;
-  }).join('');
-  document.getElementById('recText').innerHTML=recText;
-  lastResult={
-    id:Date.now(),
-    address:document.getElementById('address').value||'Unnamed',
-    listPrice,
-    offer,arv,netProfit,roi,score,totalIn,maxOffer,rehab:rehabMid,
-    rehabLow,rehabHigh,
-    bedBath:document.getElementById('bedBath').value,
-    sqft,
-    bearArv,bullArv,bearNet,
-    flags:flags.map(f=>f.text.replace(/<[^>]*>/g,'')),
-    stage:'Lead',savedAt:new Date().toLocaleDateString()
-  };
-  document.getElementById('results').classList.add('show');
-  setTimeout(()=>document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'}),50);
-}
-
-// ════════════════════════════════════════════
-// SAVE / PIPELINE
-// ════════════════════════════════════════════
-function saveDeal(){
-  if(!lastResult){alert('Run the numbers first.');return;}
-  const idx=savedDeals.findIndex(d=>d.id===lastResult.id);
-  if(idx>=0)savedDeals[idx]=lastResult;else savedDeals.unshift(lastResult);
-  localStorage.setItem('pecos_deals',JSON.stringify(savedDeals));
-  alert('Deal saved! ✓');
-}
-function renderSaved(){
-  const el=document.getElementById('savedList');
-  if(!savedDeals.length){
-    el.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div>No saved deals yet.<br>Run the analyzer and hit Save Deal.</div>`;
-    return;
-  }
-  el.innerHTML=`<div class="saved-list">${savedDeals.map((d,i)=>{
-    const c=d.netProfit>=25000?'var(--green)':d.netProfit>=0?'var(--yellow)':'var(--red)';
-    return`<div class="saved-deal">
-      <div>
-        <div class="saved-deal-address">${d.address}</div>
-        <div class="saved-deal-meta">Offer: ${fmt(d.offer)} · ARV: ${fmt(d.arv)} · Score: ${d.score}/100 · ${d.savedAt}</div>
-      </div>
-      <div style="text-align:right">
-        <div class="saved-deal-profit" style="color:${c}">${fmt(d.netProfit)}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.stage||'Lead'}</div>
-      </div>
-      <div class="saved-deal-actions">
-        <select class="stage-select" onchange="updateStage(${i},this.value)">
-          ${PIPELINE_STAGES.map(s=>`<option ${d.stage===s?'selected':''} value="${s}">${s}</option>`).join('')}
-        </select>
-        <button class="saved-deal-btn" onclick="generatePDF(savedDeals[${i}])">PDF</button>
-        <button class="saved-deal-btn danger" onclick="deleteDeal(${i})">✕</button>
-      </div>
-    </div>`;
-  }).join('')}</div>`;
-}
-function updateStage(i,stage){
-  savedDeals[i].stage=stage;
-  localStorage.setItem('pecos_deals',JSON.stringify(savedDeals));
-}
-function deleteDeal(i){
-  if(!confirm('Delete this deal?'))return;
-  savedDeals.splice(i,1);
-  localStorage.setItem('pecos_deals',JSON.stringify(savedDeals));
-  renderSaved();
-}
-function renderPipeline(){
-  document.getElementById('pipelineCols').innerHTML=PIPELINE_STAGES.map(stage=>{
-    const deals=savedDeals.filter(d=>(d.stage||'Lead')===stage);
-    return`<div class="pipeline-col">
-      <div class="pipeline-col-title">${stage}<span class="p-count">${deals.length}</span></div>
-      ${deals.map(d=>{
-        const c=d.netProfit>=25000?'var(--green)':d.netProfit>=0?'var(--yellow)':'var(--red)';
-        return`<div class="pipeline-card"><div class="pc-addr">${d.address}</div><div class="pc-profit" style="color:${c}">${fmt(d.netProfit)} net</div></div>`;
-      }).join('')||`<div style="color:var(--muted);font-size:11px;font-family:'Space Mono',monospace">—</div>`}
-    </div>`;
-  }).join('');
-}
-
-// ════════════════════════════════════════════
-// RESET
-// ════════════════════════════════════════════
-function reset(){
-  document.getElementById('results').classList.remove('show');
-  document.querySelectorAll('input[type=number],input[type=text]').forEach(i=>{
-    if(!['holdingMonths','loanRate','loanPoints','refiLtv','refiRate','refiTerm'].includes(i.id))i.value='';
-  });
-  document.querySelectorAll('.rehab-btn').forEach(b=>b.classList.remove('active'));
-  rehabSelected={};fetchedComps=[];lastResult=null;buildRehabGrid();updateRehabDisplay();
-  document.getElementById('compCardsList').innerHTML='';
-  document.getElementById('compArvSuggest').style.display='none';
-  document.getElementById('fetchStatus').className='fetch-status';
-  document.getElementById('fetchStatus').textContent='';
-  document.getElementById('fetchCompsBtn').textContent='⚡ PROFILE AREA';
-  document.getElementById('fetchCompsBtn').disabled=false;
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-
-// ════════════════════════════════════════════
-// NEIGHBORHOOD PROFILER
-// ════════════════════════════════════════════
-let savedProfiles = JSON.parse(localStorage.getItem('pecos_profiles') || '[]');
-
-async function profileNeighborhood() {
-  const location = document.getElementById('nbhd-input').value.trim();
-  if (!location) { alert('Enter a ZIP code or area name.'); return; }
-
-  const beds  = document.getElementById('nbhd-beds').value;
-  const baths = document.getElementById('nbhd-baths') ? document.getElementById('nbhd-baths').value : '';
-
-  const status = document.getElementById('nbhd-status');
-  status.className   = 'fetch-status loading';
-  status.textContent = `Pulling market data for "${location}"${beds ? ' · '+beds+' bed' : ''}${baths ? ' · '+baths+' bath' : ''}...`;
-  status.style.display = 'block';
-
-  try {
-    const params = new URLSearchParams({ location });
-    if (beds)  params.set('beds', beds);
-    if (baths) params.set('baths', baths);
-    const resp   = await fetch(`${BACKEND_URL}/neighborhood?${params}`, {
-      signal: AbortSignal.timeout(25000)
-    });
-
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error || `Server error ${resp.status}`);
-    }
-
-    const d = await resp.json();
-    if (d.error) throw new Error(d.error);
-
-    status.className   = 'fetch-status success';
-    status.textContent = `✓ Profile loaded for "${location}"${d.cached ? ' (cached)' : ''} — ${d.activeCount || 0} active listings analyzed`;
-
-    renderNeighborhoodProfile(d);
-    document.getElementById('nbhd-results').style.display = 'block';
-
-    // Auto-save profile
-    saveProfile(d);
-
-  } catch(err) {
-    status.className   = 'fetch-status error';
-    status.textContent = '✗ ' + err.message;
-  }
-}
-
-function renderNeighborhoodProfile(d) {
-  // ── Headline stat cards ──────────────────────────────────────────────────
-  const trendColor = d.zhviPctChange >= 2 ? 'green' : d.zhviPctChange >= -1 ? 'yellow' : 'red';
-  const domColor   = d.medianDom && d.medianDom <= 30 ? 'green' : d.medianDom && d.medianDom <= 60 ? 'yellow' : 'red';
-
-  const stats = [
-    {
-      label: 'City Median Home Value',
-      value: d.zhviCurrent ? fmt(d.zhviCurrent) : '—',
-      sub:   d.zhviYearAgo ? `Was ${fmt(d.zhviYearAgo)} 1yr ago · City-wide, not this street` : 'Zillow city-wide median (not this street)',
-      color: 'gold'
-    },
-    {
-      label: '1yr Appreciation',
-      value: d.zhviPctChange !== null && d.zhviPctChange !== undefined ? (d.zhviPctChange > 0 ? '+' : '') + d.zhviPctChange + '%' : '—',
-      sub:   d.zhviTrend || '—',
-      color: trendColor
-    },
-    {
-      label: 'Avg $/sqft (Active)',
-      value: d.avgPpsf ? fmt(d.avgPpsf) + '/sf' : '—',
-      sub:   'ARV benchmark — active listings',
-      color: 'green'
-    },
-    {
-      label: 'Median DOM',
-      value: d.medianDom ? d.medianDom + 'd' : '—',
-      sub:   d.velocity || '—',
-      color: domColor
-    },
-    {
-      label: 'Active Inventory',
-      value: d.activeCount || '—',
-      sub:   d.inventory || '—',
-      color: d.activeCount <= 10 ? 'red' : d.activeCount <= 25 ? 'yellow' : 'green'
-    },
-    {
-      label: 'Distressed %',
-      value: d.distressedPct + '%',
-      sub:   'of active listings',
-      color: d.distressedPct >= 15 ? 'green' : 'white'
-    },
-  ];
-
-  document.getElementById('nbhd-stats-grid').style.gridTemplateColumns = 'repeat(3,1fr)';
-  document.getElementById('nbhd-stats-grid').innerHTML = stats.map(s => `
-    <div class="num-card">
-      <div class="num-label">${s.label}</div>
-      <div class="num-value ${s.color}">${s.value}</div>
-      <div class="num-sub">${s.sub}</div>
-    </div>`).join('');
-
-  // ── Market health ────────────────────────────────────────────────────────
-  const healthItems = [
-    { label: 'Market Direction', value: d.zhviTrend || '—' },
-    { label: 'Velocity (DOM)',   value: d.velocity  || '—' },
-    { label: 'Inventory',        value: d.inventory  || '—' },
-    { label: 'Distressed Ratio', value: d.distressedPct + '% of active listings' },
-    { label: 'Avg Active Price', value: d.avgActivePrice ? fmt(d.avgActivePrice) : '—' },
-  ];
-
-  document.getElementById('nbhd-health').innerHTML = healthItems.map(h => `
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
-      <span style="color:var(--muted2);">${h.label}</span>
-      <span style="font-family:'Space Mono',monospace;font-size:12px;color:var(--white);text-align:right;max-width:55%;">${h.value}</span>
-    </div>`).join('');
-
-  // ── ARV benchmark box ─────────────────────────────────────────────────────
-  const arvBox = document.getElementById('nbhd-arv-box');
-  const ppsf   = d.avgPpsf;
-  const zhvi   = d.zhviCurrent;
-
-  if (ppsf || zhvi) {
-    let benchmarkHtml = '';
-
-    if (ppsf) {
-      const sqftExamples = [900, 1200, 1500].map(s =>
-        `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
-          <span style="color:var(--muted2);">${s.toLocaleString()} sqft</span>
-          <span style="font-family:'Space Mono',monospace;color:var(--gold);">${fmt(s * ppsf)} est. ARV</span>
-        </div>`).join('');
-
-      benchmarkHtml = `
-        <div style="font-family:'Space Mono',monospace;font-size:26px;color:var(--gold);margin-bottom:2px;">
-          ${fmt(ppsf)}<span style="font-size:13px;">/sqft</span>
+    <!-- STATS BAR -->
+    <div style="background:#1a1a2e;border-radius:0 0 8px 8px;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;gap:24px;align-items:center;">
+            <div style="text-align:center;">
+                <div style="color:#e74c3c;font-size:22px;font-weight:900;line-height:1;">{len(act_now)}</div>
+                <div style="color:#888;font-size:9px;letter-spacing:2px;margin-top:3px;">ACT NOW</div>
+            </div>
+            <div style="width:1px;height:24px;background:rgba(255,255,255,0.1);"></div>
+            <div style="text-align:center;">
+                <div style="color:#27ae60;font-size:22px;font-weight:900;line-height:1;">{len(new_listings)}</div>
+                <div style="color:#888;font-size:9px;letter-spacing:2px;margin-top:3px;">NEW</div>
+            </div>
+            <div style="width:1px;height:24px;background:rgba(255,255,255,0.1);"></div>
+            <div style="text-align:center;">
+                <div style="color:#c9a84c;font-size:22px;font-weight:900;line-height:1;">{len(active_listings)}</div>
+                <div style="color:#888;font-size:9px;letter-spacing:2px;margin-top:3px;">ACTIVE</div>
+            </div>
         </div>
-        <div style="font-size:11px;color:var(--muted2);margin-bottom:10px;">avg asking $/sqft — use as ARV starting point</div>
-        ${sqftExamples}`;
-    }
 
-    if (zhvi) {
-      benchmarkHtml += `
-        <div style="margin-top:10px;padding:8px 0;border-top:1px solid var(--border);font-size:12px;color:var(--muted2);">
-          City-wide median (all homes): <strong style="color:var(--white);">${fmt(zhvi)}</strong>
-          <span style="font-size:10px;color:var(--muted);"> — not this street/neighborhood</span>
-          ${d.zhviPctChange !== null ? ` · <span style="color:${d.zhviPctChange>=0?'var(--green)':'var(--red)'};">${d.zhviPctChange>0?'+':''}${d.zhviPctChange}% YoY</span>` : ''}
-        </div>`;
-    }
+    </div>
 
-    arvBox.innerHTML = benchmarkHtml + `
-      <button onclick="pushArvBenchmark(${ppsf || 0})" style="margin-top:12px;width:100%;background:var(--gold);border:none;border-radius:3px;color:var(--black);font-family:'Space Mono',monospace;font-size:11px;letter-spacing:1px;padding:10px;cursor:pointer;font-weight:700;">
-        → USE IN DEAL ANALYZER
-      </button>`;
-  } else {
-    arvBox.innerHTML = '<div style="color:var(--muted);font-size:13px;">No benchmark data available. Try city-state format e.g. springfield-mo</div>';
-  }
-
-  renderSavedProfiles();
-}
-
-function pushArvBenchmark(ppsf) {
-  // Store for deal analyzer to pick up
-  localStorage.setItem('pecos_arv_benchmark', JSON.stringify({ ppsf, ts: Date.now() }));
-  // Switch to analyzer tab
-  switchTab('analyzer');
-  // Show a hint
-  const arvField = document.getElementById('arv');
-  if (arvField) {
-    arvField.style.borderColor = 'var(--gold)';
-    arvField.placeholder = `Enter sqft × ${ppsf} = your ARV`;
-    setTimeout(() => arvField.style.borderColor = '', 3000);
-  }
-  // Show tip banner
-  const tipBanner = document.createElement('div');
-  tipBanner.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--black);font-family:"Space Mono",monospace;font-size:12px;padding:10px 20px;border-radius:4px;z-index:999;font-weight:700;';
-  tipBanner.textContent = `ARV benchmark: ${fmt(ppsf)}/sqft loaded — multiply by your sqft`;
-  document.body.appendChild(tipBanner);
-  setTimeout(() => tipBanner.remove(), 4000);
-}
-
-function saveProfile(d) {
-  const existing = savedProfiles.findIndex(p => p.location === d.location);
-  const profile  = { ...d, savedAt: new Date().toLocaleDateString() };
-  if (existing >= 0) savedProfiles[existing] = profile;
-  else savedProfiles.unshift(profile);
-  savedProfiles = savedProfiles.slice(0, 10); // keep last 10
-  localStorage.setItem('pecos_profiles', JSON.stringify(savedProfiles));
-  renderSavedProfiles();
-}
-
-function renderSavedProfiles() {
-  const el = document.getElementById('nbhd-saved');
-  if (!savedProfiles.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:13px;">No saved profiles yet.</div>';
-    return;
-  }
-  el.innerHTML = savedProfiles.map((p, i) => `
-    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:8px;gap:12px;flex-wrap:wrap;">
-      <div>
-        <div style="font-size:14px;font-weight:500;color:var(--white);">${p.location}</div>
-        <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;">
-          ${p.activeCount || 0} active · ${p.avgPpsf ? fmt(p.avgPpsf)+'/sf' : 'no $/sf'} · DOM ${p.medianDom || '—'}d · ${p.savedAt}
+    <!-- COUNTY STATS -->
+    <div style="background:#1a1030;border:1px solid rgba(201,168,76,0.2);border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#aaa;">
+        <strong style="color:#c9a84c;">Counties:</strong> {county_html} &nbsp;&middot;&nbsp;
+        <strong style="color:#c9a84c;">Range:</strong> $25k-$125k &nbsp;&middot;&nbsp;
+        <strong style="color:#c9a84c;">Rating:</strong> $/sqft vs county benchmark
+        <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(201,168,76,0.15);font-size:11px;color:#777;">
+            <strong style="color:#c9a84c;">$/sqft Benchmarks ({bench_source}):</strong> {bench_details}
         </div>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="loadProfile(${i})" style="background:var(--border);border:none;border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:9px;padding:7px 12px;cursor:pointer;">LOAD</button>
-        <button onclick="deleteProfile(${i})" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;">✕</button>
-      </div>
-    </div>`).join('');
-}
+    </div>
 
-function loadProfile(i) {
-  const p = savedProfiles[i];
-  document.getElementById('nbhd-input').value = p.location;
-  renderNeighborhoodProfile(p);
-  document.getElementById('nbhd-results').style.display = 'block';
-  document.getElementById('nbhd-status').className   = 'fetch-status success';
-  document.getElementById('nbhd-status').textContent = `✓ Loaded saved profile for "${p.location}" (${p.savedAt})`;
-  document.getElementById('nbhd-status').style.display = 'block';
-}
+    {act_now_html}
 
-function deleteProfile(i) {
-  savedProfiles.splice(i, 1);
-  localStorage.setItem('pecos_profiles', JSON.stringify(savedProfiles));
-  renderSavedProfiles();
-}
+    <div style="background:linear-gradient(90deg,#1a472a,#0d2a18);border-radius:6px 6px 0 0;padding:10px 16px;border-bottom:2px solid #2ecc71;margin-top:4px;">
+        <span style="color:#fff;font-weight:bold;font-size:14px;">NEW THIS WEEK ({len(new_listings)})</span>
+    </div>
+    <div style="background:#0a1408;border:1px solid rgba(46,204,113,0.2);border-top:none;border-radius:0 0 6px 6px;padding:12px;margin-bottom:16px;">{new_html}</div>
 
-// ── INIT ──
-toggleFinanceFields();
-checkBackend();
-renderSavedProfiles();
+    <div style="background:linear-gradient(90deg,#2d1654,#1a0f2e);border-radius:6px 6px 0 0;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #c9a84c;">
+        <span style="color:#fff;font-weight:bold;font-size:14px;">ALL DEALS ({len(active_listings)})</span>
 
-// ════════════════════════════════════════════
-// PDF OFFER SHEET GENERATOR
-// ════════════════════════════════════════════
-function generatePDF(deal) {
-  if (!deal) { alert('Run the numbers first.'); return; }
+    </div>
+    <div style="background:#0f0a1e;border:1px solid rgba(201,168,76,0.15);border-top:none;border-radius:0 0 6px 6px;padding:12px;margin-bottom:16px;">{active_html}</div>
 
-  const date    = new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
-  const roiPct  = deal.arv > 0 ? ((deal.netProfit / deal.totalIn) * 100).toFixed(1) : '—';
-  const margin  = deal.arv > 0 ? ((deal.netProfit / deal.arv) * 100).toFixed(1) : '—';
+    <div style="background:#1a1408;border:1px solid #c9a84c;border-radius:6px;padding:14px;margin-bottom:16px;">
+        <div style="font-weight:bold;font-size:13px;color:#c9a84c;letter-spacing:1px;">MANUAL LEADS - DO THESE WEEKLY</div>
+        <div style="font-size:13px;color:#aaa;margin-top:8px;line-height:2;">
+            <strong>1. Probate (Case.net)</strong> → courts.mo.gov/cnet → county → case type "PR" → filed last 90 days → call estate admins directly<br>
+            <strong>2. Facebook Marketplace</strong> → "house for sale" + county → $25k-$125k → FSBO sellers<br>
+            <strong>3. Tax Delinquent Lists</strong> → call county collectors:<br>
+            &nbsp;&nbsp;Christian (417) 581-2440 &middot; Webster (417) 859-2120 &middot; Lawrence (417) 466-2638<br>
+            &nbsp;&nbsp;Stone (417) 357-6395 &middot; Taney (417) 546-7216 &middot; Polk (417) 326-4031<br>
+            <strong>4. Greene County Tax Sale (August)</strong> → civicsource.com → Investment → Missouri → Greene
+        </div>
+    </div>
 
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Offer Sheet — ${deal.address}</title>
-<style>
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:'Arial',sans-serif;background:#fff;color:#111;padding:40px;max-width:720px;margin:0 auto;}
-  .header{border-bottom:3px solid #c9a84c;padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;}
-  .brand{font-size:28px;font-weight:900;letter-spacing:3px;color:#111;}
-  .brand span{color:#c9a84c;}
-  .doc-title{font-size:11px;letter-spacing:2px;color:#888;text-transform:uppercase;text-align:right;}
-  .doc-date{font-size:12px;color:#555;margin-top:3px;text-align:right;}
-  .address-block{background:#f8f6f2;border-left:4px solid #c9a84c;padding:14px 18px;margin-bottom:24px;border-radius:0 4px 4px 0;}
-  .address-block h2{font-size:18px;font-weight:700;color:#111;margin-bottom:4px;}
-  .address-block p{font-size:12px;color:#666;}
-  .section{margin-bottom:20px;}
-  .section-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c9a84c;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e0d8;}
-  .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0ede8;font-size:13px;}
-  .row:last-child{border-bottom:none;}
-  .row .label{color:#555;}
-  .row .value{font-weight:600;color:#111;font-family:monospace;}
-  .row.total{background:#f8f6f2;margin:0 -8px;padding:10px 8px;border-radius:3px;}
-  .row.total .label{font-weight:700;color:#111;font-size:14px;}
-  .row.total .value{font-size:15px;color:#c9a84c;}
-  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-  .verdict-box{padding:16px 20px;border-radius:4px;margin-bottom:20px;display:flex;align-items:center;gap:14px;}
-  .verdict-box.fire{background:#e8f8ef;border:1px solid #2ecc71;}
-  .verdict-box.good{background:#fef9ec;border:1px solid #f0b429;}
-  .verdict-box.pass{background:#fef0f0;border:1px solid #e03c3c;}
-  .verdict-score{font-size:36px;font-weight:900;font-family:monospace;}
-  .verdict-score.fire{color:#27ae60;}
-  .verdict-score.good{color:#e67e22;}
-  .verdict-score.pass{color:#e03c3c;}
-  .verdict-text h3{font-size:15px;font-weight:700;margin-bottom:3px;}
-  .verdict-text p{font-size:12px;color:#666;line-height:1.5;}
-  .flags{display:flex;flex-direction:column;gap:5px;}
-  .flag{font-size:12px;color:#444;padding:6px 10px;background:#f8f8f8;border-radius:3px;border-left:2px solid #ddd;}
-  .footer{margin-top:32px;padding-top:16px;border-top:1px solid #e5e0d8;display:flex;justify-content:space-between;font-size:10px;color:#999;}
-  .sig-line{margin-top:40px;padding-top:12px;border-top:1px solid #333;width:240px;font-size:11px;color:#555;}
-  @media print{body{padding:20px;}button{display:none;}}
-</style>
-</head>
-<body>
-
-<div class="header">
-  <div>
-    <div class="brand">PECOS <span>GRANT</span></div>
-    <div style="font-size:11px;color:#888;letter-spacing:1px;margin-top:2px;">DEVELOPMENT LLC</div>
-  </div>
-  <div>
-    <div class="doc-title">Investment Offer Sheet</div>
-    <div class="doc-date">${date}</div>
-  </div>
+    <div style="text-align:center;font-size:11px;color:#555;padding:12px 10px;border-top:1px solid rgba(201,168,76,0.2);margin-top:8px;">
+        <span style="color:#c9a84c;font-weight:bold;">PECOS GRANT DEVELOPMENT LLC</span> &nbsp;&middot;&nbsp; Reply to log deal status &nbsp;&middot;&nbsp; Springfield, MO
+    </div>
 </div>
+</body></html>"""
 
-<div class="address-block">
-  <h2>${deal.address || 'Address Not Entered'}</h2>
-  <p>Prepared by Pecos Grant Development LLC · ${date}</p>
-</div>
 
-<div class="verdict-box ${deal.score >= 70 ? 'fire' : deal.score >= 40 ? 'good' : 'pass'}">
-  <div class="verdict-score ${deal.score >= 70 ? 'fire' : deal.score >= 40 ? 'good' : 'pass'}">${deal.score || 0}</div>
-  <div class="verdict-text">
-    <h3>${deal.score >= 70 ? '🔥 FIRE DEAL' : deal.score >= 40 ? '⚠ PROCEED WITH CAUTION' : '✗ DOES NOT PENCIL'}</h3>
-    <p>Deal score out of 100 · Based on ARV, rehab estimate, equity gap, and market flags</p>
-  </div>
-</div>
+# ─── SEND EMAIL ───────────────────────────────────────────────────────────────
+def send_email(html, new_count, active_count, act_count):
+    today   = datetime.now(pytz.timezone("US/Central")).strftime("%B %d, %Y")
+    subject = f"🚨 {act_count} ACT NOW &middot; {new_count} New &middot; {active_count} Active | Pecos Grant {today}" if act_count else f"Deal Report {today} - {new_count} New, {active_count} Active | Pecos Grant"
+    resp    = requests.post(
+        "https://api.resend.com/emails",
+        headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+        json={"from": FROM_EMAIL, "to": [TO_EMAIL], "subject": subject, "html": html},
+    )
+    logger.info(f"  Email sent: {resp.status_code}")
+    return resp.status_code
 
-<div class="grid-2">
-  <div class="section">
-    <div class="section-title">Offer Details</div>
-    <div class="row"><span class="label">List Price</span><span class="value">${fmt(deal.listPrice || 0)}</span></div>
-    <div class="row"><span class="label">Your Offer</span><span class="value">${fmt(deal.offer || 0)}</span></div>
-    <div class="row"><span class="label">Discount to List</span><span class="value">${deal.listPrice > 0 ? (((deal.listPrice - deal.offer) / deal.listPrice) * 100).toFixed(1) + '%' : '—'}</span></div>
-    <div class="row"><span class="label">ARV (After Repair)</span><span class="value">${fmt(deal.arv || 0)}</span></div>
-    <div class="row"><span class="label">Rehab Estimate</span><span class="value">${fmt(deal.rehabMid || 0)}</span></div>
-  </div>
-  <div class="section">
-    <div class="section-title">Deal Economics</div>
-    <div class="row"><span class="label">Total In</span><span class="value">${fmt(deal.totalIn || 0)}</span></div>
-    <div class="row"><span class="label">Net Profit</span><span class="value" style="color:${(deal.netProfit||0) >= 0 ? '#27ae60' : '#e03c3c'}">${fmt(deal.netProfit || 0)}</span></div>
-    <div class="row"><span class="label">ROI</span><span class="value">${roiPct}%</span></div>
-    <div class="row"><span class="label">Profit Margin</span><span class="value">${margin}%</span></div>
-    <div class="row"><span class="label">Max Offer (70% Rule)</span><span class="value">${fmt(deal.maxOffer || 0)}</span></div>
-  </div>
-</div>
 
-${deal.flags && deal.flags.length ? `
-<div class="section">
-  <div class="section-title">Deal Signals</div>
-  <div class="flags">
-    ${deal.flags.map(f => `<div class="flag">${f}</div>`).join('')}
-  </div>
-</div>` : ''}
+# ─── MAIN JOB ─────────────────────────────────────────────────────────────────
+def run_deal_finder():
+    logger.info(f"Running Deal Finder - {datetime.now()}")
 
-<div class="grid-2" style="margin-top:8px;">
-  <div>
-    <div class="section-title" style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c9a84c;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e0d8;">Seller Signature</div>
-    <div class="sig-line">Signature · Date</div>
-  </div>
-  <div>
-    <div class="section-title" style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c9a84c;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e0d8;">Buyer Signature</div>
-    <div class="sig-line">Pecos Grant Development LLC · Date</div>
-  </div>
-</div>
+    all_listings = []
 
-<div class="footer">
-  <span>Pecos Grant Development LLC · Springfield, MO</span>
-  <span>Generated by Deal Analyzer · ${date}</span>
-</div>
+    logger.info("Scraping Zillow...")
+    zillow = scrape_zillow_rapidapi()
+    all_listings += zillow
+    logger.info(f"  → {len(zillow)} from Zillow")
 
-</body>
-</html>`;
+    logger.info("Scraping Foreclosure.com...")
+    fc = scrape_foreclosure_com()
+    all_listings += fc
+    logger.info(f"  → {len(fc)} from Foreclosure.com")
 
-  // Open in new tab and trigger print dialog
-  const win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => win.print(), 500);
-}
+    total_scraped = len(all_listings)
+    all_listings  = deduplicate(all_listings)
+    logger.info(f"After dedup: {len(all_listings)}")
 
-</script>
-</body>
-</html>
+    all_listings = [score_listing(l) for l in all_listings]
+    qualified    = [l for l in all_listings if l["score"] >= MIN_QUALIFYING_SCORE]
+    # Sort: MJ first, then Kobe, then LeBron — within each tier sort by score
+    rating_order = {"mj": 0, "kobe": 1, "lebron": 2}
+    qualified.sort(key=lambda x: (rating_order.get(x.get("rating","lebron"), 2), -x.get("score", 0)))
+
+    new_listings    = [l for l in qualified if l.get("days_on_market", 999) <= NEW_LISTING_DOM_DAYS]
+    active_listings = [l for l in qualified if l.get("days_on_market", 999) > NEW_LISTING_DOM_DAYS]
+
+    # ACT NOW comparison
+    act_now = compare_to_last_week(all_listings)
+    logger.info(f"ACT NOW: {len(act_now)} | New: {len(new_listings)} | Active: {len(active_listings)}")
+
+    html   = build_email(new_listings, active_listings, act_now, total_scraped)
+    status = send_email(html, len(new_listings), len(active_listings), len(act_now))
+    logger.info(f"Done. Status: {status}")
+
+    # Save this week for next comparison — do this AFTER sending email
+    save_this_week(all_listings)
+
+
+# ─── SCHEDULER ────────────────────────────────────────────────────────────────
+def run_scheduler():
+    schedule.every().monday.at("14:00").do(run_deal_finder)  # 14:00 UTC = 8:00 AM Central
+    # Update benchmarks on 1st of each month at 12:00 UTC (6 AM Central)
+    # Runs before the Monday scraper so scores use fresh benchmarks
+    schedule.every().day.at("12:00").do(lambda: update_benchmarks() if datetime.now().day == 1 else None)
+    logger.info("Scheduler: Deals=Monday 14:00 UTC | Benchmarks=1st of month 12:00 UTC")
+    while True:
+        schedule.run_pending()
+        time.sleep(60)
+
+
+# ─── ENTRY POINT ──────────────────────────────────────────────────────────────
+def main():
+    global _last_week
+    logger.info("Pecos Grant - Starting up...")
+    validate_config()
+    init_db()
+    _last_week = db_load_last_week()
+    logger.info(f"Loaded {len(_last_week)} listings from last week")
+
+    # Load live benchmarks from DB (if previously calculated)
+    saved_benchmarks = db_load_benchmarks()
+    if saved_benchmarks:
+        for county, ppsf in saved_benchmarks.items():
+            MARKET_ARV_PPSF[county] = ppsf
+        logger.info(f"Loaded live benchmarks for {len(saved_benchmarks)} counties")
+    else:
+        logger.info("No saved benchmarks found — using hardcoded defaults")
+        logger.info("  → Hit GET /update-benchmarks to pull live data, or wait for 1st of month")
+
+    threading.Thread(target=run_scheduler, daemon=True).start()
+    # Don't auto-run scraper on startup — let it fire on Monday schedule only
+    # threading.Thread(target=run_deal_finder, daemon=True).start()
+    port = int(os.environ.get("PORT", 8080))
+    logger.info(f"Flask on port {port}")
+    app.run(host="0.0.0.0", port=port)
+
+
+if __name__ == "__main__":
+    main()

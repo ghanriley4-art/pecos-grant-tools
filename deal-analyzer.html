@@ -923,27 +923,108 @@ async function autoFillFromLookup(){
     let intel = [];
     if(d.zestimate && d.zestimateGap > 0) intel.push(`Zestimate: $${d.zestimate.toLocaleString()} (+$${d.zestimateGap.toLocaleString()} above list)`);
     if(d.zestimate && d.zestimateGap < 0) intel.push(`Zestimate: $${d.zestimate.toLocaleString()} ($${Math.abs(d.zestimateGap).toLocaleString()} below list)`);
-    if(d.zestimate && d.zestimateGap === 0) intel.push(`Zestimate: $${d.zestimate.toLocaleString()} (matches list)`);
-    if(d.rentZestimate) intel.push(`Rent Zestimate: $${d.rentZestimate.toLocaleString()}/mo`);
+    if(d.rentZestimate) intel.push(`Rent Zestimate: $${d.rentZestimate.toLocaleString()}/mo → auto-filled BRRRR`);
     if(d.lastSoldPrice) intel.push(`Last sold: $${d.lastSoldPrice.toLocaleString()}`);
     if(d.county && d.countyBench) intel.push(`${d.county} Co. benchmark: $${d.countyBench}/sqft`);
     if(d.pricePerSqft && d.countyBench) intel.push(`Buy at $${d.pricePerSqft}/sqft (${d.discountPct > 0 ? d.discountPct+'% below' : Math.abs(d.discountPct)+'% above'} bench)`);
-    if(d.priceReduction) intel.push(`Price reduced $${d.priceReduction.toLocaleString()}`);
     if(d.yearBuilt && d.yearBuilt < 1950) intel.push(`⚠ ${d.yearBuilt} build — check electrical, plumbing, foundation`);
-    if(d.rentZestimate) intel.push(`Rent Zestimate: $${d.rentZestimate.toLocaleString()}/mo → auto-filled BRRRR rent`);
-    if(d.lastSoldPrice) intel.push(`Last sold: $${d.lastSoldPrice.toLocaleString()}`);
     if(d.homeStatus && d.homeStatus !== 'FOR_SALE') intel.push(`Status: ${d.homeStatus}`);
-
     if(intel.length){
       status.innerHTML += `<div style="margin-top:6px;padding:8px 10px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.15);border-radius:3px;font-size:11px;color:var(--muted2);line-height:1.7;">${intel.join('<br>')}</div>`;
     }
 
-    // Suggest offer based on data
-    if(d.price && d.countyBench && d.sqft){
+    // ── COMPS TABLE ──────────────────────────────────────────────────────
+    if(d.comps && d.comps.length > 0){
+      let ch = `<div style="margin-top:10px;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:12px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--gold);letter-spacing:1.5px;margin-bottom:8px;">📊 COMPARABLE HOMES (${d.comps.length})</div>
+        <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-family:'Space Mono',monospace;font-size:11px;">
+          <thead><tr style="border-bottom:1px solid var(--border);">
+            <th style="text-align:left;padding:4px 6px;color:var(--muted);font-size:9px;">ADDRESS</th>
+            <th style="text-align:right;padding:4px 6px;color:var(--muted);font-size:9px;">PRICE</th>
+            <th style="text-align:right;padding:4px 6px;color:var(--muted);font-size:9px;">SQFT</th>
+            <th style="text-align:right;padding:4px 6px;color:var(--muted);font-size:9px;">$/SF</th>
+            <th style="text-align:right;padding:4px 6px;color:var(--muted);font-size:9px;">BD/BA</th>
+          </tr></thead><tbody>`;
+      d.comps.forEach(c => {
+        ch += `<tr style="border-bottom:1px solid rgba(255,255,255,0.03);">
+          <td style="padding:5px 6px;color:var(--white);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.address||'—'}</td>
+          <td style="padding:5px 6px;color:var(--green);text-align:right;">$${(c.price||0).toLocaleString()}</td>
+          <td style="padding:5px 6px;color:var(--white);text-align:right;">${c.sqft||'—'}</td>
+          <td style="padding:5px 6px;color:var(--gold);text-align:right;">${c.ppsf?'$'+c.ppsf:'—'}</td>
+          <td style="padding:5px 6px;color:var(--muted2);text-align:right;">${c.beds||'?'}/${c.baths||'?'}</td>
+        </tr>`;
+      });
+      ch += `<tr style="border-top:2px solid var(--gold);font-weight:700;">
+        <td style="padding:6px;color:var(--gold);">AVG (${d.comps.length})</td>
+        <td style="padding:6px;color:var(--gold);text-align:right;">$${(d.compAvgPrice||0).toLocaleString()}</td>
+        <td style="padding:6px;text-align:right;">—</td>
+        <td style="padding:6px;color:var(--gold);text-align:right;">${d.compAvgPpsf?'$'+d.compAvgPpsf:'—'}</td>
+        <td style="padding:6px;text-align:right;">—</td>
+      </tr></tbody></table></div>`;
+      if(d.compArvEstimate && d.sqft){
+        ch += `<div style="margin-top:10px;padding:10px;background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.2);border-radius:3px;">
+          <div style="font-size:10px;color:var(--muted2);">COMP-BASED ARV ESTIMATE</div>
+          <div style="font-family:'Space Mono',monospace;font-size:20px;color:var(--green);">$${d.compArvEstimate.toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">${d.sqft.toLocaleString()} sqft × $${d.compAvgPpsf}/sqft</div>
+          <button onclick="document.getElementById('arv').value=${d.compArvEstimate};document.getElementById('arv').style.borderColor='var(--green)';setTimeout(()=>document.getElementById('arv').style.borderColor='',2000);" style="margin-top:8px;background:var(--green);border:none;border-radius:3px;color:#000;font-size:10px;padding:7px 14px;cursor:pointer;font-weight:700;">→ SET AS MY ARV</button>
+        </div>`;
+      }
+      ch += '</div>';
+      status.innerHTML += ch;
+    }
+
+    // ── PRICE HISTORY ────────────────────────────────────────────────────
+    if(d.priceHistory && d.priceHistory.length > 0){
+      let ph = `<div style="margin-top:10px;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:12px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--gold);letter-spacing:1.5px;margin-bottom:8px;">📉 PRICE HISTORY</div>`;
+      d.priceHistory.forEach(h => {
+        const evt = (h.event||'').toLowerCase();
+        const isReduce = evt.includes('reduc')||evt.includes('drop')||evt.includes('decrease')||evt.includes('cut');
+        const isSold = evt.includes('sold');
+        const icon = isReduce?'📉':isSold?'🏠':'📋';
+        const color = isReduce?'var(--red)':isSold?'var(--green)':'var(--muted2)';
+        ph += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:11px;">
+          <span>${icon}</span>
+          <span style="color:var(--muted);min-width:75px;font-family:'Space Mono',monospace;font-size:10px;">${h.date||'—'}</span>
+          <span style="color:${color};flex:1;">${h.event||'—'}</span>
+          <span style="color:var(--white);font-family:'Space Mono',monospace;">${h.price?'$'+h.price.toLocaleString():''}</span>
+        </div>`;
+      });
+      if(d.priceDrops && d.priceDrops.length > 0){
+        ph += `<div style="margin-top:8px;padding:8px;background:rgba(224,60,60,0.08);border:1px solid rgba(224,60,60,0.2);border-radius:3px;font-size:11px;color:var(--red);">
+          🔥 <strong>${d.priceDrops.length} price drop${d.priceDrops.length>1?'s':''}</strong> — seller is motivated. Lowball with confidence.
+        </div>`;
+      }
+      ph += '</div>';
+      status.innerHTML += ph;
+    }
+
+    // ── TAX HISTORY ──────────────────────────────────────────────────────
+    if(d.taxHistory && d.taxHistory.length > 0){
+      let th = `<div style="margin-top:10px;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:12px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--gold);letter-spacing:1.5px;margin-bottom:8px;">🏛️ TAX HISTORY</div>`;
+      d.taxHistory.forEach(t => {
+        th += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:11px;font-family:'Space Mono',monospace;">
+          <span style="color:var(--muted);">${t.year||'—'}</span>
+          <span style="color:var(--white);">Tax: $${(t.taxPaid||0).toLocaleString()}</span>
+          <span style="color:var(--muted2);">Assessed: $${(t.assessment||0).toLocaleString()}</span>
+        </div>`;
+      });
+      th += '</div>';
+      status.innerHTML += th;
+    }
+
+    // Suggest offer based on comps or benchmark
+    if(d.compArvEstimate && d.compArvEstimate > 0){
+      const suggestOffer = Math.round(d.compArvEstimate * 0.65 - 25000);
+      if(suggestOffer > 0){
+        status.innerHTML += `<div style="margin-top:8px;font-size:11px;color:var(--gold);">💡 Comps suggest offer around <strong>$${suggestOffer.toLocaleString()}</strong> (65% of comp ARV $${d.compArvEstimate.toLocaleString()} minus ~$25k rehab)</div>`;
+      }
+    } else if(d.price && d.countyBench && d.sqft){
       const impliedArv = d.countyBench * d.sqft;
-      const suggestOffer = Math.round(impliedArv * 0.65 - 25000); // 65% rule minus est rehab
-      if(suggestOffer > 0 && suggestOffer < d.price){
-        status.innerHTML += `<div style="margin-top:6px;font-size:11px;color:var(--gold);">💡 Benchmark suggests offer around <strong>$${suggestOffer.toLocaleString()}</strong> (65% of implied ARV $${impliedArv.toLocaleString()} minus ~$25k rehab)</div>`;
+      const suggestOffer = Math.round(impliedArv * 0.65 - 25000);
+      if(suggestOffer > 0){
+        status.innerHTML += `<div style="margin-top:8px;font-size:11px;color:var(--gold);">💡 Benchmark suggests offer around <strong>$${suggestOffer.toLocaleString()}</strong> (65% of implied ARV $${impliedArv.toLocaleString()} minus ~$25k rehab)</div>`;
       }
     }
 

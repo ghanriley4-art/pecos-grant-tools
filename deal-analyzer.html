@@ -866,7 +866,7 @@ async function autoFillFromLookup(){
     }
 
     const resp = await fetch(`${BACKEND_URL}/lookup?${params}`, {
-      signal: AbortSignal.timeout(20000)
+      signal: AbortSignal.timeout(50000)
     });
 
     if(!resp.ok){

@@ -1096,31 +1096,30 @@ async function autoFillFromLookup(){
     }
 
     // ── HOUSING MARKET ───────────────────────────────────────────────────
-    if(d.housingMarket && Object.keys(d.housingMarket).length > 0){
+    if(d.housingMarket && Object.keys(d.housingMarket).length > 1){
       const m = d.housingMarket;
       let mh = `<div class="pull-section">
-        <div class="pull-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed');">📊 MARKET OVERVIEW</div>
+        <div class="pull-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed');">📊 MARKET — ${m.regionName||d.city||'Area'}</div>
         <div class="pull-body" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">`;
-      const stats = [
-        ['Median Home', m.medianHomeValue || m.medianListingPrice || m.medianPrice],
-        ['Median Rent', m.medianRentalPrice || m.medianRent],
-        ['1yr Change', m.homeValueChange || m.priceChange || m.appreciation],
-        ['Avg DOM', m.averageDaysOnMarket || m.medianDaysOnMarket || m.daysOnMarket],
-        ['Homes for Sale', m.forSaleCount || m.inventoryCount],
-        ['Population', m.population],
-      ];
+      const stats = [];
+      if(m.zhvi) stats.push(['ZHVI (Home Value)', '$'+Math.round(m.zhvi).toLocaleString()]);
+      if(m.zhvi1yrChange !== undefined) stats.push(['1yr Value Change', (m.zhvi1yrChange>=0?'+':'')+m.zhvi1yrChange+'%']);
+      if(m.medianListPrice) stats.push(['Median List', '$'+Math.round(m.medianListPrice).toLocaleString()]);
+      if(m.medianSalePrice) stats.push(['Median Sale', '$'+Math.round(m.medianSalePrice).toLocaleString()]);
+      if(m.medianRentPrice) stats.push(['Median Rent', '$'+Math.round(m.medianRentPrice).toLocaleString()]);
+      if(m.avgDaysOnMarket) stats.push(['Avg DOM', Math.round(m.avgDaysOnMarket)+' days']);
+      if(m.forSaleCount) stats.push(['For Sale', Math.round(m.forSaleCount).toLocaleString()]);
+      if(m.soldCount) stats.push(['Recently Sold', Math.round(m.soldCount).toLocaleString()]);
       stats.forEach(([label, val]) => {
-        if(!val && val !== 0) return;
-        let display = val;
-        if(typeof val === 'number' && val > 1000) display = '$' + val.toLocaleString();
-        else if(typeof val === 'number' && Math.abs(val) < 100 && String(val).includes('.')) display = val + '%';
+        const isGreen = label.includes('Change') && val.startsWith('+');
+        const isRed = label.includes('Change') && val.startsWith('-');
         mh += `<div style="padding:6px;background:rgba(255,255,255,0.02);border-radius:3px;">
           <div style="font-size:9px;color:var(--muted);text-transform:uppercase;">${label}</div>
-          <div style="font-family:'Space Mono',monospace;font-size:13px;color:var(--white);margin-top:2px;">${display}</div>
+          <div style="font-family:'Space Mono',monospace;font-size:13px;color:${isGreen?'var(--green)':isRed?'var(--red)':'var(--white)'};margin-top:2px;">${val}</div>
         </div>`;
       });
       mh += '</div></div>';
-      status.innerHTML += mh;
+      if(stats.length > 0) status.innerHTML += mh;
     }
 
     // ── SCHOOLS ──────────────────────────────────────────────────────────

@@ -953,33 +953,40 @@ async function autoFillFromLookup(){
 
     // ── COMPS TABLE ──────────────────────────────────────────────────────
     if(d.comps && d.comps.length > 0){
+      const hasAnyPrice = d.comps.some(c => c.price > 0);
       let ch = `<div class="pull-section">
         <div class="pull-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed');">📊 COMPARABLE HOMES (${d.comps.length})</div>
         <div class="pull-body"><div style="overflow-x:auto;">
         <table class="pull-table">
           <thead><tr>
             <th style="text-align:left;">ADDRESS</th>
-            <th style="text-align:right;">PRICE</th>
+            ${hasAnyPrice?'<th style="text-align:right;">PRICE</th>':''}
             <th style="text-align:right;">SQFT</th>
-            <th style="text-align:right;">$/SF</th>
+            ${hasAnyPrice?'<th style="text-align:right;">$/SF</th>':''}
             <th style="text-align:right;">BD/BA</th>
           </tr></thead><tbody>`;
       d.comps.forEach(c => {
         ch += `<tr>
           <td style="color:var(--white);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.address||'—'}</td>
-          <td style="color:var(--green);text-align:right;">${c.price?'$'+c.price.toLocaleString():'—'}</td>
+          ${hasAnyPrice?`<td style="color:var(--green);text-align:right;">${c.price?'$'+c.price.toLocaleString():'—'}</td>`:''}
           <td style="color:var(--white);text-align:right;">${c.sqft||'—'}</td>
-          <td style="color:var(--gold);text-align:right;">${c.ppsf?'$'+c.ppsf:'—'}</td>
+          ${hasAnyPrice?`<td style="color:var(--gold);text-align:right;">${c.ppsf?'$'+c.ppsf:'—'}</td>`:''}
           <td style="color:var(--muted2);text-align:right;">${c.beds||'?'}/${c.baths||'?'}</td>
         </tr>`;
       });
-      ch += `<tr class="avg-row">
-        <td>AVG (${d.comps.length})</td>
-        <td style="text-align:right;">$${(d.compAvgPrice||0).toLocaleString()}</td>
-        <td style="text-align:right;">—</td>
-        <td style="text-align:right;">${d.compAvgPpsf?'$'+d.compAvgPpsf:'—'}</td>
-        <td style="text-align:right;">—</td>
-      </tr></tbody></table></div>`;
+      if(hasAnyPrice){
+        ch += `<tr class="avg-row">
+          <td>AVG (${d.comps.length})</td>
+          <td style="text-align:right;">$${(d.compAvgPrice||0).toLocaleString()}</td>
+          <td style="text-align:right;">—</td>
+          <td style="text-align:right;">${d.compAvgPpsf?'$'+d.compAvgPpsf:'—'}</td>
+          <td style="text-align:right;">—</td>
+        </tr>`;
+      }
+      ch += `</tbody></table></div>`;
+      if(!hasAnyPrice){
+        ch += `<div style="font-size:10px;color:var(--muted);margin-top:6px;">Zillow comparable picks — no sale prices available. Use for size/layout reference.</div>`;
+      }
       if(d.compArvEstimate && d.sqft){
         ch += `<div style="margin-top:10px;padding:10px;background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.2);border-radius:3px;">
           <div style="font-size:10px;color:var(--muted2);">COMP-BASED ARV ESTIMATE</div>

@@ -327,10 +327,10 @@
 
         <!-- AUTO COMPS -->
         <div style="margin-top:16px;">
-          <div class="section-label" style="font-size:9px;">Comparable Sales</div>
+          <div class="section-label" style="font-size:9px;">Area Benchmark</div>
           <div class="comps-fetch-row">
-            <div class="fetch-label">Auto-pull recently sold from Zillow</div>
-            <button class="fetch-btn" id="fetchCompsBtn" onclick="fetchComps()">⚡ PROFILE AREA</button>
+            <div class="fetch-label">Load area sold data for analyzer</div>
+            <button class="fetch-btn" id="fetchCompsBtn" onclick="fetchComps()">↻ REFRESH</button>
           </div>
           <div id="fetchStatus" class="fetch-status"></div>
           <div id="compCardsList"></div>
@@ -1040,6 +1040,107 @@ async function autoFillFromLookup(){
       });
       tx += '</div></div>';
       status.innerHTML += tx;
+    }
+
+    // ── SIMILAR HOMES (often has prices) ─────────────────────────────────
+    if(d.similarHomes && d.similarHomes.length > 0){
+      const hasPrices = d.similarHomes.some(s => s.price > 0);
+      let sh = `<div class="pull-section">
+        <div class="pull-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed');">🏘️ SIMILAR HOMES (${d.similarHomes.length})</div>
+        <div class="pull-body"><div style="overflow-x:auto;">
+        <table class="pull-table">
+          <thead><tr>
+            <th style="text-align:left;">ADDRESS</th>
+            ${hasPrices?'<th style="text-align:right;">PRICE</th>':''}
+            <th style="text-align:right;">SQFT</th>
+            ${hasPrices?'<th style="text-align:right;">$/SF</th>':''}
+            <th style="text-align:right;">BD/BA</th>
+          </tr></thead><tbody>`;
+      d.similarHomes.forEach(s => {
+        sh += `<tr>
+          <td style="color:var(--white);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.address||'—'}</td>
+          ${hasPrices?`<td style="color:var(--green);text-align:right;">${s.price?'$'+s.price.toLocaleString():'—'}</td>`:''}
+          <td style="color:var(--white);text-align:right;">${s.sqft||'—'}</td>
+          ${hasPrices?`<td style="color:var(--gold);text-align:right;">${s.ppsf?'$'+s.ppsf:'—'}</td>`:''}
+          <td style="color:var(--muted2);text-align:right;">${s.beds||'?'}/${s.baths||'?'}</td>
+        </tr>`;
+      });
+      sh += '</tbody></table></div></div></div>';
+      status.innerHTML += sh;
+    }
+
+    // ── ZESTIMATE TREND ──────────────────────────────────────────────────
+    if(d.zestimateHistory && d.zestimateHistory.length > 1){
+      const first = d.zestimateHistory[0];
+      const last = d.zestimateHistory[d.zestimateHistory.length - 1];
+      const firstVal = first.value || 0;
+      const lastVal = last.value || 0;
+      const change = firstVal && lastVal ? Math.round((lastVal - firstVal) / firstVal * 100) : 0;
+      const up = change >= 0;
+      let zh = `<div class="pull-section">
+        <div class="pull-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed');">📈 ZESTIMATE TREND</div>
+        <div class="pull-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:11px;color:var(--muted);">Value over time</span>
+            <span style="font-family:'Space Mono',monospace;font-size:13px;color:${up?'var(--green)':'var(--red)'};">${up?'↑':'↓'} ${Math.abs(change)}%</span>
+          </div>`;
+      d.zestimateHistory.forEach(z => {
+        const val = z.value || 0;
+        zh += `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:10px;font-family:'Space Mono',monospace;">
+          <span style="color:var(--muted);">${z.date||'—'}</span>
+          <span style="color:var(--white);">${val?'$'+val.toLocaleString():'—'}</span>
+        </div>`;
+      });
+      zh += '</div></div>';
+      status.innerHTML += zh;
+    }
+
+    // ── HOUSING MARKET ───────────────────────────────────────────────────
+    if(d.housingMarket && Object.keys(d.housingMarket).length > 0){
+      const m = d.housingMarket;
+      let mh = `<div class="pull-section">
+        <div class="pull-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed');">📊 MARKET OVERVIEW</div>
+        <div class="pull-body" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">`;
+      const stats = [
+        ['Median Home', m.medianHomeValue || m.medianListingPrice || m.medianPrice],
+        ['Median Rent', m.medianRentalPrice || m.medianRent],
+        ['1yr Change', m.homeValueChange || m.priceChange || m.appreciation],
+        ['Avg DOM', m.averageDaysOnMarket || m.medianDaysOnMarket || m.daysOnMarket],
+        ['Homes for Sale', m.forSaleCount || m.inventoryCount],
+        ['Population', m.population],
+      ];
+      stats.forEach(([label, val]) => {
+        if(!val && val !== 0) return;
+        let display = val;
+        if(typeof val === 'number' && val > 1000) display = '$' + val.toLocaleString();
+        else if(typeof val === 'number' && Math.abs(val) < 100 && String(val).includes('.')) display = val + '%';
+        mh += `<div style="padding:6px;background:rgba(255,255,255,0.02);border-radius:3px;">
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;">${label}</div>
+          <div style="font-family:'Space Mono',monospace;font-size:13px;color:var(--white);margin-top:2px;">${display}</div>
+        </div>`;
+      });
+      mh += '</div></div>';
+      status.innerHTML += mh;
+    }
+
+    // ── SCHOOLS ──────────────────────────────────────────────────────────
+    if(d.schools && d.schools.length > 0){
+      let sc = `<div class="pull-section">
+        <div class="pull-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed');">🏫 NEARBY SCHOOLS (${d.schools.length})</div>
+        <div class="pull-body">`;
+      d.schools.forEach(s => {
+        const rating = s.rating || 0;
+        const color = rating >= 7 ? 'var(--green)' : rating >= 4 ? 'var(--gold)' : rating > 0 ? 'var(--red)' : 'var(--muted)';
+        sc += `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:11px;">
+          <span style="font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:${color};min-width:22px;text-align:center;">${rating||'?'}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="color:var(--white);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.name||'Unknown'}</div>
+            <div style="font-size:9px;color:var(--muted);">${s.level||''} ${s.type||''} ${s.distance?'· '+s.distance:''}${typeof s.distance === 'number' ? ' mi' : ''}</div>
+          </div>
+        </div>`;
+      });
+      sc += '</div></div>';
+      status.innerHTML += sc;
     }
 
     // Suggest offer based on comps or benchmark

@@ -253,7 +253,7 @@
   <div class="logo">
     Pecos Grant
     <div class="logo-divider"></div>
-    <div class="logo-sub"><span>DEAL ANALYZER</span>v2.1</div>
+    <div class="logo-sub"><span>DEAL ANALYZER</span>v3.0</div>
   </div>
   <div class="header-right">
     <div class="badge">Springfield, MO</div>
@@ -279,6 +279,17 @@
     <div>
       <div class="section-label">Property Info</div>
       <div class="card">
+        <!-- AUTO-FILL FROM ZILLOW -->
+        <div style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:4px;padding:14px;margin-bottom:16px;">
+          <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px;">⚡ Quick Fill — Paste Zillow Link or Address</div>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="lookupInput" placeholder="Zillow URL or full address..." style="flex:1;background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:13px;padding:11px 13px;outline:none;" onkeydown="if(event.key==='Enter')autoFillFromLookup()">
+            <button onclick="autoFillFromLookup()" id="lookupBtn" style="background:var(--gold);border:none;border-radius:3px;color:var(--black);font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;padding:0 24px;cursor:pointer;white-space:nowrap;transition:all 0.15s;">PULL</button>
+          </div>
+          <div id="lookupStatus" class="fetch-status" style="margin-top:6px;"></div>
+          <div id="lookupPhoto" style="display:none;margin-top:10px;border-radius:4px;overflow:hidden;height:140px;"></div>
+        </div>
+
         <div class="field">
           <label>Address</label>
           <input type="text" id="address" placeholder="123 Main St, Springfield MO">
@@ -421,6 +432,26 @@
       <div class="num-card"><div class="num-label">$/sqft (Buy)</div><div class="num-value" id="ppsf">—</div></div>
       <div class="num-card"><div class="num-label">$/sqft (ARV)</div><div class="num-value gold" id="arvpsf">—</div></div>
       <div class="num-card"><div class="num-label">Equity Spread</div><div class="num-value" id="equitySpread">—</div><div class="num-sub" id="equityPct">—</div></div>
+    </div>
+
+    <!-- ARV STRESS TEST -->
+    <div id="stressTestSection" style="display:none;margin-bottom:20px;">
+      <div class="section-label">ARV Stress Test — 3 Scenarios</div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:4px;overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:var(--card2);">
+              <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 14px;">Scenario</th>
+              <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 14px;">ARV</th>
+              <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 14px;">Net Profit</th>
+              <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 14px;">ROI</th>
+              <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 14px;">Verdict</th>
+            </tr>
+          </thead>
+          <tbody id="stressTestBody"></tbody>
+        </table>
+      </div>
+      <div id="stressTestNote" style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'Space Mono',monospace;line-height:1.6;"></div>
     </div>
 
     <!-- COMPS RESULTS -->
@@ -808,6 +839,105 @@ function useCompAvg(avg){
 }
 
 // ════════════════════════════════════════════
+// AUTO-FILL FROM ZILLOW URL / ADDRESS
+// ════════════════════════════════════════════
+async function autoFillFromLookup(){
+  const input = document.getElementById('lookupInput').value.trim();
+  if(!input){ alert('Paste a Zillow URL or type an address.'); return; }
+
+  const btn    = document.getElementById('lookupBtn');
+  const status = document.getElementById('lookupStatus');
+  btn.textContent = '...';
+  btn.disabled = true;
+  status.className   = 'fetch-status loading';
+  status.style.display = 'block';
+  status.textContent = 'Pulling property data...';
+
+  try{
+    // Determine if URL or address
+    const isUrl = input.includes('zillow.com') || input.includes('http');
+    const params = new URLSearchParams();
+    if(isUrl) params.set('url', input);
+    else params.set('address', input);
+
+    const resp = await fetch(`${BACKEND_URL}/lookup?${params}`, {
+      signal: AbortSignal.timeout(20000)
+    });
+
+    if(!resp.ok){
+      const err = await resp.json().catch(()=>({}));
+      throw new Error(err.error || `Server error ${resp.status}`);
+    }
+
+    const d = await resp.json();
+    if(d.error) throw new Error(d.error);
+
+    // Auto-fill all form fields
+    const setField = (id, val) => { const el = document.getElementById(id); if(el && val) el.value = val; };
+
+    setField('address',   d.address);
+    setField('listPrice', d.price);
+    setField('sqft',      d.sqft);
+    setField('bedBath',   d.bedBath);
+
+    // Don't set offer — that's the user's decision
+    // Don't set ARV — user needs to determine this
+
+    // Show photo if available
+    const photoBox = document.getElementById('lookupPhoto');
+    if(d.photo){
+      photoBox.innerHTML = `<img src="${d.photo}" alt="" style="width:100%;height:140px;object-fit:cover;display:block;">`;
+      photoBox.style.display = 'block';
+    } else {
+      photoBox.style.display = 'none';
+    }
+
+    // Build a rich status message
+    let statusParts = [`✓ ${d.address}`];
+    if(d.price) statusParts.push(`List: $${d.price.toLocaleString()}`);
+    if(d.sqft)  statusParts.push(`${d.sqft.toLocaleString()} sqft`);
+    if(d.beds)  statusParts.push(`${d.beds}bd/${d.baths}ba`);
+    if(d.dom)   statusParts.push(`${d.dom} DOM`);
+    if(d.yearBuilt) statusParts.push(`Built ${d.yearBuilt}`);
+
+    status.className   = 'fetch-status success';
+    status.textContent = statusParts.join(' · ');
+
+    // Show additional intel below status
+    let intel = [];
+    if(d.zestimate && d.zestimateGap > 0) intel.push(`Zestimate: $${d.zestimate.toLocaleString()} (+$${d.zestimateGap.toLocaleString()} above list)`);
+    if(d.zestimate && d.zestimateGap < 0) intel.push(`Zestimate: $${d.zestimate.toLocaleString()} ($${Math.abs(d.zestimateGap).toLocaleString()} below list)`);
+    if(d.county && d.countyBench) intel.push(`${d.county} Co. benchmark: $${d.countyBench}/sqft`);
+    if(d.pricePerSqft && d.countyBench) intel.push(`Buy at $${d.pricePerSqft}/sqft (${d.discountPct > 0 ? d.discountPct+'% below' : Math.abs(d.discountPct)+'% above'} bench)`);
+    if(d.priceReduction) intel.push(`Price reduced $${d.priceReduction.toLocaleString()}`);
+    if(d.yearBuilt && d.yearBuilt < 1950) intel.push(`⚠ ${d.yearBuilt} build — check electrical, plumbing, foundation`);
+
+    if(intel.length){
+      status.innerHTML += `<div style="margin-top:6px;padding:8px 10px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.15);border-radius:3px;font-size:11px;color:var(--muted2);line-height:1.7;">${intel.join('<br>')}</div>`;
+    }
+
+    // Suggest offer based on data
+    if(d.price && d.countyBench && d.sqft){
+      const impliedArv = d.countyBench * d.sqft;
+      const suggestOffer = Math.round(impliedArv * 0.65 - 25000); // 65% rule minus est rehab
+      if(suggestOffer > 0 && suggestOffer < d.price){
+        status.innerHTML += `<div style="margin-top:6px;font-size:11px;color:var(--gold);">💡 Benchmark suggests offer around <strong>$${suggestOffer.toLocaleString()}</strong> (65% of implied ARV $${impliedArv.toLocaleString()} minus ~$25k rehab)</div>`;
+      }
+    }
+
+    btn.textContent = 'PULL';
+    btn.disabled = false;
+
+  }catch(err){
+    status.className   = 'fetch-status error';
+    status.textContent = '✗ ' + err.message;
+    status.style.display = 'block';
+    btn.textContent = 'PULL';
+    btn.disabled = false;
+  }
+}
+
+// ════════════════════════════════════════════
 // TABS
 // ════════════════════════════════════════════
 function switchTab(tab) {
@@ -1032,27 +1162,125 @@ function analyze(){
       (avgP&&sqft?` Implied: ${sqft.toLocaleString()}sf × ${fmt(avgP)}/sf = <strong>${fmt(avgP*sqft)}</strong>.`:'');
   }else{document.getElementById('compsResultsSection').style.display='none';}
 
-  // Flags
+  // Flags — SMARTER CONTEXTUAL SIGNALS
   const flags=[];
-  if(offer>maxOffer)flags.push({icon:'🔴',text:`<strong>Over max offer</strong> — ${fmt(offer)} is ${fmt(offer-maxOffer)} above the 65% rule max of ${fmt(maxOffer)}.`});
-  if(rehabMid>offer*0.4)flags.push({icon:'⚠️',text:`<strong>Heavy rehab</strong> — ${Math.round(rehabMid/offer*100)}% of purchase price. Get hard bids before committing.`});
-  if(netProfit<25000&&netProfit>=0)flags.push({icon:'⚠️',text:`<strong>Below $25k threshold</strong> — ${fmt(netProfit)} net doesn't hit your minimum.`});
-  if(netProfit<0)flags.push({icon:'🔴',text:`<strong>Negative profit</strong> — you'd lose ${fmt(Math.abs(netProfit))} on this deal.`});
+  const listPrice = parseFloat(document.getElementById('listPrice').value)||0;
+  const address = document.getElementById('address').value||'';
+  const bedBath = document.getElementById('bedBath').value||'';
+  const bedCount = bedBath.match(/(\d+)/) ? parseInt(bedBath.match(/(\d+)/)[1]) : 0;
+
+  // Price signals
+  if(offer>maxOffer) flags.push({icon:'🔴',cls:'warn',text:`<strong>Over max offer</strong> — ${fmt(offer)} is ${fmt(offer-maxOffer)} above the 65% rule max of ${fmt(maxOffer)}. You're eating into your safety margin.`});
+  if(offer<=maxOffer&&offer>=maxOffer*0.9) flags.push({icon:'🟢',cls:'good',text:`<strong>Right at max</strong> — ${fmt(offer)} is within 10% of your ${fmt(maxOffer)} ceiling. Tight but workable if rehab stays on budget.`});
+  if(offer<maxOffer*0.9) flags.push({icon:'🟢',cls:'good',text:`<strong>Strong entry</strong> — ${fmt(offer)} is ${fmt(maxOffer-offer)} below your max of ${fmt(maxOffer)}. Good cushion for surprises.`});
+
+  // List price discount
+  if(listPrice && offer < listPrice){
+    const discount = ((listPrice-offer)/listPrice*100).toFixed(0);
+    if(discount >= 25) flags.push({icon:'💰',cls:'good',text:`<strong>${discount}% below list</strong> — aggressive offer. Seller needs to be motivated for this to land. Look for 60+ DOM or multiple price drops.`});
+    else if(discount >= 15) flags.push({icon:'💰',cls:'info',text:`<strong>${discount}% below list</strong> — reasonable discount. Most likely to get accepted at 90+ DOM or with cash/fast close.`});
+  }
+
+  // Rehab risk
+  if(rehabMid>offer*0.5) flags.push({icon:'🔴',cls:'warn',text:`<strong>Rehab exceeds 50% of purchase</strong> — ${fmt(rehabMid)} rehab on a ${fmt(offer)} buy is heavy. Get 3 contractor bids minimum before committing.`});
+  else if(rehabMid>offer*0.35) flags.push({icon:'⚠️',cls:'warn',text:`<strong>Rehab is ${Math.round(rehabMid/offer*100)}% of purchase</strong> — ${fmt(rehabMid)} on ${fmt(offer)}. Moderate risk. Lock in contractor pricing before offer.`});
+  else if(rehabMid>0&&rehabMid<=offer*0.2) flags.push({icon:'🟢',cls:'good',text:`<strong>Light rehab</strong> — ${fmt(rehabMid)} is only ${Math.round(rehabMid/offer*100)}% of purchase. Cosmetic flip territory.`});
+
+  // Profit thresholds
+  if(netProfit<0) flags.push({icon:'🔴',cls:'warn',text:`<strong>Negative profit</strong> — you'd lose ${fmt(Math.abs(netProfit))} on this deal. Walk away or renegotiate down to ${fmt(maxOffer)}.`});
+  else if(netProfit<15000) flags.push({icon:'⚠️',cls:'warn',text:`<strong>Thin margin</strong> — ${fmt(netProfit)} net doesn't leave room for surprises. One blown HVAC and you're underwater.`});
+  else if(netProfit>=25000&&netProfit<40000) flags.push({icon:'🟢',cls:'good',text:`<strong>Solid profit</strong> — ${fmt(netProfit)} net with ${fmtPct(roi)} ROI. Meets your minimum threshold.`});
+  else if(netProfit>=40000) flags.push({icon:'🔥',cls:'good',text:`<strong>Strong profit</strong> — ${fmt(netProfit)} net. This is a clear green light if comps support it.`});
+
+  // $/sqft analysis
+  if(ppsf && sqft){
+    // Try to get county benchmark
+    const benchmarks = {Greene:82,Christian:75,Webster:65,Lawrence:55,Stone:68,Taney:65,Polk:52};
+    const addrLow = address.toLowerCase();
+    let bench = null;
+    if(addrLow.includes('springfield')||addrLow.includes('6580')||addrLow.includes('6560')) bench = benchmarks.Greene;
+    else if(addrLow.includes('ozark')||addrLow.includes('nixa')) bench = benchmarks.Christian;
+    if(bench && ppsf < bench * 0.7) flags.push({icon:'💰',cls:'good',text:`<strong>Deep value at ${fmt(ppsf)}/sqft</strong> — ${Math.round((1-ppsf/bench)*100)}% below the ${fmt(bench)}/sqft county benchmark. Strong entry price.`});
+    else if(bench && ppsf < bench * 0.85) flags.push({icon:'📊',cls:'info',text:`<strong>${fmt(ppsf)}/sqft buy</strong> — ${Math.round((1-ppsf/bench)*100)}% below ${fmt(bench)}/sqft benchmark. Decent but not a steal.`});
+    else if(bench && ppsf >= bench) flags.push({icon:'⚠️',cls:'warn',text:`<strong>${fmt(ppsf)}/sqft buy is at or above benchmark</strong> — limited discount. Need a strong ARV to make this work.`});
+  }
+
+  // Bed/bath signals
+  if(bedCount === 2) flags.push({icon:'🛏️',cls:'info',text:`<strong>2 bed limits buyer pool</strong> — consider adding a 3rd bedroom (attic, bonus room, porch conversion) to boost ARV 10-15%. 3/2 sells faster and for more.`});
+  if(bedCount >= 4) flags.push({icon:'🟢',cls:'good',text:`<strong>4+ beds = strong buyer pool</strong> — families will pay a premium. Price accordingly.`});
+
+  // Comps signals
   if(fetchedComps.length>0){
     const avg=fetchedComps.reduce((a,c)=>a+c.price,0)/fetchedComps.length;
-    if(arv>avg*1.10)flags.push({icon:'⚠️',text:`<strong>ARV above comps</strong> — ${fmt(arv)} is ${Math.round((arv/avg-1)*100)}% above comp avg of ${fmt(avg)}.`});
-    if(arv<=avg*1.03)flags.push({icon:'🟢',text:`<strong>ARV well-supported</strong> — comps avg ${fmt(avg)}, your ARV of ${fmt(arv)} is conservative.`});
+    if(arv>avg*1.15) flags.push({icon:'🔴',cls:'warn',text:`<strong>ARV ${Math.round((arv/avg-1)*100)}% above comp avg</strong> — ${fmt(arv)} vs comp avg ${fmt(avg)}. You're projecting above what's selling. Get more data or lower your ARV.`});
+    else if(arv>avg*1.05) flags.push({icon:'⚠️',cls:'warn',text:`<strong>ARV ${Math.round((arv/avg-1)*100)}% above comps</strong> — slightly aggressive. Make sure your rehab justifies the premium over ${fmt(avg)} avg.`});
+    else flags.push({icon:'🟢',cls:'good',text:`<strong>ARV well-supported by comps</strong> — ${fmt(arv)} is in line with avg ${fmt(avg)} from ${fetchedComps.length} comparable sales.`});
+  } else {
+    flags.push({icon:'📋',cls:'info',text:`<strong>No comps loaded</strong> — hit "Profile Area" to pull real sold data and validate your ARV. Don't trust your gut on this one.`});
   }
-  if(!fetchedComps.length)flags.push({icon:'📋',text:`<strong>No comps loaded</strong> — hit "Fetch Comps" to validate your ARV against real sold data.`});
 
-  // Rec
+  // BRRRR signal
+  if(brrrr){
+    if(brrrr.cashLeft < 1000) flags.push({icon:'♾️',cls:'good',text:`<strong>Infinite BRRRR</strong> — refi at ${fmt(brrrr.refiAmt)} covers your ${fmt(totalIn)} all-in. All cash out + ${fmt(brrrr.refiAmt-totalIn)} in pocket. ${brrrr.cashflow>0?'Cash flows '+fmt(brrrr.cashflow)+'/mo.':'But negative cash flow — check rent assumptions.'}`});
+    else if(brrrr.cashLeft < 15000) flags.push({icon:'📈',cls:'good',text:`<strong>Near-full BRRRR</strong> — only ${fmt(brrrr.cashLeft)} left in deal after refi. ${brrrr.cashflow>0?'Cash flows '+fmt(brrrr.cashflow)+'/mo.':''}`});
+    if(brrrr.cashflow < 0) flags.push({icon:'🔴',cls:'warn',text:`<strong>Negative cash flow</strong> — PITI of ${fmt(brrrr.piti)}/mo exceeds rent. This doesn't work as a hold unless rents increase.`});
+  }
+
+  // ── ARV STRESS TEST ───────────────────────────────────────────────────────
+  const bearArv  = Math.round(arv * 0.90);  // 10% below your estimate
+  const bullArv  = Math.round(arv * 1.08);  // 8% above
+  const scenarios = [
+    { name: '🔻 Bear — comps disappoint', arv: bearArv },
+    { name: '⚖️ Base — your estimate',     arv: arv },
+    { name: '🔺 Bull — area premium',      arv: bullArv },
+  ];
+  const stressRows = scenarios.map(s => {
+    const sAgent   = s.arv * 0.06;
+    const sClosing = s.arv * 0.02;
+    const sNet     = s.arv - totalIn - sAgent - sClosing;
+    const sRoi     = (sNet / totalIn * 100);
+    const isBest   = s.arv === arv;
+    const verdict  = sNet >= 25000 ? '✓ Strong' : sNet >= 10000 ? '✓ Works' : sNet >= 0 ? '⚠ Thin' : '✗ Loss';
+    const vColor   = sNet >= 25000 ? 'var(--green)' : sNet >= 10000 ? '#7ecb8d' : sNet >= 0 ? 'var(--yellow)' : 'var(--red)';
+    const nColor   = sNet >= 0 ? 'var(--green)' : 'var(--red)';
+    return `<tr style="${isBest ? 'background:rgba(46,204,113,0.06);' : ''}">
+      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border);color:${s.arv < arv ? 'var(--red)' : s.arv > arv ? 'var(--blue)' : 'var(--green)'};">${s.name}</td>
+      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border);color:var(--white);">${fmt(s.arv)}</td>
+      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border);color:${nColor};">${fmt(sNet)}</td>
+      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border);color:var(--white);">${fmtPct(sRoi)}</td>
+      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border);color:${vColor};font-weight:700;">${verdict}</td>
+    </tr>`;
+  });
+  document.getElementById('stressTestBody').innerHTML = stressRows.join('');
+  const bearNet = bearArv - totalIn - bearArv*0.06 - bearArv*0.02;
+  document.getElementById('stressTestNote').innerHTML = 
+    `Bear = 10% below your ARV, Bull = 8% above · All-in: ${fmt(totalIn)} (offer + rehab + costs)<br>` +
+    (bearNet >= 0 ? `<span style="color:var(--green);">✓ Deal survives bear case — ${fmt(bearNet)} profit even if ARV drops to ${fmt(bearArv)}</span>` :
+     `<span style="color:var(--red);">✗ Deal breaks in bear case — you'd lose ${fmt(Math.abs(bearNet))} if ARV only hits ${fmt(bearArv)}</span>`);
+  document.getElementById('stressTestSection').style.display = 'block';
+
+  // ── SMARTER RECOMMENDATION ────────────────────────────────────────────────
   let recText;
-  if(netProfit>=25000&&offer<=maxOffer)
-    recText=`<strong>Make the offer.</strong> ${fmt(offer)} is under max of ${fmt(maxOffer)}. Net profit ${fmt(netProfit)} at ${fmtPct(roi)} ROI. Cash offer, fast close, as-is.`;
-  else if(netProfit>=15000&&offer<=maxOffer*1.05)
-    recText=`<strong>Negotiate down.</strong> Buy at <strong>${fmt(maxOffer)}</strong> or below to hit your $25k target. If it's been sitting 60+ days, make the lowball.`;
-  else
-    recText=`<strong>Pass.</strong> Need to buy at <strong>${fmt(maxOffer)}</strong> — that's ${fmt(offer-maxOffer)} below asking. ${offer-maxOffer>20000?'Gap is too large.':'Watch it — revisit if price drops.'}`;
+  const bearSurvives = bearNet >= 0;
+  if(netProfit >= 25000 && offer <= maxOffer && bearSurvives){
+    recText = `<strong>🔥 MAKE THE OFFER.</strong> ${fmt(offer)} is under your max of ${fmt(maxOffer)}. Net profit ${fmt(netProfit)} at ${fmtPct(roi)} ROI. Even in the bear case (ARV ${fmt(bearArv)}), you still clear ${fmt(bearNet)}.<br><br>`;
+    recText += `<strong>Next steps:</strong><br>`;
+    if(rehabMid > 10000) recText += `1. Get 3 contractor bids to lock in rehab at ${fmt(rehabMid)} ± 10%<br>`;
+    if(!fetchedComps.length) recText += `${rehabMid>10000?'2':'1'}. Pull comps to validate your ${fmt(arv)} ARV — don't skip this<br>`;
+    recText += `${!fetchedComps.length&&rehabMid>10000?'3':rehabMid>10000?'2':'1'}. Submit: ${fmt(offer)} cash, 14-day close, as-is. Seller pays title.`;
+    if(brrrr && brrrr.cashLeft < 5000) recText += `<br><br><strong>BRRRR play:</strong> Refi covers all-in. Infinite cash-on-cash if you hold.`;
+  } else if(netProfit >= 15000 && offer <= maxOffer * 1.05){
+    recText = `<strong>⚠ NEGOTIATE DOWN.</strong> Numbers work at ${fmt(offer)} but margin is tight. Target <strong>${fmt(maxOffer)}</strong> to hit your $25k profit floor.`;
+    if(listPrice && offer < listPrice) recText += ` That's ${Math.round((1-maxOffer/listPrice)*100)}% off list — ${listPrice > maxOffer * 1.3 ? 'aggressive ask, needs a motivated seller.' : 'reasonable if it\'s been sitting.'}`;
+    if(!bearSurvives) recText += `<br><br><span style="color:var(--red);">⚠ Doesn't survive bear case.</span> If ARV disappoints by 10%, you lose money. Get comps nailed down before offering.`;
+  } else if(netProfit >= 0){
+    recText = `<strong>⚠ MARGINAL.</strong> ${fmt(netProfit)} profit doesn't justify the risk. You need to buy at <strong>${fmt(maxOffer)}</strong> — that's ${fmt(offer - maxOffer)} below your current offer.`;
+    recText += listPrice ? ` Would be ${Math.round((1-maxOffer/listPrice)*100)}% off list price.` : '';
+    recText += `<br><br>Watch this one. Revisit if: price drops, DOM crosses 90 days, or you find comps supporting a higher ARV.`;
+  } else {
+    recText = `<strong>✗ PASS.</strong> You'd lose ${fmt(Math.abs(netProfit))} at current numbers. Max offer is ${fmt(maxOffer)} — that's ${fmt(offer-maxOffer)} gap from where you are.`;
+    recText += `<br><br>${offer - maxOffer > offer * 0.25 ? 'Gap is too wide. Move on to the next deal.' : 'Close enough to watch. If price drops significantly, re-run the numbers.'}`;
+  }
 
   // Render
   renderScore(score,criteria);
@@ -1118,13 +1346,21 @@ function analyze(){
     document.getElementById('brrrrNoRent').style.display='block';
     document.getElementById('brrrrContent').style.display='none';
   }
-  document.getElementById('flagsBox').innerHTML=flags.map(f=>`<div class="flag"><span class="flag-icon">${f.icon}</span><span>${f.text}</span></div>`).join('');
+  document.getElementById('flagsBox').innerHTML=flags.map(f=>{
+    const borderColor = f.cls==='warn'?'var(--red)':f.cls==='good'?'var(--green)':'var(--blue)';
+    return`<div class="flag" style="border-left:3px solid ${borderColor};"><span class="flag-icon">${f.icon}</span><span>${f.text}</span></div>`;
+  }).join('');
   document.getElementById('recText').innerHTML=recText;
   lastResult={
     id:Date.now(),
     address:document.getElementById('address').value||'Unnamed',
+    listPrice,
     offer,arv,netProfit,roi,score,totalIn,maxOffer,rehab:rehabMid,
+    rehabLow,rehabHigh,
     bedBath:document.getElementById('bedBath').value,
+    sqft,
+    bearArv,bullArv,bearNet,
+    flags:flags.map(f=>f.text.replace(/<[^>]*>/g,'')),
     stage:'Lead',savedAt:new Date().toLocaleDateString()
   };
   document.getElementById('results').classList.add('show');
@@ -1265,9 +1501,9 @@ function renderNeighborhoodProfile(d) {
 
   const stats = [
     {
-      label: 'Median SFR Value',
+      label: 'City Median Home Value',
       value: d.zhviCurrent ? fmt(d.zhviCurrent) : '—',
-      sub:   d.zhviYearAgo ? `Was ${fmt(d.zhviYearAgo)} 1yr ago` : 'Zillow ZHVI index',
+      sub:   d.zhviYearAgo ? `Was ${fmt(d.zhviYearAgo)} 1yr ago · City-wide, not this street` : 'Zillow city-wide median (not this street)',
       color: 'gold'
     },
     {
@@ -1351,7 +1587,8 @@ function renderNeighborhoodProfile(d) {
     if (zhvi) {
       benchmarkHtml += `
         <div style="margin-top:10px;padding:8px 0;border-top:1px solid var(--border);font-size:12px;color:var(--muted2);">
-          Zillow median SFR: <strong style="color:var(--white);">${fmt(zhvi)}</strong>
+          City-wide median (all homes): <strong style="color:var(--white);">${fmt(zhvi)}</strong>
+          <span style="font-size:10px;color:var(--muted);"> — not this street/neighborhood</span>
           ${d.zhviPctChange !== null ? ` · <span style="color:${d.zhviPctChange>=0?'var(--green)':'var(--red)'};">${d.zhviPctChange>0?'+':''}${d.zhviPctChange}% YoY</span>` : ''}
         </div>`;
     }

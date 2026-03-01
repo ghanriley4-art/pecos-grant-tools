@@ -885,6 +885,17 @@ async function autoFillFromLookup(){
     setField('sqft',      d.sqft);
     setField('bedBath',   d.bedBath);
 
+    // Auto-fill rent if available (for BRRRR calc)
+    if(d.rentZestimate && d.rentZestimate > 0){
+      setField('monthlyRent', d.rentZestimate);
+    }
+
+    // Auto-fill rent for BRRRR analysis if available
+    if(d.rentZestimate){
+      const rentField = document.getElementById('monthlyRent');
+      if(rentField && !rentField.value) rentField.value = d.rentZestimate;
+    }
+
     // Don't set offer — that's the user's decision
     // Don't set ARV — user needs to determine this
 
@@ -912,10 +923,16 @@ async function autoFillFromLookup(){
     let intel = [];
     if(d.zestimate && d.zestimateGap > 0) intel.push(`Zestimate: $${d.zestimate.toLocaleString()} (+$${d.zestimateGap.toLocaleString()} above list)`);
     if(d.zestimate && d.zestimateGap < 0) intel.push(`Zestimate: $${d.zestimate.toLocaleString()} ($${Math.abs(d.zestimateGap).toLocaleString()} below list)`);
+    if(d.zestimate && d.zestimateGap === 0) intel.push(`Zestimate: $${d.zestimate.toLocaleString()} (matches list)`);
+    if(d.rentZestimate) intel.push(`Rent Zestimate: $${d.rentZestimate.toLocaleString()}/mo`);
+    if(d.lastSoldPrice) intel.push(`Last sold: $${d.lastSoldPrice.toLocaleString()}`);
     if(d.county && d.countyBench) intel.push(`${d.county} Co. benchmark: $${d.countyBench}/sqft`);
     if(d.pricePerSqft && d.countyBench) intel.push(`Buy at $${d.pricePerSqft}/sqft (${d.discountPct > 0 ? d.discountPct+'% below' : Math.abs(d.discountPct)+'% above'} bench)`);
     if(d.priceReduction) intel.push(`Price reduced $${d.priceReduction.toLocaleString()}`);
     if(d.yearBuilt && d.yearBuilt < 1950) intel.push(`⚠ ${d.yearBuilt} build — check electrical, plumbing, foundation`);
+    if(d.rentZestimate) intel.push(`Rent Zestimate: $${d.rentZestimate.toLocaleString()}/mo → auto-filled BRRRR rent`);
+    if(d.lastSoldPrice) intel.push(`Last sold: $${d.lastSoldPrice.toLocaleString()}`);
+    if(d.homeStatus && d.homeStatus !== 'FOR_SALE') intel.push(`Status: ${d.homeStatus}`);
 
     if(intel.length){
       status.innerHTML += `<div style="margin-top:6px;padding:8px 10px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.15);border-radius:3px;font-size:11px;color:var(--muted2);line-height:1.7;">${intel.join('<br>')}</div>`;

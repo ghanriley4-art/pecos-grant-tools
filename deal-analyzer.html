@@ -857,8 +857,13 @@ async function autoFillFromLookup(){
     // Determine if URL or address
     const isUrl = input.includes('zillow.com') || input.includes('http');
     const params = new URLSearchParams();
-    if(isUrl) params.set('url', input);
-    else params.set('address', input);
+    if(isUrl){
+      // Strip tracking params and clean the URL
+      let cleanUrl = input.split('?')[0];
+      params.set('url', cleanUrl);
+    } else {
+      params.set('address', input);
+    }
 
     const resp = await fetch(`${BACKEND_URL}/lookup?${params}`, {
       signal: AbortSignal.timeout(20000)

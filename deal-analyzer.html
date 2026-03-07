@@ -1,111 +1,549 @@
-<!--
-═══════════════════════════════════════════════════════════════════════════════
- PECOS GRANT — BRRRR UPGRADE PATCH
- Integration guide:
-   1. Replace the existing BRRRR toggle + #brrrr-inputs div with SECTION A
-   2. Replace the existing #strategy-brrrr panel with SECTION B
-   3. Add the new BRRRR stress test HTML (SECTION C) after the existing 
-      ARV stress test in results
-   4. Paste all JavaScript (SECTION D) before the closing </script> tag
-   5. In the analyze() function, replace the BRRRR calculation block 
-      with SECTION E
-═══════════════════════════════════════════════════════════════════════════════
--->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pecos Grant — Deal Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black:#0a0a0a; --dark:#111111; --card:#161616; --card2:#1c1c1c;
+    --border:#252525; --border2:#2e2e2e;
+    --gold:#c9a84c; --gold-light:#e8c96a; --gold-dim:rgba(201,168,76,0.10);
+    --red:#e03c3c; --green:#2ecc71; --yellow:#f0b429; --blue:#4a9eff;
+    --white:#f0ede8; --muted:#555; --muted2:#777;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--black);color:var(--white);font-family:'DM Sans',sans-serif;min-height:100vh;}
 
+  /* ── HEADER ── */
+  .header{background:var(--dark);border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;color:var(--gold);display:flex;align-items:center;gap:14px;}
+  .logo-divider{width:1px;height:28px;background:var(--border2);}
+  .logo-sub{color:var(--muted2);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;line-height:1.4;}
+  .logo-sub span{color:var(--gold);display:block;}
+  .header-right{display:flex;align-items:center;gap:10px;}
+  .badge{background:var(--border);color:var(--muted2);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;padding:5px 10px;border-radius:2px;text-transform:uppercase;}
+  .badge.green{background:rgba(46,204,113,0.1);color:var(--green);border:1px solid rgba(46,204,113,0.2);}
+  .badge.red{background:rgba(224,60,60,0.1);color:var(--red);border:1px solid rgba(224,60,60,0.2);}
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!-- SECTION A: Replace BRRRR input section                                 -->
-<!-- Replace from the BRRRR TOGGLE comment through #brrrr-inputs closing    -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+  /* ── NAV ── */
+  .nav-tabs{background:var(--dark);border-bottom:1px solid var(--border);padding:0 32px;display:flex;}
+  .nav-tab{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:14px 20px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;background:none;border-left:none;border-right:none;border-top:none;}
+  .nav-tab:hover{color:var(--white);}
+  .nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+
+  .main{max-width:1100px;margin:0 auto;padding:36px 24px;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;animation:fadeIn 0.25s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media(max-width:780px){.grid-2{grid-template-columns:1fr;}}
+
+  .section-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+  .section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:22px;}
+
+  /* ── FIELDS ── */
+  .field{margin-bottom:14px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{display:block;font-size:10px;font-family:'Space Mono',monospace;letter-spacing:1.5px;color:var(--muted2);text-transform:uppercase;margin-bottom:7px;}
+  .field input,.field select{width:100%;background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:15px;padding:11px 13px;outline:none;transition:border-color 0.15s;-webkit-appearance:none;appearance:none;}
+  .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23555' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer;}
+  .field select option{background:#161616;}
+  .field input:focus,.field select:focus{border-color:var(--gold);}
+  .field input::placeholder{color:#2a2a2a;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  /* ── REHAB ── */
+  .rehab-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;}
+  .rehab-btn{background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--muted2);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;padding:13px 8px;cursor:pointer;text-align:center;transition:all 0.15s;}
+  .rehab-btn:hover{border-color:var(--gold);color:var(--gold);}
+  .rehab-btn.active{background:var(--gold);border-color:var(--gold);color:var(--black);font-weight:700;}
+  .rehab-btn .type{font-size:12px;font-weight:700;display:block;margin-bottom:4px;}
+  .rehab-btn .desc{font-size:9px;opacity:0.7;line-height:1.4;}
+
+  /* ── BUTTONS ── */
+  .analyze-btn{width:100%;background:var(--gold);border:none;border-radius:3px;color:var(--black);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;padding:17px;cursor:pointer;transition:all 0.2s;margin-top:6px;}
+  .analyze-btn:hover{background:var(--gold-light);transform:translateY(-1px);}
+  .analyze-btn:active{transform:translateY(0);}
+  .reset-btn{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted2);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;padding:9px 18px;cursor:pointer;transition:all 0.2s;}
+  .reset-btn:hover{border-color:var(--muted2);color:var(--white);}
+
+  /* ── COMPS UI ── */
+  .comps-fetch-row{display:flex;align-items:center;gap:8px;padding:12px 14px;background:#0d0d0d;border:1px solid var(--border);border-radius:3px;margin-top:12px;}
+  .fetch-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted2);text-transform:uppercase;flex:1;}
+  .fetch-btn{background:var(--border);border:1px solid var(--border2);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+  .fetch-btn:hover{border-color:var(--gold);color:var(--gold);}
+  .fetch-btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .fetch-status{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;padding:6px 2px;margin-top:6px;display:none;}
+  .fetch-status.loading{color:var(--yellow);display:block;}
+  .fetch-status.success{color:var(--green);display:block;}
+  .fetch-status.error{color:var(--red);display:block;}
+
+  /* ── COMP CARDS ── */
+  .comp-cards{display:flex;flex-direction:column;gap:5px;margin-top:10px;}
+  .comp-card{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--border);border-radius:3px;padding:9px 12px;animation:fadeIn 0.3s ease;}
+  @media(max-width:600px){.comp-card{grid-template-columns:1fr 1fr;}}
+  .cc-addr{color:var(--white);font-size:12px;line-height:1.3;}
+  .cc-val{font-family:'Space Mono',monospace;font-size:11px;color:var(--gold);}
+  .cc-meta{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted2);}
+  .cc-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0;}
+  .cc-del:hover{color:var(--red);}
+  .comp-avg-row{padding:10px 12px;background:var(--gold-dim);border:1px solid rgba(201,168,76,0.2);border-radius:3px;margin-top:4px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;}
+  .avg-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase;}
+  .avg-vals{font-family:'Space Mono',monospace;font-size:12px;color:var(--white);display:flex;gap:14px;}
+  .arv-suggest{margin-top:8px;padding:10px 14px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:3px;font-size:12px;line-height:1.6;color:#88bfff;}
+  .arv-suggest strong{color:var(--blue);}
+  .use-arv-btn{display:inline-block;margin-top:6px;background:rgba(74,158,255,0.15);border:1px solid rgba(74,158,255,0.3);border-radius:3px;color:var(--blue);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;padding:5px 10px;cursor:pointer;transition:all 0.15s;}
+  .use-arv-btn:hover{background:rgba(74,158,255,0.25);}
+
+  /* ── RESULTS ── */
+  .results{display:none;margin-top:28px;}
+  .results.show{display:block;animation:fadeIn 0.35s ease;}
+
+  /* ── SCORE GAUGE ── */
+  .score-section{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:24px 28px;margin-bottom:20px;}
+  @media(max-width:600px){.score-section{grid-template-columns:1fr;}}
+  .score-gauge{position:relative;width:110px;height:110px;flex-shrink:0;}
+  .score-gauge svg{transform:rotate(-90deg);}
+  .score-number{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;line-height:1;}
+  .score-lbl{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-family:'Space Mono',monospace;font-size:8px;letter-spacing:1.5px;color:var(--muted2);white-space:nowrap;}
+  .score-verdict{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;margin-bottom:6px;}
+  .score-verdict.fire{color:var(--green);}
+  .score-verdict.good{color:#7ecb8d;}
+  .score-verdict.marginal{color:var(--yellow);}
+  .score-verdict.pass{color:var(--red);}
+  .score-sub{font-size:13px;color:var(--muted2);line-height:1.6;max-width:480px;}
+  .score-bars{display:flex;flex-direction:column;gap:7px;margin-top:14px;}
+  .score-bar-row{display:flex;align-items:center;gap:10px;}
+  .score-bar-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted2);width:110px;text-transform:uppercase;flex-shrink:0;}
+  .score-bar-track{flex:1;height:4px;background:var(--border2);border-radius:2px;overflow:hidden;}
+  .score-bar-fill{height:100%;border-radius:2px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1);}
+  .score-bar-val{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted2);width:28px;text-align:right;flex-shrink:0;}
+
+  /* ── MAX OFFER ── */
+  .max-offer-box{background:var(--gold-dim);border:1px solid rgba(201,168,76,0.25);border-radius:4px;padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  .max-offer-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;}
+  .max-offer-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+  .max-offer-value{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:2px;color:var(--gold-light);}
+
+  /* ── NUMBER CARDS ── */
+  .numbers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+  @media(max-width:600px){.numbers{grid-template-columns:1fr 1fr;}}
+  .num-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:16px;}
+  .num-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:7px;}
+  .num-value{font-family:'Space Mono',monospace;font-size:19px;font-weight:700;color:var(--white);}
+  .num-value.green{color:var(--green);}.num-value.red{color:var(--red);}.num-value.yellow{color:var(--yellow);}.num-value.gold{color:var(--gold);}
+  .num-sub{font-size:10px;color:var(--muted);margin-top:4px;}
+
+  /* ── COMPS RESULTS TABLE ── */
+  .comps-results-section{margin-bottom:20px;}
+  .comps-results-table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .comps-results-table th{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--card2);}
+  .comps-results-table td{font-family:'Space Mono',monospace;font-size:12px;padding:10px 12px;border-bottom:1px solid var(--border);color:var(--white);}
+  .comps-results-table tr:last-child td{border-bottom:none;}
+  .comps-results-table .avg-row td{background:var(--gold-dim);color:var(--gold);font-weight:700;border-top:1px solid rgba(201,168,76,0.25);}
+  .arv-confidence{margin-top:10px;padding:12px 14px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:3px;font-size:12px;color:#88bfff;line-height:1.6;}
+  .arv-confidence strong{color:var(--blue);}
+
+  /* ── BREAKDOWN ── */
+  .breakdown{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:22px;margin-bottom:20px;}
+  .breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);}
+  .breakdown-row:last-child{border-bottom:none;padding-top:13px;}
+  .breakdown-row .label{color:var(--muted2);font-size:13px;}
+  .breakdown-row .value{font-family:'Space Mono',monospace;font-size:13px;color:var(--white);}
+  .breakdown-row.total .label{color:var(--white);font-weight:600;font-size:14px;}
+  .breakdown-row.total .value{font-size:15px;font-weight:700;}
+
+  /* ── STRATEGY TABS ── */
+  .strategy-tabs{display:flex;margin-bottom:16px;border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .strategy-tab{flex:1;background:var(--card);border:none;color:var(--muted2);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;padding:13px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;border-right:1px solid var(--border);}
+  .strategy-tab:last-child{border-right:none;}
+  .strategy-tab.active{background:var(--gold-dim);color:var(--gold);}
+  .strategy-tab:hover:not(.active){color:var(--white);background:var(--card2);}
+  .strategy-panel{display:none;}
+  .strategy-panel.active{display:block;animation:fadeIn 0.2s ease;}
+  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:600px){.compare-grid{grid-template-columns:1fr;}}
+  .compare-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:18px;}
+  .compare-card-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--gold);margin-bottom:12px;}
+  .compare-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .compare-row:last-child{border-bottom:none;font-weight:600;}
+  .compare-row .clabel{color:var(--muted2);}
+  .compare-row .cval{font-family:'Space Mono',monospace;font-size:12px;}
+
+  /* ── FLAGS ── */
+  .flags{display:flex;flex-direction:column;gap:7px;margin-bottom:20px;}
+  .flag{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#aaa;line-height:1.5;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:3px;}
+  .flag-icon{font-size:14px;margin-top:1px;flex-shrink:0;}
+
+  /* ── REC BOX ── */
+  .rec-box{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:0 4px 4px 0;padding:18px 22px;margin-bottom:20px;}
+  .rec-title{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:9px;}
+  .rec-text{font-size:14px;line-height:1.7;color:#bbb;}
+  .rec-text strong{color:var(--white);}
+
+  .divider{height:1px;background:var(--border);margin:24px 0;}
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .section-header .section-label{margin-bottom:0;flex:1;}
+
+  /* ── SAVED DEALS ── */
+  .saved-list{display:flex;flex-direction:column;gap:10px;}
+  .saved-deal{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .saved-deal-address{font-size:14px;font-weight:500;color:var(--white);}
+  .saved-deal-meta{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;}
+  .saved-deal-profit{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;}
+  .saved-deal-actions{display:flex;gap:6px;align-items:center;}
+  .saved-deal-btn{background:var(--border);border:none;border-radius:3px;color:var(--muted2);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;padding:7px 12px;cursor:pointer;transition:all 0.15s;text-transform:uppercase;}
+  .saved-deal-btn:hover{color:var(--white);background:var(--border2);}
+  .saved-deal-btn.danger:hover{color:var(--red);}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px;}
+  .empty-icon{font-size:36px;margin-bottom:12px;}
+  .stage-select{background:var(--border);border:none;color:var(--muted2);font-family:'Space Mono',monospace;font-size:9px;padding:6px 8px;border-radius:3px;cursor:pointer;}
+
+  /* ── PIPELINE ── */
+  .pipeline-cols{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+  @media(max-width:900px){.pipeline-cols{grid-template-columns:1fr 1fr;}}
+  @media(max-width:600px){.pipeline-cols{grid-template-columns:1fr;}}
+
+  /* ── MOBILE OVERRIDES ── */
+  @media(max-width:600px){
+    .header{padding:12px 16px;}
+    .logo{font-size:20px;gap:10px;}
+    .logo-sub{display:none;}
+    .badge{font-size:8px;padding:4px 7px;}
+    .nav-tabs{padding:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+    .nav-tabs::-webkit-scrollbar{display:none;}
+    .nav-tab{padding:12px 14px;font-size:9px;letter-spacing:1px;white-space:nowrap;}
+    .main{padding:12px 8px;}
+    .grid-2{grid-template-columns:1fr;}
+    .field-row{grid-template-columns:1fr;}
+    .rehab-grid{grid-template-columns:1fr 1fr 1fr;}
+    .rehab-btn .desc{display:none;}
+    .numbers{grid-template-columns:1fr 1fr;}
+    .compare-grid{grid-template-columns:1fr;}
+    .score-section{grid-template-columns:1fr;gap:16px;}
+    .saved-deal{flex-direction:column;align-items:flex-start;}
+    .saved-deal-actions{width:100%;justify-content:flex-end;}
+    .nbhd-filter-row{grid-template-columns:1fr 1fr !important;}
+    .nbhd-filter-row button{grid-column:1/-1;}
+    #nbhd-stats-grid{grid-template-columns:1fr 1fr !important;}
+    .nbhd-market-grid{grid-template-columns:1fr !important;}
+    .analyze-btn{font-size:17px;padding:15px;}
+    .max-offer-value{font-size:30px;}
+    .comp-card{grid-template-columns:1fr 1fr;}
+    .pdf-btn{width:100%;margin-top:8px;}
+    /* PULL sections mobile */
+    .pull-section{margin-top:8px !important;padding:8px !important;border-radius:3px !important;}
+    .pull-section table{font-size:9px !important;}
+    .pull-section th,.pull-section td{padding:3px 4px !important;}
+    .pull-header{font-size:11px !important;letter-spacing:1px !important;margin-bottom:4px !important;}
+    .pull-arv{font-size:16px !important;}
+    .pull-signal{font-size:10px !important;padding:6px !important;}
+    /* PULL input area */
+    .pull-box{padding:10px !important;}
+    .pull-box-label{font-size:8px !important;margin-bottom:6px !important;}
+    .pull-input{font-size:11px !important;padding:9px 10px !important;}
+    .pull-btn{font-size:14px !important;padding:0 16px !important;}
+    /* Status text */
+    .fetch-status{font-size:10px !important;line-height:1.4 !important;}
+    .pull-intel{font-size:10px !important;line-height:1.5 !important;padding:6px 8px !important;}
+    /* Cards */
+    .card{padding:14px 10px !important;}
+    .section-label{font-size:8px !important;}
+  }
+  /* PULL intel sections */
+  @media(max-width:780px){
+    .pull-section table{font-size:10px;}
+    .pull-section th,.pull-section td{padding:4px 5px;}
+  }
+  .pull-section{margin-top:10px;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:12px;}
+  .pull-header{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--gold);letter-spacing:1.5px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+  .pull-header:after{content:'▾';font-size:10px;color:var(--muted);}
+  .pull-header.collapsed:after{content:'▸';}
+  .pull-body{overflow:hidden;transition:max-height 0.2s ease;}
+  .pull-body.collapsed{max-height:0 !important;overflow:hidden;}
+  .pull-table{width:100%;border-collapse:collapse;font-family:'Space Mono',monospace;font-size:11px;}
+  .pull-table th{text-align:left;padding:4px 6px;color:var(--muted);font-size:9px;border-bottom:1px solid var(--border);}
+  .pull-table td{padding:5px 6px;border-bottom:1px solid rgba(255,255,255,0.03);}
+  .pull-table .avg-row td{border-top:2px solid var(--gold);font-weight:700;color:var(--gold);}
+  .pull-arv{font-family:'Space Mono',monospace;font-size:20px;color:var(--green);}
+  .pull-signal{margin-top:8px;padding:8px;border-radius:3px;font-size:11px;}
+  .pipeline-col{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:14px;min-height:180px;}
+  .pipeline-col-title{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+  .p-count{background:var(--border2);color:var(--muted2);border-radius:2px;padding:2px 6px;font-size:9px;}
+  .pipeline-card{background:var(--card2);border:1px solid var(--border2);border-radius:3px;padding:10px 12px;margin-bottom:8px;transition:border-color 0.15s;}
+  .pipeline-card:hover{border-color:var(--gold);}
+  .pc-addr{color:var(--white);font-size:12px;margin-bottom:4px;line-height:1.3;}
+  .pc-profit{font-family:'Space Mono',monospace;font-size:11px;}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    Pecos Grant
+    <div class="logo-divider"></div>
+    <div class="logo-sub"><span>DEAL ANALYZER</span>v4.4.4</div>
+  </div>
+  <div class="header-right">
+    <div class="badge">Springfield, MO</div>
+    <div class="badge" id="backendStatus">● CONNECTING</div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="switchTab('analyzer')">Analyzer</button>
+  <button class="nav-tab" onclick="switchTab('saved')">Saved Deals</button>
+  <button class="nav-tab" onclick="switchTab('pipeline')">Pipeline</button>
+  <button class="nav-tab" onclick="switchTab('neighborhood')">Neighborhoods</button>
+</div>
+
+<div class="main">
+
+<!-- ═══════════════════════ ANALYZER ═══════════════════════ -->
+<div class="tab-panel active" id="tab-analyzer">
+  <div class="grid-2">
+
+    <!-- LEFT: Property + Comps -->
+    <div>
+      <div class="section-label">Property Info</div>
+      <div class="card">
+        <!-- AUTO-FILL FROM ZILLOW -->
+        <div class="pull-box" style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:4px;padding:14px;margin-bottom:16px;">
+          <div class="pull-box-label" style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px;">⚡ Quick Fill — Paste Zillow Link or Address</div>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="lookupInput" class="pull-input" placeholder="Zillow URL or full address..." style="flex:1;background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:13px;padding:11px 13px;outline:none;" onkeydown="if(event.key==='Enter')autoFillFromLookup()">
+            <button onclick="autoFillFromLookup()" id="lookupBtn" class="pull-btn" style="background:var(--gold);border:none;border-radius:3px;color:var(--black);font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;padding:0 24px;cursor:pointer;white-space:nowrap;transition:all 0.15s;">PULL</button>
+          </div>
+          <div id="lookupStatus" class="fetch-status" style="margin-top:6px;"></div>
+          <div id="lookupPhoto" style="display:none;margin-top:10px;border-radius:4px;overflow:hidden;height:140px;"></div>
+        </div>
+
+        <div class="field">
+          <label>Address</label>
+          <input type="text" id="address" placeholder="123 Main St, Springfield MO">
+        </div>
+        <div class="field-row">
+          <div class="field"><label>List Price ($)</label><input type="number" id="listPrice" placeholder="85000"></div>
+          <div class="field"><label>Your Offer ($)</label><input type="number" id="offerPrice" placeholder="70000"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Sqft</label><input type="number" id="sqft" placeholder="1200"></div>
+          <div class="field"><label>Beds / Baths</label><input type="text" id="bedBath" placeholder="3 / 2"></div>
+        </div>
+        <div class="field">
+          <label>ARV — After Repair Value ($)</label>
+          <input type="number" id="arv" placeholder="185000">
+        </div>
+
+        <!-- AUTO COMPS -->
+        <div style="margin-top:16px;">
+          <div class="section-label" style="font-size:9px;">Area Benchmark</div>
+          <div class="comps-fetch-row">
+            <div class="fetch-label">Load area sold data for analyzer</div>
+            <button class="fetch-btn" id="fetchCompsBtn" onclick="fetchComps()">↻ REFRESH</button>
+          </div>
+          <div id="fetchStatus" class="fetch-status"></div>
+          <div id="compCardsList"></div>
+          <div id="compArvSuggest" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Rehab + Financing + BRRRR -->
+    <div>
+      <div class="section-label">Rehab Estimator</div>
+      <div class="card">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:10px;font-family:var(--font);">TAP WHAT THE HOUSE NEEDS — Springfield MO pricing</div>
+        <div id="rehabItemGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;"></div>
+        <div style="background:var(--surface2);border-radius:6px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:9px;color:var(--muted);letter-spacing:1px;font-family:var(--font);">EST. REHAB RANGE</div>
+            <div id="rehabRangeDisplay" style="font-size:16px;font-weight:700;color:var(--gold);margin-top:2px;">$0 — select items above</div>
+          </div>
+          <button onclick="clearRehab()" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:10px;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:var(--font);">CLEAR</button>
+        </div>
+        <div style="font-size:9px;color:var(--muted);margin-top:6px;font-family:var(--font);">Based on HomeBlue &amp; Ecostify Springfield 2025-26 data. Always get 3 bids.</div>
+        <div class="field" style="margin-top:10px;">
+          <label>Override Total ($)</label>
+          <input type="number" id="rehabOverride" placeholder="Overrides estimate above">
+        </div>
+
+        <div class="divider" style="margin:16px 0;"></div>
+        <div class="section-label" style="font-size:9px;">Financing</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Type</label>
+            <select id="financingType" onchange="toggleFinanceFields()">
+              <option value="cash">Cash</option>
+              <option value="hard">Hard Money</option>
+              <option value="conv">Conventional</option>
+              <option value="private">Private Lender</option>
+            </select>
+          </div>
+          <div class="field"><label>Hold Months</label><input type="number" id="holdingMonths" value="3"></div>
+        </div>
+        <div id="loanFields" style="display:none;">
+          <div class="field-row">
+            <div class="field"><label>Rate (% / yr)</label><input type="number" id="loanRate" value="12"></div>
+            <div class="field"><label>Points (%)</label><input type="number" id="loanPoints" value="2"></div>
+          </div>
+        </div>
+
+        <div class="divider" style="margin:16px 0;"></div>
 
         <!-- BRRRR TOGGLE -->
         <div onclick="document.getElementById('brrrr-inputs').style.display=document.getElementById('brrrr-inputs').style.display==='none'?'block':'none';this.querySelector('.brrrr-arrow').style.transform=document.getElementById('brrrr-inputs').style.display==='block'?'rotate(180deg)':'rotate(0deg)'"
              style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:8px 0;user-select:none;">
           <div>
             <span class="section-label" style="font-size:9px;display:inline;">BRRRR / RENTAL</span>
-            <span style="color:var(--muted);font-size:10px;margin-left:8px;font-family:var(--font);">— expand for rental hold analysis</span>
+            <span style="color:var(--muted);font-size:10px;margin-left:8px;font-family:var(--font);">— expand when ready</span>
           </div>
           <span class="brrrr-arrow" style="color:var(--gold);font-size:12px;transition:transform 0.2s;">&#9660;</span>
         </div>
 
         <div id="brrrr-inputs" style="display:none;">
-
-          <!-- LIVE RATE PULL -->
-          <div style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:4px;padding:12px;margin-top:8px;margin-bottom:12px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-              <div>
-                <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--blue);text-transform:uppercase;">⚡ Live Refi Rates</div>
-                <div style="font-size:10px;color:var(--muted);margin-top:2px;">Auto-pull current refinance rates for MO</div>
-              </div>
-              <button onclick="fetchLiveRates()" id="ratesPullBtn" style="background:rgba(74,158,255,0.15);border:1px solid rgba(74,158,255,0.3);border-radius:3px;color:var(--blue);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;padding:7px 14px;cursor:pointer;white-space:nowrap;">PULL RATES</button>
-            </div>
-            <div id="ratesStatus" class="fetch-status" style="margin-top:6px;"></div>
-            <div id="ratesDisplay" style="display:none;margin-top:8px;"></div>
-          </div>
-
-          <!-- LIVE RENTAL DATA PULL -->
-          <div style="background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.2);border-radius:4px;padding:12px;margin-bottom:12px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-              <div>
-                <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--green);text-transform:uppercase;">📊 Rental Market Data</div>
-                <div style="font-size:10px;color:var(--muted);margin-top:2px;">Pull median rents &amp; trends to validate your rent</div>
-              </div>
-              <button onclick="fetchRentalData()" id="rentalPullBtn" style="background:rgba(46,204,113,0.15);border:1px solid rgba(46,204,113,0.3);border-radius:3px;color:var(--green);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;padding:7px 14px;cursor:pointer;white-space:nowrap;">PULL RENTS</button>
-            </div>
-            <div id="rentalStatus" class="fetch-status" style="margin-top:6px;"></div>
-            <div id="rentalDisplay" style="display:none;margin-top:8px;"></div>
-          </div>
-
           <div class="field-row" style="margin-top:8px;">
-            <div class="field">
-              <label>Monthly Rent ($)</label>
-              <input type="number" id="monthlyRent" placeholder="1100">
-            </div>
-            <div class="field">
-              <label>Refi LTV (%)</label>
-              <input type="number" id="refiLtv" value="75">
-            </div>
+            <div class="field"><label>Monthly Rent ($)</label><input type="number" id="monthlyRent" placeholder="1100"></div>
+            <div class="field"><label>Refi LTV (%)</label><input type="number" id="refiLtv" value="75"></div>
           </div>
           <div class="field-row">
-            <div class="field">
-              <label>Refi Rate (%) <span id="rateLiveTag" style="display:none;color:var(--blue);font-size:8px;">● LIVE</span></label>
-              <input type="number" id="refiRate" value="7.5">
-            </div>
-            <div class="field">
-              <label>Refi Term (yrs)</label>
-              <input type="number" id="refiTerm" value="30">
-            </div>
-          </div>
-          <!-- Vacancy & Expense assumptions -->
-          <div class="field-row">
-            <div class="field">
-              <label>Vacancy Rate (%)</label>
-              <input type="number" id="vacancyRate" value="8" placeholder="8">
-            </div>
-            <div class="field">
-              <label>Mgmt + Maint (%)</label>
-              <input type="number" id="opexRate" value="25" placeholder="25">
-            </div>
-          </div>
-          <div style="font-size:9px;color:var(--muted);margin-top:4px;font-family:'Space Mono',monospace;">
-            Vacancy 8% + OpEx 25% = 33% expense ratio. Adjust for self-manage (lower) or turnkey (higher).
+            <div class="field"><label>Refi Rate (%)</label><input type="number" id="refiRate" value="7.5"></div>
+            <div class="field"><label>Refi Term (yrs)</label><input type="number" id="refiTerm" value="30"></div>
           </div>
         </div>
 
-
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!-- SECTION B: Replace #strategy-brrrr panel                               -->
-<!-- Replace the entire <div class="strategy-panel" id="strategy-brrrr">    -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-
-    <div class="strategy-panel" id="strategy-brrrr">
-      <div id="brrrrNoRent" style="text-align:center;padding:30px;color:var(--muted);font-size:13px;">
-        Enter monthly rent above to see BRRRR analysis.<br>
-        <span style="font-size:11px;color:var(--muted);">Tip: Hit "Pull Rents" to get market data first.</span>
+        <button class="analyze-btn" onclick="analyze()">RUN THE NUMBERS</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ═══════ RESULTS ═══════ -->
+  <div class="results" id="results">
+    <div class="divider"></div>
+    <div class="section-header">
+      <div class="section-label">Deal Score</div>
+      <button class="reset-btn" onclick="reset()">↩ NEW DEAL</button>
+    </div>
+
+    <!-- SCORE -->
+    <div class="score-section">
+      <div class="score-gauge">
+        <svg width="110" height="110" viewBox="0 0 110 110">
+          <circle cx="55" cy="55" r="46" fill="none" stroke="#1e1e1e" stroke-width="8"/>
+          <circle cx="55" cy="55" r="46" fill="none" stroke="#c9a84c" stroke-width="8"
+            stroke-dasharray="289" stroke-dashoffset="289" id="scoreCircle" stroke-linecap="round"/>
+        </svg>
+        <div class="score-number" id="scoreNumber">0</div>
+        <div class="score-lbl">/ 100</div>
+      </div>
+      <div>
+        <div class="score-verdict" id="scoreVerdict">—</div>
+        <div class="score-sub" id="scoreSub">—</div>
+        <div class="score-bars" id="scoreBars"></div>
+      </div>
+    </div>
+
+    <!-- MAX OFFER -->
+    <div class="max-offer-box">
+      <div>
+        <div class="max-offer-label">Max Offer (65% Rule)</div>
+        <div class="max-offer-sub">ARV × 0.65 − Rehab — never exceed this</div>
+      </div>
+      <div class="max-offer-value" id="maxOffer">—</div>
+    </div>
+
+    <!-- KEY NUMBERS -->
+    <div class="numbers">
+      <div class="num-card"><div class="num-label">Total All-In</div><div class="num-value" id="totalIn">—</div></div>
+      <div class="num-card"><div class="num-label">ARV</div><div class="num-value gold" id="arvDisplay">—</div></div>
+      <div class="num-card"><div class="num-label">Net Profit</div><div class="num-value" id="netProfit">—</div><div class="num-sub" id="roiDisplay">—</div></div>
+      <div class="num-card"><div class="num-label">$/sqft (Buy)</div><div class="num-value" id="ppsf">—</div></div>
+      <div class="num-card"><div class="num-label">$/sqft (ARV)</div><div class="num-value gold" id="arvpsf">—</div></div>
+      <div class="num-card"><div class="num-label">Equity Spread</div><div class="num-value" id="equitySpread">—</div><div class="num-sub" id="equityPct">—</div></div>
+    </div>
+
+    <!-- ARV STRESS TEST -->
+    <div id="stressTestSection" style="display:none;margin-bottom:20px;">
+      <div class="section-label">ARV Stress Test — 3 Scenarios</div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:4px;overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:var(--card2);">
+              <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 14px;">Scenario</th>
+              <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 14px;">ARV</th>
+              <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 14px;">Net Profit</th>
+              <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 14px;">ROI</th>
+              <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 14px;">Verdict</th>
+            </tr>
+          </thead>
+          <tbody id="stressTestBody"></tbody>
+        </table>
+      </div>
+      <div id="stressTestNote" style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'Space Mono',monospace;line-height:1.6;"></div>
+    </div>
+
+    <!-- COMPS RESULTS -->
+    <div id="compsResultsSection" style="display:none;" class="comps-results-section">
+      <div class="section-label">Comps vs Your ARV</div>
+      <table class="comps-results-table">
+        <thead><tr><th>Address</th><th>Sold Price</th><th>Sqft</th><th>$/sqft</th><th>Days Ago</th></tr></thead>
+        <tbody id="compsResultsBody"></tbody>
+      </table>
+      <div class="arv-confidence" id="arvConfidence"></div>
+    </div>
+
+    <!-- BREAKDOWN -->
+    <div class="section-label">Cost Breakdown</div>
+    <div class="breakdown">
+      <div class="breakdown-row"><span class="label">Purchase Price</span><span class="value" id="bOffer">—</span></div>
+      <div class="breakdown-row"><span class="label">Estimated Rehab</span><span class="value" id="bRehab">—</span></div>
+      <div class="breakdown-row"><span class="label">Rehab Contingency (10%)</span><span class="value" id="bContingency">—</span></div>
+      <div class="breakdown-row"><span class="label">Financing Costs</span><span class="value" id="bFinancing">—</span></div>
+      <div class="breakdown-row"><span class="label">Holding Costs</span><span class="value" id="bHolding">—</span></div>
+      <div class="breakdown-row total"><span class="label">Total All-In</span><span class="value" id="bTotal">—</span></div>
+      <div class="breakdown-row"><span class="label">ARV (Sale Price)</span><span class="value gold" id="bArv">—</span></div>
+      <div class="breakdown-row"><span class="label">Agent Fees (6%)</span><span class="value" id="bAgent">—</span></div>
+      <div class="breakdown-row"><span class="label">Closing Costs (2%)</span><span class="value" id="bClosing">—</span></div>
+      <div class="breakdown-row total"><span class="label">NET PROFIT</span><span class="value" id="bNet">—</span></div>
+    </div>
+
+    <!-- STRATEGY -->
+    <div class="section-label">Strategy Comparison</div>
+    <div class="strategy-tabs">
+      <button class="strategy-tab active" onclick="switchStrategy('flip')">Flip</button>
+      <button class="strategy-tab" onclick="switchStrategy('brrrr')">BRRRR</button>
+    </div>
+    <div class="strategy-panel active" id="strategy-flip">
+      <div class="compare-grid">
+        <div class="compare-card">
+          <div class="compare-card-title">Flip Summary</div>
+          <div class="compare-row"><span class="clabel">Total In</span><span class="cval" id="f-totalIn">—</span></div>
+          <div class="compare-row"><span class="clabel">Net Profit</span><span class="cval" id="f-netProfit">—</span></div>
+          <div class="compare-row"><span class="clabel">ROI</span><span class="cval" id="f-roi">—</span></div>
+          <div class="compare-row"><span class="clabel">Annualized ROI</span><span class="cval" id="f-annualRoi">—</span></div>
+          <div class="compare-row"><span class="clabel">Equity Multiple</span><span class="cval" id="f-emx">—</span></div>
+        </div>
+        <div class="compare-card">
+          <div class="compare-card-title">Financing</div>
+          <div class="compare-row"><span class="clabel">Type</span><span class="cval" id="f-finType">—</span></div>
+          <div class="compare-row"><span class="clabel">Interest Cost</span><span class="cval" id="f-interest">—</span></div>
+          <div class="compare-row"><span class="clabel">Points / Fees</span><span class="cval" id="f-points">—</span></div>
+          <div class="compare-row"><span class="clabel">Hold Period</span><span class="cval" id="f-hold">—</span></div>
+          <div class="compare-row"><span class="clabel">Total Fin. Cost</span><span class="cval" id="f-finTotal">—</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="strategy-panel" id="strategy-brrrr">
+      <div id="brrrrNoRent" style="text-align:center;padding:30px;color:var(--muted);font-size:13px;">Enter monthly rent above to see BRRRR analysis.</div>
       <div id="brrrrContent" style="display:none;">
         <div class="compare-grid">
-          <!-- BRRRR Core Numbers -->
           <div class="compare-card">
             <div class="compare-card-title">BRRRR Numbers</div>
             <div class="compare-row"><span class="clabel">ARV</span><span class="cval" id="b-arv">—</span></div>
@@ -113,220 +551,1204 @@
             <div class="compare-row"><span class="clabel">Cash Left In Deal</span><span class="cval" id="b-cashIn">—</span></div>
             <div class="compare-row"><span class="clabel">Monthly PITI</span><span class="cval" id="b-piti">—</span></div>
             <div class="compare-row"><span class="clabel">Monthly Cash Flow</span><span class="cval" id="b-cashflow">—</span></div>
-            <div class="compare-row"><span class="clabel">DSCR</span><span class="cval" id="b-dscr">—</span></div>
           </div>
-          <!-- Rental Returns -->
           <div class="compare-card">
             <div class="compare-card-title">Rental Returns</div>
             <div class="compare-row"><span class="clabel">Gross Rent Yield</span><span class="cval" id="b-gry">—</span></div>
-            <div class="compare-row"><span class="clabel">Net Rent Yield</span><span class="cval" id="b-nry">—</span></div>
             <div class="compare-row"><span class="clabel">Cash-on-Cash ROI</span><span class="cval" id="b-coc">—</span></div>
             <div class="compare-row"><span class="clabel">Annual Cash Flow</span><span class="cval" id="b-annualCF">—</span></div>
             <div class="compare-row"><span class="clabel">Cap Rate (est.)</span><span class="cval" id="b-cap">—</span></div>
             <div class="compare-row"><span class="clabel">Verdict</span><span class="cval" id="b-verdict">—</span></div>
           </div>
         </div>
-
-        <!-- Expense Breakdown -->
-        <div class="compare-card" style="margin-top:12px;">
-          <div class="compare-card-title">Monthly Expense Breakdown</div>
-          <div class="compare-row"><span class="clabel">Gross Rent</span><span class="cval" id="b-grossRent">—</span></div>
-          <div class="compare-row"><span class="clabel">− Vacancy Reserve</span><span class="cval" id="b-vacancy">—</span></div>
-          <div class="compare-row"><span class="clabel">− Mgmt + Maintenance</span><span class="cval" id="b-opex">—</span></div>
-          <div class="compare-row"><span class="clabel">= Effective Income</span><span class="cval" id="b-effectiveIncome">—</span></div>
-          <div class="compare-row"><span class="clabel">− PITI (Mortgage + Tax + Ins)</span><span class="cval" id="b-pitiExpense">—</span></div>
-          <div class="compare-row" style="font-weight:700;"><span class="clabel" style="color:var(--white);">= Net Cash Flow</span><span class="cval" id="b-netCF">—</span></div>
-        </div>
-
-        <!-- Market Rent Context (populated by rental data pull) -->
-        <div id="brrrrMarketContext" style="display:none;margin-top:12px;"></div>
-
-        <!-- BRRRR Stress Test -->
-        <div id="brrrrStressTest" style="display:none;margin-top:16px;">
-          <div class="section-label" style="font-size:9px;">BRRRR Stress Test — 4 Scenarios</div>
-          <div style="background:var(--card);border:1px solid var(--border);border-radius:4px;overflow:hidden;">
-            <table style="width:100%;border-collapse:collapse;">
-              <thead>
-                <tr style="background:var(--card2);">
-                  <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 12px;">Scenario</th>
-                  <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:right;padding:10px 12px;">Rate</th>
-                  <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:right;padding:10px 12px;">Rent</th>
-                  <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:right;padding:10px 12px;">Cash Flow</th>
-                  <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:right;padding:10px 12px;">DSCR</th>
-                  <th style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:left;padding:10px 12px;">Verdict</th>
-                </tr>
-              </thead>
-              <tbody id="brrrrStressBody"></tbody>
-            </table>
-          </div>
-          <div id="brrrrStressNote" style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'Space Mono',monospace;line-height:1.6;"></div>
-        </div>
-
-        <!-- 5-Year Equity Projection -->
-        <div id="brrrrEquityProjection" style="display:none;margin-top:16px;">
-          <div class="section-label" style="font-size:9px;">5-Year Equity Buildup</div>
-          <div class="compare-card">
-            <div id="equityProjectionBody"></div>
-          </div>
-        </div>
-
-        <!-- Refi Break-Even -->
-        <div id="brrrrRefiBreakeven" style="display:none;margin-top:12px;">
-          <div style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:4px;padding:14px;">
-            <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:6px;">Refi Break-Even</div>
-            <div id="refiBreakevenText" style="font-size:12px;color:var(--muted2);line-height:1.6;"></div>
-          </div>
-        </div>
-
       </div>
     </div>
 
+    <div class="flags" id="flagsBox" style="margin-top:20px;"></div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
-<!-- SECTION C: BRRRR results summary card                                  -->
-<!-- Add this AFTER the existing ARV stress test section in results,        -->
-<!-- before the comps results section                                       -->
-<!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="rec-box">
+      <div class="rec-title">Recommendation</div>
+      <div class="rec-text" id="recText">—</div>
+    </div>
 
-    <!-- BRRRR QUICK SUMMARY (only shows if rent entered) -->
-    <div id="brrrrSummaryCard" style="display:none;margin-bottom:20px;">
-      <div style="background:linear-gradient(135deg,rgba(74,158,255,0.08),rgba(46,204,113,0.08));border:1px solid rgba(74,158,255,0.2);border-radius:4px;padding:18px 22px;">
-        <div style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--blue);text-transform:uppercase;margin-bottom:10px;">BRRRR Snapshot</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;" id="brrrrSnapGrid">
-          <!-- Populated by JS -->
-        </div>
+    <div style="text-align:right;margin-top:-8px;margin-bottom:20px;">
+      <button class="analyze-btn" style="width:auto;padding:12px 28px;font-size:15px;" onclick="saveDeal()">💾 SAVE DEAL</button>
+      <button class="reset-btn pdf-btn" onclick="generatePDF(lastResult)" style="margin-top:8px;width:100%;">📄 GENERATE OFFER SHEET PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ SAVED ═══════════════════════ -->
+<div class="tab-panel" id="tab-saved">
+  <div class="section-label">Saved Deals</div>
+  <div id="savedList"></div>
+</div>
+
+<!-- ═══════════════════════ PIPELINE ═══════════════════════ -->
+<div class="tab-panel" id="tab-pipeline">
+  <div class="section-label">Deal Pipeline</div>
+  <div class="pipeline-cols" id="pipelineCols"></div>
+</div>
+
+<!-- ═══════════════════════ NEIGHBORHOOD ═══════════════════════ -->
+<div class="tab-panel" id="tab-neighborhood">
+
+  <div class="section-label">Neighborhood Profiler</div>
+  <div style="font-size:13px;color:var(--muted2);margin-bottom:20px;line-height:1.6;">
+    Enter a ZIP code, city, or neighborhood before making an offer. Get real sold data — avg $/sqft, sales volume, days on market. Push the ARV benchmark straight into the analyzer.
+  </div>
+
+  <!-- SEARCH -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="nbhd-filter-row" style="display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:end;">
+      <div class="field" style="margin-bottom:0;">
+        <label>ZIP Code, City, or Full Address</label>
+        <input type="text" id="nbhd-input" placeholder="412 Elm St Springfield MO — or — 65807 — or — springfield-mo" onkeydown="if(event.key==='Enter')profileNeighborhood()">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Beds</label>
+        <select id="nbhd-beds" style="background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:13px;padding:11px 13px;outline:none;">
+          <option value="">Any</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Baths</label>
+        <select id="nbhd-baths" style="background:#0d0d0d;border:1px solid var(--border);border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:13px;padding:11px 13px;outline:none;">
+          <option value="">Any</option>
+          <option value="1">1</option>
+          <option value="1.5">1.5</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select>
+      </div>
+      <button class="analyze-btn" style="margin-top:0;padding:12px 24px;font-size:16px;width:auto;" onclick="profileNeighborhood()">PROFILE</button>
+    </div>
+    <div id="nbhd-status" class="fetch-status" style="margin-top:8px;"></div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="nbhd-results" style="display:none;">
+
+    <!-- HEADLINE STATS -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;" id="nbhd-stats-grid"></div>
+
+    <!-- MARKET HEALTH -->
+    <div class="nbhd-market-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+      <div class="card">
+        <div class="section-label" style="font-size:9px;">Market Health</div>
+        <div id="nbhd-health"></div>
+      </div>
+      <div class="card">
+        <div class="section-label" style="font-size:9px;">Your ARV Benchmark</div>
+        <div id="nbhd-arv-box"></div>
       </div>
     </div>
 
+    <!-- SAVED PROFILES -->
+    <div style="margin-bottom:12px;">
+      <div class="section-label" style="font-size:9px;">Saved Profiles</div>
+      <div id="nbhd-saved"></div>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- /main -->
 
 <script>
-// ═══════════════════════════════════════════════════════════════════════════
-// SECTION D: New JavaScript functions — paste before closing </script>
-// ═══════════════════════════════════════════════════════════════════════════
-
-// ── STATE for BRRRR live data ──
-let liveRateData   = null;  // cached rate pull
-let liveRentalData = null;  // cached rental pull
+// ════════════════════════════════════════════
+// CONFIG — your Railway URL
+// ════════════════════════════════════════════
+const BACKEND_URL = 'https://worker-production-8f13.up.railway.app';
 
 // ════════════════════════════════════════════
-// FETCH LIVE REFI RATES
+// STATE
 // ════════════════════════════════════════════
-async function fetchLiveRates() {
-  const btn    = document.getElementById('ratesPullBtn');
-  const status = document.getElementById('ratesStatus');
-  const display = document.getElementById('ratesDisplay');
+let rehabLevel   = 0;
+let fetchedComps = [];
+let savedDeals   = JSON.parse(localStorage.getItem('pecos_deals') || '[]');
+document.addEventListener('DOMContentLoaded', ()=>{ buildRehabGrid(); });
+let lastResult   = null;
 
-  // Try to extract ZIP from address
-  const addr    = document.getElementById('address').value || '';
-  const zipMatch = addr.match(/(\d{5})/);
-  const zipcode  = zipMatch ? zipMatch[1] : '65807';
+// Springfield MO rehab costs — sourced from HomeBlue, Ecostify, local data 2025-26
+// Roof: HomeBlue Springfield $6,400-$10,000 (1,500 sqft house)
+// HVAC: Ecostify Springfield 2026 $3,200-$7,300
+// All others: national averages adjusted -11% for Springfield RPP of 89.1
+const REHAB_ITEMS = {
+  roof:       { label:'Roof',              low:6400,  high:10000, icon:'🏠', note:'Asphalt shingle, 1,000-1,500 sqft' },
+  hvac:       { label:'HVAC System',       low:3200,  high:7300,  icon:'❄️', note:'Full replacement, central A/C + heat' },
+  electrical: { label:'Electrical Panel',  low:2500,  high:5000,  icon:'⚡', note:'200A upgrade, no full rewire' },
+  plumbing:   { label:'Plumbing',          low:3500,  high:8000,  icon:'🔧', note:'Partial — no full repipe' },
+  foundation: { label:'Foundation/Struct', low:8000,  high:25000, icon:'🧱', note:'Wide range — get inspection first' },
+  kitchen:    { label:'Kitchen',           low:8000,  high:18000, icon:'🍳', note:'Mid-range remodel, new cabinets/counters' },
+  bath1:      { label:'Bathroom (1)',      low:4500,  high:9000,  icon:'🚿', note:'Full gut and refresh' },
+  bath2:      { label:'Bathroom (2nd)',    low:4000,  high:8000,  icon:'🚿', note:'Second bath, similar scope' },
+  flooring:   { label:'Flooring',          low:3500,  high:7000,  icon:'🪵', note:'LVP throughout, 1,000-1,500 sqft' },
+  windows:    { label:'Windows',           low:3000,  high:7000,  icon:'🪟', note:'6-8 windows, double-pane' },
+  paint:      { label:'Paint (Interior)',  low:1800,  high:3500,  icon:'🖌️', note:'Full interior, ~1,200 sqft' },
+  exterior:   { label:'Exterior/Siding',   low:4000,  high:12000, icon:'🏘️', note:'Paint or partial siding' },
+  septic:     { label:'Septic/Well',       low:5000,  high:15000, icon:'💧', note:'Rural properties — inspect first' },
+};
+let rehabSelected = {}; // key: true/false
+const PIPELINE_STAGES = ['Lead','Analyzing','Offer Made','Under Contract','Closed'];
 
+// ════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════
+function fmt(n){
+  if(n===null||n===undefined||isNaN(n))return'—';
+  return(n<0?'-$':'$')+Math.round(Math.abs(n)).toLocaleString();
+}
+function fmtPct(n){return(!isFinite(n)||isNaN(n))?'—':n.toFixed(1)+'%';}
+function fmtX(n){return isNaN(n)?'—':n.toFixed(2)+'x';}
+function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+
+// ════════════════════════════════════════════
+// BACKEND HEALTH
+// ════════════════════════════════════════════
+async function checkBackend(){
+  const el=document.getElementById('backendStatus');
+  try{
+    const r=await fetch(BACKEND_URL+'/health',{signal:AbortSignal.timeout(6000)});
+    if(r.ok){el.textContent='● LIVE';el.className='badge green';}
+    else throw new Error();
+  }catch{
+    el.textContent='● OFFLINE';el.className='badge red';
+  }
+}
+
+// ════════════════════════════════════════════
+// FETCH COMPS — wired to neighborhood profiler (bylocation + ZHVI)
+// ════════════════════════════════════════════
+function setArv(val){ const f=document.getElementById("arv"); if(f){f.value=val; if(typeof updateResults==="function")updateResults();} }
+
+async function fetchComps(){
+  const address = document.getElementById('address').value.trim();
+  const sqft    = document.getElementById('sqft').value.trim();
+  const bedRaw  = document.getElementById('bedBath').value.trim();
+  const beds    = bedRaw.match(/\d+/) ? bedRaw.match(/\d+/)[0] : '';
+
+  if(!address){alert('Enter an address first.');return;}
+
+  // Extract ZIP from address if present, otherwise use full address
+  const zipMatch = address.match(/(\d{5})/);
+  const location = zipMatch ? zipMatch[1] : address;
+
+  const btn    = document.getElementById('fetchCompsBtn');
+  const status = document.getElementById('fetchStatus');
+  btn.disabled = true;
+  btn.textContent = '⏳ PROFILING AREA...';
+  status.className   = 'fetch-status loading';
+  status.textContent = `Pulling market data for area: ${location}...`;
+
+  try{
+    const params = new URLSearchParams({ location });
+    const resp   = await fetch(`${BACKEND_URL}/neighborhood?${params}`, {
+      signal: AbortSignal.timeout(25000)
+    });
+    if(!resp.ok){
+      const err = await resp.json().catch(()=>({}));
+      throw new Error(err.error || `Server error ${resp.status}`);
+    }
+    const d = await resp.json();
+    if(d.error) throw new Error(d.error);
+
+    // Build a summary to show inline under the comps section
+    const ppsf    = d.avgPpsf;
+    const sqftNum = parseInt(sqft) || 0;
+    const estArv  = ppsf && sqftNum ? ppsf * sqftNum : null;
+
+    // Render inline market snapshot
+    const compsList = document.getElementById('compCardsList');
+    compsList.innerHTML = `
+      <div style="background:#0d0d0d;border:1px solid var(--border);border-radius:6px;padding:16px;margin-top:8px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold);letter-spacing:1px;margin-bottom:12px;">
+          AREA MARKET PROFILE — ${d.location}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div style="font-size:12px;color:var(--muted2);">Avg $/sqft (active)
+            <div style="font-size:20px;color:var(--gold);font-family:'Space Mono',monospace;">${ppsf ? fmt(ppsf)+'/sf' : '—'}</div>
+          </div>
+          <div style="font-size:12px;color:var(--muted2);">Zillow Median SFR
+            <div style="font-size:20px;color:var(--white);font-family:'Space Mono',monospace;">${d.zhviCurrent ? fmt(d.zhviCurrent) : '—'}</div>
+          </div>
+          <div style="font-size:12px;color:var(--muted2);">Median DOM
+            <div style="font-size:20px;color:var(--green);font-family:'Space Mono',monospace;">${d.medianDom ? d.medianDom+'d' : '—'}</div>
+          </div>
+          <div style="font-size:12px;color:var(--muted2);">1yr Appreciation
+            <div style="font-size:20px;font-family:'Space Mono',monospace;" class="${d.zhviPctChange>=0?'green':'red'}">${d.zhviPctChange !== null ? (d.zhviPctChange>0?'+':'')+d.zhviPctChange+'%' : '—'}</div>
+          </div>
+        </div>
+        ${estArv ? '<div style="background:rgba(201,168,76,0.1);border:1px solid var(--gold);border-radius:4px;padding:10px;margin-bottom:10px;"><div style="font-size:11px;color:var(--muted2);margin-bottom:2px;">EST. ARV ESTIMATE</div><div style="font-family:Space Mono,monospace;font-size:24px;color:var(--gold);">'  + fmt(estArv) + '</div><button onclick="setArv(' + estArv + ')" style="margin-top:8px;background:#c9a84c;border:none;border-radius:3px;color:#000;font-size:10px;padding:7px 14px;cursor:pointer;font-weight:700;">→ SET AS MY ARV</button></div>' : ''}
+        <div style="font-size:11px;color:var(--muted);">${d.velocity || ''} · ${d.inventory || ''}</div>
+      </div>`;
+
+    // Auto-push ARV if sqft entered
+    if(estArv){
+      const arvField = document.getElementById('arv');
+      if(arvField && !arvField.value) arvField.value = estArv;
+    }
+
+    status.className   = 'fetch-status success';
+    status.textContent = `✓ Area profile loaded${d.cached?' (cached)':''} — ${ppsf ? fmt(ppsf)+'/sf ARV benchmark' : 'use Neighborhoods tab for full profile'}`;
+    btn.textContent  = '↻ REFRESH';
+    btn.disabled     = false;
+
+  }catch(err){
+    status.className   = 'fetch-status error';
+    status.textContent = '✗ ' + err.message;
+    btn.disabled     = false;
+    btn.textContent  = '⚡ PROFILE AREA';
+  }
+}
+
+function renderCompCards(comps,summary){
+  document.getElementById('compCardsList').innerHTML=`
+    <div class="comp-cards">
+      ${comps.map((c,i)=>`
+        <div class="comp-card">
+          <div><div class="cc-addr">${c.address}</div>
+          <div class="cc-meta">${[c.beds?c.beds+'bd':'',c.baths?c.baths+'ba':'',c.sqft?c.sqft.toLocaleString()+' sf':''].filter(Boolean).join(' · ')}</div></div>
+          <div class="cc-val">${fmt(c.price)}</div>
+          <div class="cc-meta">${c.ppsf?fmt(c.ppsf)+'/sf':'—'}</div>
+          <div class="cc-meta">${c.daysAgo?c.daysAgo+'d ago':'—'}</div>
+          <button class="cc-del" onclick="removeComp(${i})">✕</button>
+        </div>`).join('')}
+    </div>
+    <div class="comp-avg-row">
+      <div class="avg-label">Comp Average</div>
+      <div class="avg-vals">
+        <span>${fmt(summary.avgPrice)}</span>
+        ${summary.avgPpsf?`<span>${fmt(summary.avgPpsf)}/sf</span>`:''}
+        <span>${comps.length} comps</span>
+      </div>
+    </div>`;
+  const arvVal=parseFloat(document.getElementById('arv').value)||0;
+  renderArvSuggest(summary,arvVal);
+}
+
+function renderArvSuggest(summary,arvVal){
+  const el=document.getElementById('compArvSuggest');
+  if(!summary||!summary.avgPrice){el.style.display='none';return;}
+  const dev=arvVal?((arvVal-summary.avgPrice)/summary.avgPrice*100):null;
+  let html=`<div class="arv-suggest"><strong>Comp Avg: ${fmt(summary.avgPrice)}</strong>`;
+  if(dev!==null){
+    const dir=dev>0?'above':'below';
+    const color=Math.abs(dev)>10?'#e03c3c':'#4a9eff';
+    html+=` — your ARV of ${fmt(arvVal)} is <strong style="color:${color}">${Math.abs(dev).toFixed(1)}% ${dir}</strong> comp avg.`;
+    if(dev>10)html+=' Consider lowering your ARV to be safe.';
+  }else{html+=' — enter your ARV above to compare.';}
+  html+=`<br><button class="use-arv-btn" onclick="useCompAvg(${summary.avgPrice})">← Use ${fmt(summary.avgPrice)} as ARV</button></div>`;
+  el.innerHTML=html;el.style.display='block';
+}
+
+function removeComp(i){
+  fetchedComps.splice(i,1);
+  if(!fetchedComps.length){
+    document.getElementById('compCardsList').innerHTML='';
+    document.getElementById('compArvSuggest').style.display='none';
+    return;
+  }
+  const s=buildSummary(fetchedComps);
+  renderCompCards(fetchedComps,s);
+}
+
+function buildSummary(comps){
+  const prices=comps.map(c=>c.price).filter(Boolean);
+  const ppsfs =comps.map(c=>c.ppsf).filter(Boolean);
+  return{
+    avgPrice:prices.length?Math.round(prices.reduce((a,b)=>a+b,0)/prices.length):null,
+    avgPpsf :ppsfs.length ?Math.round(ppsfs.reduce((a,b)=>a+b,0)/ppsfs.length):null,
+    count:comps.length
+  };
+}
+
+function useCompAvg(avg){
+  const el=document.getElementById('arv');
+  el.value=avg;el.style.borderColor='var(--gold)';
+  setTimeout(()=>el.style.borderColor='',1500);
+  renderArvSuggest(buildSummary(fetchedComps),avg);
+}
+
+// ════════════════════════════════════════════
+// AUTO-FILL FROM ZILLOW URL / ADDRESS
+// ════════════════════════════════════════════
+async function autoFillFromLookup(){
+  const input = document.getElementById('lookupInput').value.trim();
+  if(!input){ alert('Paste a Zillow URL or type an address.'); return; }
+
+  const btn    = document.getElementById('lookupBtn');
+  const status = document.getElementById('lookupStatus');
   btn.textContent = '...';
   btn.disabled = true;
   status.className   = 'fetch-status loading';
-  status.textContent = `Pulling live refi rates for MO ${zipcode}...`;
   status.style.display = 'block';
+  status.textContent = 'Pulling property data...';
 
-  try {
-    const params = new URLSearchParams({
-      state:     'MO',
-      zipcode:   zipcode,
-      refinance: 'true',
-      ltv:       'High',
-      credit:    'High',
-      programs:  'Fixed15Year,Fixed30Year',
+  try{
+    // Determine if URL or address
+    const isUrl = input.includes('zillow.com') || input.includes('http');
+    const params = new URLSearchParams();
+    if(isUrl){
+      // Strip tracking params and clean the URL
+      let cleanUrl = input.split('?')[0];
+      params.set('url', cleanUrl);
+    } else {
+      params.set('address', input);
+    }
+
+    const resp = await fetch(`${BACKEND_URL}/lookup?${params}`, {
+      signal: AbortSignal.timeout(50000)
     });
 
-    const resp = await fetch(`${BACKEND_URL}/mortgage-rates?${params}`, {
-      signal: AbortSignal.timeout(20000)
-    });
-
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
+    if(!resp.ok){
+      const err = await resp.json().catch(()=>({}));
       throw new Error(err.error || `Server error ${resp.status}`);
     }
 
     const d = await resp.json();
-    liveRateData = d;
+    if(d.error) throw new Error(d.error);
 
-    // Display rates
-    let rateHtml = '<div style="display:flex;gap:12px;flex-wrap:wrap;">';
-    const rateEntries = Object.values(d.rates || {});
+    // Auto-fill all form fields
+    const setField = (id, val) => { const el = document.getElementById(id); if(el && val) el.value = val; };
 
-    if (rateEntries.length > 0) {
-      rateEntries.forEach(r => {
-        rateHtml += `<div style="background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.2);border-radius:4px;padding:8px 12px;min-width:100px;">
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;">${r.program || 'Rate'}</div>
-          <div style="font-family:'Space Mono',monospace;font-size:18px;color:var(--blue);font-weight:700;">${r.rate}%</div>
-          ${r.apr ? `<div style="font-size:9px;color:var(--muted);">APR: ${r.apr}%</div>` : ''}
+    setField('address',   d.address);
+    setField('listPrice', d.price);
+    setField('sqft',      d.sqft);
+    setField('bedBath',   d.bedBath);
+
+    // Auto-fill rent if available (for BRRRR calc)
+    if(d.rentZestimate && d.rentZestimate > 0){
+      setField('monthlyRent', d.rentZestimate);
+    }
+
+    // Auto-fill rent for BRRRR analysis if available
+    if(d.rentZestimate){
+      const rentField = document.getElementById('monthlyRent');
+      if(rentField && !rentField.value) rentField.value = d.rentZestimate;
+    }
+
+    // Don't set offer — that's the user's decision
+    // Don't set ARV — user needs to determine this
+
+    // Show photo if available
+    const photoBox = document.getElementById('lookupPhoto');
+    if(d.photo){
+      photoBox.innerHTML = `<img src="${d.photo}" alt="" style="width:100%;height:140px;object-fit:cover;display:block;">`;
+      photoBox.style.display = 'block';
+    } else {
+      photoBox.style.display = 'none';
+    }
+
+    // Build a rich status message
+    let statusParts = [`✓ ${d.address}`];
+    if(d.price) statusParts.push(`List: $${d.price.toLocaleString()}`);
+    if(d.sqft)  statusParts.push(`${d.sqft.toLocaleString()} sqft`);
+    if(d.beds)  statusParts.push(`${d.beds}bd/${d.baths}ba`);
+    if(d.dom)   statusParts.push(`${d.dom} DOM`);
+    if(d.yearBuilt) statusParts.push(`Built ${d.yearBuilt}`);
+
+    status.className   = 'fetch-status success';
+    status.textContent = statusParts.join(' · ');
+
+    // Show additional intel below status
+    let intel = [];
+    if(d.zestimate && d.zestimateGap > 0) intel.push(`Zestimate: $${d.zestimate.toLocaleString()} (+$${d.zestimateGap.toLocaleString()} above list)`);
+    if(d.zestimate && d.zestimateGap < 0) intel.push(`Zestimate: $${d.zestimate.toLocaleString()} ($${Math.abs(d.zestimateGap).toLocaleString()} below list)`);
+    if(d.rentZestimate) intel.push(`Rent Zestimate: $${d.rentZestimate.toLocaleString()}/mo → auto-filled BRRRR`);
+    if(d.lastSoldPrice) intel.push(`Last sold: $${d.lastSoldPrice.toLocaleString()}`);
+    if(d.county && d.countyBench) intel.push(`${d.county} Co. benchmark: $${d.countyBench}/sqft`);
+    if(d.pricePerSqft && d.countyBench) intel.push(`Buy at $${d.pricePerSqft}/sqft (${d.discountPct > 0 ? d.discountPct+'% below' : Math.abs(d.discountPct)+'% above'} bench)`);
+    if(d.yearBuilt && d.yearBuilt < 1950) intel.push(`⚠ ${d.yearBuilt} build — check electrical, plumbing, foundation`);
+    if(d.homeStatus && d.homeStatus !== 'FOR_SALE') intel.push(`Status: ${d.homeStatus}`);
+    if(intel.length){
+      status.innerHTML += `<div class="pull-intel" style="margin-top:6px;padding:8px 10px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.15);border-radius:3px;font-size:11px;color:var(--muted2);line-height:1.6;">${intel.join('<br>')}</div>`;
+    }
+
+    // ── COMPS TABLE (RECENTLY SOLD) ─────────────────────────────────────
+    if(d.comps && d.comps.length > 0){
+      const hasAnyPrice = d.comps.some(c => c.price > 0);
+      const soldComps = d.comps.filter(c => c.price > 0);
+      const isSold = d.comps.some(c => (c.homeStatus||'').includes('SOLD'));
+      let ch = `<div class="pull-section">
+        <div class="pull-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed');">${isSold?'🏠':'📊'} ${isSold?'SOLD COMPS':'COMPARABLE HOMES'} (${d.comps.length})</div>
+        <div class="pull-body"><div style="overflow-x:auto;">
+        <table class="pull-table">
+          <thead><tr>
+            <th style="text-align:left;">ADDRESS</th>
+            ${hasAnyPrice?'<th style="text-align:right;">SOLD</th>':''}
+            <th style="text-align:right;">SQFT</th>
+            ${hasAnyPrice?'<th style="text-align:right;">$/SF</th>':''}
+            <th style="text-align:right;">BD/BA</th>
+          </tr></thead><tbody>`;
+      d.comps.forEach(c => {
+        ch += `<tr>
+          <td style="color:var(--white);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.address||'—'}</td>
+          ${hasAnyPrice?`<td style="color:var(--green);text-align:right;">${c.price?'$'+c.price.toLocaleString():'—'}</td>`:''}
+          <td style="color:var(--white);text-align:right;">${c.sqft||'—'}</td>
+          ${hasAnyPrice?`<td style="color:var(--gold);text-align:right;">${c.ppsf?'$'+c.ppsf:'—'}</td>`:''}
+          <td style="color:var(--muted2);text-align:right;">${c.beds||'?'}/${c.baths||'?'}</td>
+        </tr>`;
+      });
+      if(hasAnyPrice && soldComps.length > 0){
+        const avgSold = Math.round(soldComps.reduce((s,c)=>s+c.price,0)/soldComps.length);
+        const avgPpsf = soldComps.filter(c=>c.ppsf>0);
+        const avgPpsfVal = avgPpsf.length ? Math.round(avgPpsf.reduce((s,c)=>s+c.ppsf,0)/avgPpsf.length) : 0;
+        ch += `<tr class="avg-row">
+          <td>AVG (${soldComps.length} sold)</td>
+          <td style="text-align:right;">$${avgSold.toLocaleString()}</td>
+          <td style="text-align:right;">—</td>
+          <td style="text-align:right;">${avgPpsfVal?'$'+avgPpsfVal:'—'}</td>
+          <td style="text-align:right;">—</td>
+        </tr>`;
+      }
+      ch += `</tbody></table></div>`;
+      if(!hasAnyPrice){
+        ch += `<div style="font-size:10px;color:var(--muted);margin-top:6px;">Fetching sold prices... if $0, Zillow may not have sale data for these comps.</div>`;
+      }
+      // Sold Comp ARV — uses sold comp $/sqft × subject sqft
+      if(hasAnyPrice && d.sqft){
+        const soldPpsfs = soldComps.filter(c=>c.ppsf>0).map(c=>c.ppsf);
+        if(soldPpsfs.length > 0){
+          const avgSoldPpsf = Math.round(soldPpsfs.reduce((a,b)=>a+b,0)/soldPpsfs.length);
+          const soldArv = avgSoldPpsf * d.sqft;
+          // Top 25% for renovated estimate
+          const sorted = [...soldPpsfs].sort((a,b)=>b-a);
+          const top25 = sorted.slice(0, Math.max(1, Math.ceil(sorted.length * 0.25)));
+          const renovatedPpsf = Math.round(top25.reduce((a,b)=>a+b,0)/top25.length);
+          const renovatedArv = renovatedPpsf * d.sqft;
+          ch += `<div style="margin-top:10px;padding:10px;background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.2);border-radius:3px;">
+            <div style="display:flex;gap:16px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:120px;">
+                <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;">Sold Comp ARV</div>
+                <div class="pull-arv">$${soldArv.toLocaleString()}</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:2px;">${d.sqft.toLocaleString()} sf × $${avgSoldPpsf}/sf avg</div>
+              </div>
+              ${renovatedPpsf > avgSoldPpsf ? `<div style="flex:1;min-width:120px;">
+                <div style="font-size:9px;color:var(--gold);text-transform:uppercase;">Renovated ARV ⭐</div>
+                <div style="font-family:'Space Mono',monospace;font-size:20px;color:var(--gold);">$${renovatedArv.toLocaleString()}</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:2px;">Top $/sf comps × ${d.sqft.toLocaleString()} sf</div>
+              </div>` : ''}
+            </div>
+            <button onclick="document.getElementById('arv').value=${renovatedPpsf > avgSoldPpsf ? renovatedArv : soldArv};document.getElementById('arv').style.borderColor='var(--green)';setTimeout(()=>document.getElementById('arv').style.borderColor='',2000);" style="margin-top:8px;background:var(--green);border:none;border-radius:3px;color:#000;font-size:11px;padding:10px 18px;cursor:pointer;font-weight:700;width:100%;">→ SET AS MY ARV</button>
+          </div>`;
+        }
+      } else if(d.compArvEstimate && d.sqft){
+        ch += `<div style="margin-top:10px;padding:10px;background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.2);border-radius:3px;">
+          <div style="font-size:10px;color:var(--muted2);">COMP-BASED ARV ESTIMATE</div>
+          <div class="pull-arv">$${d.compArvEstimate.toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">${d.sqft.toLocaleString()} sqft × $${d.compAvgPpsf}/sqft</div>
+          <button onclick="document.getElementById('arv').value=${d.compArvEstimate};document.getElementById('arv').style.borderColor='var(--green)';setTimeout(()=>document.getElementById('arv').style.borderColor='',2000);" style="margin-top:8px;background:var(--green);border:none;border-radius:3px;color:#000;font-size:11px;padding:10px 18px;cursor:pointer;font-weight:700;width:100%;">→ SET AS MY ARV</button>
+        </div>`;
+      }
+      ch += '</div></div>';
+      status.innerHTML += ch;
+    }
+
+    // ── PRICE HISTORY ────────────────────────────────────────────────────
+    if(d.priceHistory && d.priceHistory.length > 0){
+      let ph = `<div class="pull-section">
+        <div class="pull-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed');">📉 PRICE HISTORY (${d.priceHistory.length})</div>
+        <div class="pull-body">`;
+      d.priceHistory.forEach(h => {
+        const evt = (h.event||'').toLowerCase();
+        const isReduce = evt.includes('reduc')||evt.includes('drop')||evt.includes('decrease')||evt.includes('cut');
+        const isSold = evt.includes('sold');
+        const icon = isReduce?'📉':isSold?'🏠':'📋';
+        const color = isReduce?'var(--red)':isSold?'var(--green)':'var(--muted2)';
+        ph += `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:11px;">
+          <span style="font-size:12px;">${icon}</span>
+          <span style="color:var(--muted);min-width:70px;font-family:'Space Mono',monospace;font-size:10px;">${h.date||'—'}</span>
+          <span style="color:${color};flex:1;font-size:10px;">${h.event||'—'}</span>
+          <span style="color:var(--white);font-family:'Space Mono',monospace;font-size:11px;">${h.price?'$'+h.price.toLocaleString():''}</span>
         </div>`;
       });
-    }
-    rateHtml += '</div>';
-
-    // Auto-fill the best 30yr rate
-    const bestRate = d.refi30yr || d.avgRate || null;
-    if (bestRate) {
-      const refiField = document.getElementById('refiRate');
-      refiField.value = bestRate;
-      refiField.style.borderColor = 'var(--blue)';
-      setTimeout(() => refiField.style.borderColor = '', 2000);
-
-      const liveTag = document.getElementById('rateLiveTag');
-      if (liveTag) liveTag.style.display = 'inline';
-
-      rateHtml += `<div style="margin-top:8px;">
-        <button onclick="document.getElementById('refiRate').value=${bestRate}" style="background:rgba(74,158,255,0.2);border:1px solid rgba(74,158,255,0.3);border-radius:3px;color:var(--blue);font-family:'Space Mono',monospace;font-size:10px;padding:6px 12px;cursor:pointer;">
-          → Use 30yr ${bestRate}% as refi rate
-        </button>
-        ${d.refi15yr ? `<button onclick="document.getElementById('refiRate').value=${d.refi15yr};document.getElementById('refiTerm').value=15" style="background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.2);border-radius:3px;color:var(--blue);font-family:'Space Mono',monospace;font-size:10px;padding:6px 12px;cursor:pointer;margin-left:6px;">
-          → Use 15yr ${d.refi15yr}%
-        </button>` : ''}
-      </div>`;
+      if(d.priceDrops && d.priceDrops.length > 0){
+        ph += `<div class="pull-signal" style="background:rgba(224,60,60,0.08);border:1px solid rgba(224,60,60,0.2);color:var(--red);">
+          🔥 <strong>${d.priceDrops.length} price drop${d.priceDrops.length>1?'s':''}</strong> — motivated seller
+        </div>`;
+      }
+      ph += '</div></div>';
+      status.innerHTML += ph;
     }
 
-    display.innerHTML = rateHtml;
-    display.style.display = 'block';
+    // ── TAX HISTORY ──────────────────────────────────────────────────────
+    if(d.taxHistory && d.taxHistory.length > 0){
+      let tx = `<div class="pull-section">
+        <div class="pull-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed');">🏛️ TAX HISTORY (${d.taxHistory.length})</div>
+        <div class="pull-body">`;
+      d.taxHistory.forEach(t => {
+        tx += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:11px;font-family:'Space Mono',monospace;">
+          <span style="color:var(--muted);">${t.year||'—'}</span>
+          <span style="color:var(--white);">$${(t.taxPaid||0).toLocaleString()}</span>
+          <span style="color:var(--muted2);">Assessed: $${(t.assessment||0).toLocaleString()}</span>
+        </div>`;
+      });
+      tx += '</div></div>';
+      status.innerHTML += tx;
+    }
 
-    status.className   = 'fetch-status success';
-    status.textContent = `✓ ${rateEntries.length} rate programs loaded${d.cached ? ' (cached)' : ''} · 30yr: ${d.refi30yr || '—'}% · 15yr: ${d.refi15yr || '—'}%`;
+    // ── SIMILAR HOMES (often has prices) ─────────────────────────────────
+    if(d.similarHomes && d.similarHomes.length > 0){
+      const hasPrices = d.similarHomes.some(s => s.price > 0);
+      let sh = `<div class="pull-section">
+        <div class="pull-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed');">🏘️ SIMILAR HOMES (${d.similarHomes.length})</div>
+        <div class="pull-body"><div style="overflow-x:auto;">
+        <table class="pull-table">
+          <thead><tr>
+            <th style="text-align:left;">ADDRESS</th>
+            ${hasPrices?'<th style="text-align:right;">PRICE</th>':''}
+            <th style="text-align:right;">SQFT</th>
+            ${hasPrices?'<th style="text-align:right;">$/SF</th>':''}
+            <th style="text-align:right;">BD/BA</th>
+          </tr></thead><tbody>`;
+      d.similarHomes.forEach(s => {
+        sh += `<tr>
+          <td style="color:var(--white);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.address||'—'}</td>
+          ${hasPrices?`<td style="color:var(--green);text-align:right;">${s.price?'$'+s.price.toLocaleString():'—'}</td>`:''}
+          <td style="color:var(--white);text-align:right;">${s.sqft||'—'}</td>
+          ${hasPrices?`<td style="color:var(--gold);text-align:right;">${s.ppsf?'$'+s.ppsf:'—'}</td>`:''}
+          <td style="color:var(--muted2);text-align:right;">${s.beds||'?'}/${s.baths||'?'}</td>
+        </tr>`;
+      });
+      sh += '</tbody></table></div></div></div>';
+      status.innerHTML += sh;
+    }
 
-  } catch (err) {
+    // ── ZESTIMATE TREND ──────────────────────────────────────────────────
+    if(d.zestimateHistory && d.zestimateHistory.length > 1){
+      const first = d.zestimateHistory[0];
+      const last = d.zestimateHistory[d.zestimateHistory.length - 1];
+      const firstVal = first.value || 0;
+      const lastVal = last.value || 0;
+      const change = firstVal && lastVal ? Math.round((lastVal - firstVal) / firstVal * 100) : 0;
+      const up = change >= 0;
+      let zh = `<div class="pull-section">
+        <div class="pull-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed');">📈 ZESTIMATE TREND</div>
+        <div class="pull-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:11px;color:var(--muted);">Value over time</span>
+            <span style="font-family:'Space Mono',monospace;font-size:13px;color:${up?'var(--green)':'var(--red)'};">${up?'↑':'↓'} ${Math.abs(change)}%</span>
+          </div>`;
+      d.zestimateHistory.forEach(z => {
+        const val = z.value || 0;
+        zh += `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:10px;font-family:'Space Mono',monospace;">
+          <span style="color:var(--muted);">${z.date||'—'}</span>
+          <span style="color:var(--white);">${val?'$'+val.toLocaleString():'—'}</span>
+        </div>`;
+      });
+      zh += '</div></div>';
+      status.innerHTML += zh;
+    }
+
+    // ── HOUSING MARKET ───────────────────────────────────────────────────
+    if(d.housingMarket && Object.keys(d.housingMarket).length > 1){
+      const m = d.housingMarket;
+      let mh = `<div class="pull-section">
+        <div class="pull-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed');">📊 MARKET — ${m.regionName||d.city||'Area'}</div>
+        <div class="pull-body" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">`;
+      const stats = [];
+      if(m.zhvi) stats.push(['ZHVI (Home Value)', '$'+Math.round(m.zhvi).toLocaleString()]);
+      if(m.zhvi1yrChange !== undefined) stats.push(['1yr Value Change', (m.zhvi1yrChange>=0?'+':'')+m.zhvi1yrChange+'%']);
+      if(m.medianListPrice) stats.push(['Median List', '$'+Math.round(m.medianListPrice).toLocaleString()]);
+      if(m.medianSalePrice) stats.push(['Median Sale', '$'+Math.round(m.medianSalePrice).toLocaleString()]);
+      if(m.medianRentPrice) stats.push(['Median Rent', '$'+Math.round(m.medianRentPrice).toLocaleString()]);
+      if(m.avgDaysOnMarket) stats.push(['Avg DOM', Math.round(m.avgDaysOnMarket)+' days']);
+      if(m.forSaleCount) stats.push(['For Sale', Math.round(m.forSaleCount).toLocaleString()]);
+      if(m.soldCount) stats.push(['Recently Sold', Math.round(m.soldCount).toLocaleString()]);
+      stats.forEach(([label, val]) => {
+        const isGreen = label.includes('Change') && val.startsWith('+');
+        const isRed = label.includes('Change') && val.startsWith('-');
+        mh += `<div style="padding:6px;background:rgba(255,255,255,0.02);border-radius:3px;">
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;">${label}</div>
+          <div style="font-family:'Space Mono',monospace;font-size:13px;color:${isGreen?'var(--green)':isRed?'var(--red)':'var(--white)'};margin-top:2px;">${val}</div>
+        </div>`;
+      });
+      mh += '</div></div>';
+      if(stats.length > 0) status.innerHTML += mh;
+    }
+
+    // ── SCHOOLS ──────────────────────────────────────────────────────────
+    if(d.schools && d.schools.length > 0){
+      let sc = `<div class="pull-section">
+        <div class="pull-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed');">🏫 NEARBY SCHOOLS (${d.schools.length})</div>
+        <div class="pull-body">`;
+      d.schools.forEach(s => {
+        const rating = s.rating || 0;
+        const color = rating >= 7 ? 'var(--green)' : rating >= 4 ? 'var(--gold)' : rating > 0 ? 'var(--red)' : 'var(--muted)';
+        sc += `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:11px;">
+          <span style="font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:${color};min-width:22px;text-align:center;">${rating||'?'}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="color:var(--white);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.name||'Unknown'}</div>
+            <div style="font-size:9px;color:var(--muted);">${s.level||''} ${s.distance ? '· '+s.distance : ''}</div>
+          </div>
+        </div>`;
+      });
+      sc += '</div></div>';
+      status.innerHTML += sc;
+    }
+
+    // Suggest offer based on comps or benchmark
+    if(d.compArvEstimate && d.compArvEstimate > 0){
+      const suggestOffer = Math.round(d.compArvEstimate * 0.65 - 25000);
+      if(suggestOffer > 0){
+        status.innerHTML += `<div style="margin-top:8px;font-size:11px;color:var(--gold);">💡 Comps suggest offer ~<strong>$${suggestOffer.toLocaleString()}</strong> (65% of $${d.compArvEstimate.toLocaleString()} − $25k rehab)</div>`;
+      }
+    } else if(d.price && d.countyBench && d.sqft){
+      const impliedArv = d.countyBench * d.sqft;
+      const suggestOffer = Math.round(impliedArv * 0.65 - 25000);
+      if(suggestOffer > 0){
+        status.innerHTML += `<div style="margin-top:8px;font-size:11px;color:var(--gold);">💡 Benchmark suggests offer ~<strong>$${suggestOffer.toLocaleString()}</strong> (65% of $${impliedArv.toLocaleString()} − $25k rehab)</div>`;
+      }
+    }
+
+    btn.textContent = 'PULL';
+    btn.disabled = false;
+
+  }catch(err){
     status.className   = 'fetch-status error';
     status.textContent = '✗ ' + err.message;
-    display.style.display = 'none';
+    status.style.display = 'block';
+    btn.textContent = 'PULL';
+    btn.disabled = false;
   }
-
-  btn.textContent = 'PULL RATES';
-  btn.disabled = false;
 }
 
+// ════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.nav-tab').forEach((t,i) =>
+    t.classList.toggle('active', ['analyzer','saved','pipeline','neighborhood'][i] === tab));
+  document.querySelectorAll('.tab-panel').forEach(p =>
+    p.classList.toggle('active', p.id === 'tab-'+tab));
+  if(tab==='saved')       renderSaved();
+  if(tab==='pipeline')    renderPipeline();
+  if(tab==='neighborhood') renderSavedProfiles();
+}
+function switchStrategy(s){
+  document.querySelectorAll('.strategy-tab').forEach((t,i)=>
+    t.classList.toggle('active',['flip','brrrr'][i]===s));
+  document.querySelectorAll('.strategy-panel').forEach(p=>
+    p.classList.toggle('active',p.id==='strategy-'+s));
+}
+function buildRehabGrid(){
+  const grid = document.getElementById('rehabItemGrid');
+  if(!grid) return;
+  grid.innerHTML = Object.entries(REHAB_ITEMS).map(([key,item])=>{
+    const sel = rehabSelected[key];
+    const mid = Math.round((item.low+item.high)/2);
+    return `<button onclick="toggleRehabItem('${key}')" title="${item.note}"
+      style="background:${sel?'rgba(201,168,76,0.15)':'var(--surface2)'};
+             border:1px solid ${sel?'var(--gold)':'var(--border)'};
+             border-radius:6px;padding:8px 10px;cursor:pointer;text-align:left;
+             transition:all 0.15s;color:${sel?'var(--gold)':'var(--muted)'};">
+      <div style="font-size:13px;margin-bottom:2px;">${item.icon}</div>
+      <div style="font-size:10px;font-weight:700;font-family:var(--font);color:${sel?'var(--gold)':'var(--white)'};">${item.label}</div>
+      <div style="font-size:9px;color:var(--muted);margin-top:2px;">~$${(item.low/1000).toFixed(0)}k-$${(item.high/1000).toFixed(0)}k</div>
+    </button>`;
+  }).join('');
+}
+
+function toggleRehabItem(key){
+  rehabSelected[key] = !rehabSelected[key];
+  buildRehabGrid();
+  updateRehabDisplay();
+}
+
+function clearRehab(){
+  rehabSelected = {};
+  buildRehabGrid();
+  updateRehabDisplay();
+}
+
+function updateRehabDisplay(){
+  let low=0, high=0;
+  Object.entries(rehabSelected).forEach(([key,sel])=>{
+    if(sel){ low+=REHAB_ITEMS[key].low; high+=REHAB_ITEMS[key].high; }
+  });
+  const el = document.getElementById('rehabRangeDisplay');
+  if(!el) return;
+  if(low===0){
+    el.textContent='$0 — select items above';
+    el.style.color='var(--muted)';
+  } else {
+    el.textContent=`$${(low/1000).toFixed(0)}k – $${(high/1000).toFixed(0)}k  (mid $${Math.round((low+high)/2/1000)}k)`;
+    el.style.color='var(--gold)';
+  }
+}
+
+function getRehabMid(){
+  const ovr = parseFloat(document.getElementById('rehabOverride').value)||0;
+  if(ovr>0) return {low:ovr,high:ovr,mid:ovr};
+  let low=0,high=0;
+  Object.entries(rehabSelected).forEach(([key,sel])=>{
+    if(sel){ low+=REHAB_ITEMS[key].low; high+=REHAB_ITEMS[key].high; }
+  });
+  return {low,high,mid:Math.round((low+high)/2)};
+}
+
+function selectRehab(level){} // legacy stub — no-op
+function toggleFinanceFields(){
+  document.getElementById('loanFields').style.display=
+    document.getElementById('financingType').value==='cash'?'none':'block';
+}
 
 // ════════════════════════════════════════════
-// FETCH RENTAL MARKET DATA
+// DEAL SCORE
 // ════════════════════════════════════════════
-async function fetchRentalData() {
-  const btn     = document.getElementById('rentalPullBtn');
-  const status  = document.getElementById('rentalStatus');
-  const display = document.getElementById('rentalDisplay');
+function calcScore(offer,maxOffer,netProfit,totalIn,arv,rehabMid){
+  let score=0;const criteria=[];
+  const or=offer/maxOffer;
+  const mPts=or<=0.9?25:or<=1.0?18:or<=1.05?8:0;
+  score+=mPts;criteria.push({label:'Offer vs Max',pts:mPts,max:25});
+  const pPts=netProfit>=40000?25:netProfit>=25000?18:netProfit>=15000?10:netProfit>=0?4:0;
+  score+=pPts;criteria.push({label:'Net Profit',pts:pPts,max:25});
+  const roi=netProfit/totalIn*100;
+  const rPts=roi>=25?20:roi>=18?15:roi>=12?9:roi>=0?3:0;
+  score+=rPts;criteria.push({label:'ROI %',pts:rPts,max:20});
+  const rr=rehabMid/offer;
+  const rhPts=rr<0.2?15:rr<0.35?10:rr<0.5?5:0;
+  score+=rhPts;criteria.push({label:'Rehab Risk',pts:rhPts,max:15});
+  let cPts=7;
+  if(fetchedComps.length>0){
+    const avg=fetchedComps.reduce((a,c)=>a+c.price,0)/fetchedComps.length;
+    const dev=Math.abs(arv-avg)/avg;
+    cPts=dev<0.05&&fetchedComps.length>=3?15:dev<0.10&&fetchedComps.length>=2?11:dev<0.15?7:2;
+  }
+  score+=cPts;criteria.push({label:'Comps Support',pts:cPts,max:15});
+  return{score:Math.min(100,Math.round(score)),criteria};
+}
 
-  // Determine city from address
-  const addr = document.getElementById('address').value || '';
-  let city = 'springfield-mo';
-  const cityMatch = addr.match(/,?\s*([A-Za-z\s]+)\s*,?\s*MO/i);
-  if (cityMatch) {
-    city = cityMatch[1].trim().toLowerCase().replace(/\s+/g, '-') + '-mo';
+function renderScore(score,criteria){
+  const circ=document.getElementById('scoreCircle');
+  const C=289;circ.style.strokeDashoffset=C;
+  setTimeout(()=>{
+    circ.style.transition='stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)';
+    circ.style.strokeDashoffset=C-(score/100)*C;
+  },100);
+  let color,cls,verdict,sub;
+  if(score>=75){color='var(--green)';cls='fire';verdict='🔥 FIRE DEAL';sub=`Score ${score}/100 — Hits on all cylinders. Pull the trigger.`;}
+  else if(score>=55){color='#7ecb8d';cls='good';verdict='✓ SOLID DEAL';sub=`Score ${score}/100 — Numbers work. Make the offer.`;}
+  else if(score>=35){color='var(--yellow)';cls='marginal';verdict='⚠ MARGINAL';sub=`Score ${score}/100 — Needs better terms. Negotiate down.`;}
+  else{color='var(--red)';cls='pass';verdict='✗ PASS';sub=`Score ${score}/100 — Doesn't pencil at current price.`;}
+  circ.style.stroke=color;
+  document.getElementById('scoreNumber').textContent=score;
+  document.getElementById('scoreNumber').style.color=color;
+  document.getElementById('scoreVerdict').textContent=verdict;
+  document.getElementById('scoreVerdict').className='score-verdict '+cls;
+  document.getElementById('scoreSub').textContent=sub;
+  document.getElementById('scoreBars').innerHTML=criteria.map(c=>{
+    const pct=Math.round(c.pts/c.max*100);
+    const bc=pct>=75?'var(--green)':pct>=40?'var(--yellow)':'var(--red)';
+    return`<div class="score-bar-row">
+      <div class="score-bar-label">${c.label}</div>
+      <div class="score-bar-track"><div class="score-bar-fill" style="width:0%;background:${bc}" data-target="${pct}"></div></div>
+      <div class="score-bar-val">${c.pts}/${c.max}</div>
+    </div>`;
+  }).join('');
+  setTimeout(()=>{
+    document.querySelectorAll('.score-bar-fill').forEach(b=>{
+      b.style.transition='width 0.8s cubic-bezier(0.4,0,0.2,1)';
+      b.style.width=b.dataset.target+'%';
+    });
+  },200);
+}
+
+// ════════════════════════════════════════════
+// ANALYZE
+// ════════════════════════════════════════════
+function analyze(){
+  const offer      =parseFloat(document.getElementById('offerPrice').value)||0;
+  const sqft       =parseFloat(document.getElementById('sqft').value)||0;
+  const arvInput   =parseFloat(document.getElementById('arv').value)||0;
+  // rehabOverride handled inside getRehabMid()
+  const finType    =document.getElementById('financingType').value;
+  const holdMos    =parseFloat(document.getElementById('holdingMonths').value)||3;
+  const loanRate   =parseFloat(document.getElementById('loanRate').value)||12;
+  const loanPts    =parseFloat(document.getElementById('loanPoints').value)||2;
+  const monthlyRent=parseFloat(document.getElementById('monthlyRent').value)||0;
+  const refiLtv    =(parseFloat(document.getElementById('refiLtv').value)||75)/100;
+  const refiRate   =(parseFloat(document.getElementById('refiRate').value)||7.5)/100;
+  const refiTerm   =parseFloat(document.getElementById('refiTerm').value)||30;
+
+  if(!offer||!arvInput){alert('Enter at least an offer price and ARV.');return;}
+
+  // Rehab — item-based estimator
+  const rh=getRehabMid();
+  let rehabLow=rh.low,rehabHigh=rh.high,rehabMid=rh.mid;
+
+  // Show rehab range in results
+  const rehabRangeStr = rehabLow===rehabHigh
+    ? fmt(rehabMid)
+    : `${fmt(rehabLow)} – ${fmt(rehabHigh)}`;
+  const contingency=rehabMid*0.10;
+  let interestCost=0,pointsCost=0,finLabel='Cash';
+  if(finType!=='cash'){
+    interestCost=offer*(loanRate/100)*(holdMos/12);
+    pointsCost=offer*(loanPts/100);
+    finLabel={hard:'Hard Money',conv:'Conventional',private:'Private Lender'}[finType];
+  }
+  const finCost     =interestCost+pointsCost;
+  const holdingCosts=offer*0.005*holdMos;
+  const totalIn     =offer+rehabMid+contingency+finCost+holdingCosts;
+  const arv         =arvInput;
+  const agentFees   =arv*0.06;
+  const closing     =arv*0.02;
+  const netProfit   =arv-totalIn-agentFees-closing;
+  const maxOffer    =arv*0.65-rehabMid;
+  const roi         =netProfit/totalIn*100;
+  const annualRoi   =roi/holdMos*12;
+  const equitySpread=arv-totalIn;
+  const ppsf        =sqft?offer/sqft:null;
+  const arvpsf      =sqft?arv/sqft:null;
+
+  const{score,criteria}=calcScore(offer,maxOffer,netProfit,totalIn,arv,rehabMid);
+
+  // BRRRR
+  let brrrr=null;
+  if(monthlyRent>0){
+    const refiAmt=arv*refiLtv;
+    const cashLeft=Math.max(0,totalIn-refiAmt);
+    const r=refiRate/12,n=refiTerm*12;
+    const mortgage=refiAmt*(r*Math.pow(1+r,n))/(Math.pow(1+r,n)-1);
+    const piti=mortgage+arv*0.0013/12;
+    const cashflow=monthlyRent-piti;
+    brrrr={refiAmt,cashLeft,piti,cashflow,annualCF:cashflow*12,
+      grY:(monthlyRent*12)/arv*100,
+      cocRoi:cashLeft>0?(cashflow*12/cashLeft)*100:999,
+      capRate:(monthlyRent*0.55*12)/arv*100};
   }
 
-  btn.textContent = '...';
-  btn.disabled = true;
+  // Comps results
+  if(fetchedComps.length>0){
+    document.getElementById('compsResultsSection').style.display='block';
+    const avg=Math.round(fetchedComps.reduce((a,c)=>a+c.price,0)/fetchedComps.length);
+    const avgP=fetchedComps.filter(c=>c.ppsf).length
+      ?Math.round(fetchedComps.filter(c=>c.ppsf).reduce((a,c)=>a+c.ppsf,0)/fetchedComps.filter(c=>c.ppsf).length):null;
+    document.getElementById('compsResultsBody').innerHTML=
+      fetchedComps.map(c=>`<tr><td>${c.address}</td><td>${fmt(c.price)}</td><td>${c.sqft?c.sqft.toLocaleString():'—'}</td><td>${c.ppsf?fmt(c.ppsf):'—'}</td><td>${c.daysAgo?c.daysAgo+'d':'—'}</td></tr>`).join('')+
+      `<tr class="avg-row"><td>AVG (${fetchedComps.length} comps)</td><td>${fmt(avg)}</td><td>—</td><td>${avgP?fmt(avgP):'—'}</td><td>—</td></tr>`;
+    const dev=Math.abs(arv-avg)/avg*100;
+    const conf=fetchedComps.length>=3&&dev<10?'HIGH':fetchedComps.length>=2&&dev<15?'MEDIUM':'LOW';
+    const cc=conf==='HIGH'?'var(--green)':conf==='MEDIUM'?'var(--yellow)':'var(--red)';
+    document.getElementById('arvConfidence').innerHTML=
+      `<strong>ARV Confidence: <span style="color:${cc}">${conf}</span></strong> — `+
+      `${fetchedComps.length} comp${fetchedComps.length>1?'s':''}, avg ${fmt(avg)}. `+
+      `Your ARV of ${fmt(arv)} is ${dev.toFixed(1)}% ${arv>avg?'above':'below'} avg.`+
+      (avgP&&sqft?` Implied: ${sqft.toLocaleString()}sf × ${fmt(avgP)}/sf = <strong>${fmt(avgP*sqft)}</strong>.`:'');
+  }else{document.getElementById('compsResultsSection').style.display='none';}
+
+  // Flags — SMARTER CONTEXTUAL SIGNALS
+  const flags=[];
+  const listPrice = parseFloat(document.getElementById('listPrice').value)||0;
+  const address = document.getElementById('address').value||'';
+  const bedBath = document.getElementById('bedBath').value||'';
+  const bedCount = bedBath.match(/(\d+)/) ? parseInt(bedBath.match(/(\d+)/)[1]) : 0;
+
+  // Price signals
+  if(offer>maxOffer) flags.push({icon:'🔴',cls:'warn',text:`<strong>Over max offer</strong> — ${fmt(offer)} is ${fmt(offer-maxOffer)} above the 65% rule max of ${fmt(maxOffer)}. You're eating into your safety margin.`});
+  if(offer<=maxOffer&&offer>=maxOffer*0.9) flags.push({icon:'🟢',cls:'good',text:`<strong>Right at max</strong> — ${fmt(offer)} is within 10% of your ${fmt(maxOffer)} ceiling. Tight but workable if rehab stays on budget.`});
+  if(offer<maxOffer*0.9) flags.push({icon:'🟢',cls:'good',text:`<strong>Strong entry</strong> — ${fmt(offer)} is ${fmt(maxOffer-offer)} below your max of ${fmt(maxOffer)}. Good cushion for surprises.`});
+
+  // List price discount
+  if(listPrice && offer < listPrice){
+    const discount = ((listPrice-offer)/listPrice*100).toFixed(0);
+    if(discount >= 25) flags.push({icon:'💰',cls:'good',text:`<strong>${discount}% below list</strong> — aggressive offer. Seller needs to be motivated for this to land. Look for 60+ DOM or multiple price drops.`});
+    else if(discount >= 15) flags.push({icon:'💰',cls:'info',text:`<strong>${discount}% below list</strong> — reasonable discount. Most likely to get accepted at 90+ DOM or with cash/fast close.`});
+  }
+
+  // Rehab risk
+  if(rehabMid>offer*0.5) flags.push({icon:'🔴',cls:'warn',text:`<strong>Rehab exceeds 50% of purchase</strong> — ${fmt(rehabMid)} rehab on a ${fmt(offer)} buy is heavy. Get 3 contractor bids minimum before committing.`});
+  else if(rehabMid>offer*0.35) flags.push({icon:'⚠️',cls:'warn',text:`<strong>Rehab is ${Math.round(rehabMid/offer*100)}% of purchase</strong> — ${fmt(rehabMid)} on ${fmt(offer)}. Moderate risk. Lock in contractor pricing before offer.`});
+  else if(rehabMid>0&&rehabMid<=offer*0.2) flags.push({icon:'🟢',cls:'good',text:`<strong>Light rehab</strong> — ${fmt(rehabMid)} is only ${Math.round(rehabMid/offer*100)}% of purchase. Cosmetic flip territory.`});
+
+  // Profit thresholds
+  if(netProfit<0) flags.push({icon:'🔴',cls:'warn',text:`<strong>Negative profit</strong> — you'd lose ${fmt(Math.abs(netProfit))} on this deal. Walk away or renegotiate down to ${fmt(maxOffer)}.`});
+  else if(netProfit<15000) flags.push({icon:'⚠️',cls:'warn',text:`<strong>Thin margin</strong> — ${fmt(netProfit)} net doesn't leave room for surprises. One blown HVAC and you're underwater.`});
+  else if(netProfit>=25000&&netProfit<40000) flags.push({icon:'🟢',cls:'good',text:`<strong>Solid profit</strong> — ${fmt(netProfit)} net with ${fmtPct(roi)} ROI. Meets your minimum threshold.`});
+  else if(netProfit>=40000) flags.push({icon:'🔥',cls:'good',text:`<strong>Strong profit</strong> — ${fmt(netProfit)} net. This is a clear green light if comps support it.`});
+
+  // $/sqft analysis
+  if(ppsf && sqft){
+    // Try to get county benchmark
+    const benchmarks = {Greene:82,Christian:75,Webster:65,Lawrence:55,Stone:68,Taney:65,Polk:52};
+    const addrLow = address.toLowerCase();
+    let bench = null;
+    if(addrLow.includes('springfield')||addrLow.includes('6580')||addrLow.includes('6560')) bench = benchmarks.Greene;
+    else if(addrLow.includes('ozark')||addrLow.includes('nixa')) bench = benchmarks.Christian;
+    if(bench && ppsf < bench * 0.7) flags.push({icon:'💰',cls:'good',text:`<strong>Deep value at ${fmt(ppsf)}/sqft</strong> — ${Math.round((1-ppsf/bench)*100)}% below the ${fmt(bench)}/sqft county benchmark. Strong entry price.`});
+    else if(bench && ppsf < bench * 0.85) flags.push({icon:'📊',cls:'info',text:`<strong>${fmt(ppsf)}/sqft buy</strong> — ${Math.round((1-ppsf/bench)*100)}% below ${fmt(bench)}/sqft benchmark. Decent but not a steal.`});
+    else if(bench && ppsf >= bench) flags.push({icon:'⚠️',cls:'warn',text:`<strong>${fmt(ppsf)}/sqft buy is at or above benchmark</strong> — limited discount. Need a strong ARV to make this work.`});
+  }
+
+  // Bed/bath signals
+  if(bedCount === 2) flags.push({icon:'🛏️',cls:'info',text:`<strong>2 bed limits buyer pool</strong> — consider adding a 3rd bedroom (attic, bonus room, porch conversion) to boost ARV 10-15%. 3/2 sells faster and for more.`});
+  if(bedCount >= 4) flags.push({icon:'🟢',cls:'good',text:`<strong>4+ beds = strong buyer pool</strong> — families will pay a premium. Price accordingly.`});
+
+  // Comps signals
+  if(fetchedComps.length>0){
+    const avg=fetchedComps.reduce((a,c)=>a+c.price,0)/fetchedComps.length;
+    if(arv>avg*1.15) flags.push({icon:'🔴',cls:'warn',text:`<strong>ARV ${Math.round((arv/avg-1)*100)}% above comp avg</strong> — ${fmt(arv)} vs comp avg ${fmt(avg)}. You're projecting above what's selling. Get more data or lower your ARV.`});
+    else if(arv>avg*1.05) flags.push({icon:'⚠️',cls:'warn',text:`<strong>ARV ${Math.round((arv/avg-1)*100)}% above comps</strong> — slightly aggressive. Make sure your rehab justifies the premium over ${fmt(avg)} avg.`});
+    else flags.push({icon:'🟢',cls:'good',text:`<strong>ARV well-supported by comps</strong> — ${fmt(arv)} is in line with avg ${fmt(avg)} from ${fetchedComps.length} comparable sales.`});
+  } else {
+    flags.push({icon:'📋',cls:'info',text:`<strong>No comps loaded</strong> — hit "Profile Area" to pull real sold data and validate your ARV. Don't trust your gut on this one.`});
+  }
+
+  // BRRRR signal
+  if(brrrr){
+    if(brrrr.cashLeft < 1000) flags.push({icon:'♾️',cls:'good',text:`<strong>Infinite BRRRR</strong> — refi at ${fmt(brrrr.refiAmt)} covers your ${fmt(totalIn)} all-in. All cash out + ${fmt(brrrr.refiAmt-totalIn)} in pocket. ${brrrr.cashflow>0?'Cash flows '+fmt(brrrr.cashflow)+'/mo.':'But negative cash flow — check rent assumptions.'}`});
+    else if(brrrr.cashLeft < 15000) flags.push({icon:'📈',cls:'good',text:`<strong>Near-full BRRRR</strong> — only ${fmt(brrrr.cashLeft)} left in deal after refi. ${brrrr.cashflow>0?'Cash flows '+fmt(brrrr.cashflow)+'/mo.':''}`});
+    if(brrrr.cashflow < 0) flags.push({icon:'🔴',cls:'warn',text:`<strong>Negative cash flow</strong> — PITI of ${fmt(brrrr.piti)}/mo exceeds rent. This doesn't work as a hold unless rents increase.`});
+  }
+
+  // ── ARV STRESS TEST ───────────────────────────────────────────────────────
+  const bearArv  = Math.round(arv * 0.90);  // 10% below your estimate
+  const bullArv  = Math.round(arv * 1.08);  // 8% above
+  const scenarios = [
+    { name: '🔻 Bear — comps disappoint', arv: bearArv },
+    { name: '⚖️ Base — your estimate',     arv: arv },
+    { name: '🔺 Bull — area premium',      arv: bullArv },
+  ];
+  const stressRows = scenarios.map(s => {
+    const sAgent   = s.arv * 0.06;
+    const sClosing = s.arv * 0.02;
+    const sNet     = s.arv - totalIn - sAgent - sClosing;
+    const sRoi     = (sNet / totalIn * 100);
+    const isBest   = s.arv === arv;
+    const verdict  = sNet >= 25000 ? '✓ Strong' : sNet >= 10000 ? '✓ Works' : sNet >= 0 ? '⚠ Thin' : '✗ Loss';
+    const vColor   = sNet >= 25000 ? 'var(--green)' : sNet >= 10000 ? '#7ecb8d' : sNet >= 0 ? 'var(--yellow)' : 'var(--red)';
+    const nColor   = sNet >= 0 ? 'var(--green)' : 'var(--red)';
+    return `<tr style="${isBest ? 'background:rgba(46,204,113,0.06);' : ''}">
+      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border);color:${s.arv < arv ? 'var(--red)' : s.arv > arv ? 'var(--blue)' : 'var(--green)'};">${s.name}</td>
+      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border);color:var(--white);">${fmt(s.arv)}</td>
+      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border);color:${nColor};">${fmt(sNet)}</td>
+      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border);color:var(--white);">${fmtPct(sRoi)}</td>
+      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 14px;border-bottom:1px solid var(--border);color:${vColor};font-weight:700;">${verdict}</td>
+    </tr>`;
+  });
+  document.getElementById('stressTestBody').innerHTML = stressRows.join('');
+  const bearNet = bearArv - totalIn - bearArv*0.06 - bearArv*0.02;
+  document.getElementById('stressTestNote').innerHTML = 
+    `Bear = 10% below your ARV, Bull = 8% above · All-in: ${fmt(totalIn)} (offer + rehab + costs)<br>` +
+    (bearNet >= 0 ? `<span style="color:var(--green);">✓ Deal survives bear case — ${fmt(bearNet)} profit even if ARV drops to ${fmt(bearArv)}</span>` :
+     `<span style="color:var(--red);">✗ Deal breaks in bear case — you'd lose ${fmt(Math.abs(bearNet))} if ARV only hits ${fmt(bearArv)}</span>`);
+  document.getElementById('stressTestSection').style.display = 'block';
+
+  // ── SMARTER RECOMMENDATION ────────────────────────────────────────────────
+  let recText;
+  const bearSurvives = bearNet >= 0;
+  if(netProfit >= 25000 && offer <= maxOffer && bearSurvives){
+    recText = `<strong>🔥 MAKE THE OFFER.</strong> ${fmt(offer)} is under your max of ${fmt(maxOffer)}. Net profit ${fmt(netProfit)} at ${fmtPct(roi)} ROI. Even in the bear case (ARV ${fmt(bearArv)}), you still clear ${fmt(bearNet)}.<br><br>`;
+    recText += `<strong>Next steps:</strong><br>`;
+    if(rehabMid > 10000) recText += `1. Get 3 contractor bids to lock in rehab at ${fmt(rehabMid)} ± 10%<br>`;
+    if(!fetchedComps.length) recText += `${rehabMid>10000?'2':'1'}. Pull comps to validate your ${fmt(arv)} ARV — don't skip this<br>`;
+    recText += `${!fetchedComps.length&&rehabMid>10000?'3':rehabMid>10000?'2':'1'}. Submit: ${fmt(offer)} cash, 14-day close, as-is. Seller pays title.`;
+    if(brrrr && brrrr.cashLeft < 5000) recText += `<br><br><strong>BRRRR play:</strong> Refi covers all-in. Infinite cash-on-cash if you hold.`;
+  } else if(netProfit >= 15000 && offer <= maxOffer * 1.05){
+    recText = `<strong>⚠ NEGOTIATE DOWN.</strong> Numbers work at ${fmt(offer)} but margin is tight. Target <strong>${fmt(maxOffer)}</strong> to hit your $25k profit floor.`;
+    if(listPrice && offer < listPrice) recText += ` That's ${Math.round((1-maxOffer/listPrice)*100)}% off list — ${listPrice > maxOffer * 1.3 ? 'aggressive ask, needs a motivated seller.' : 'reasonable if it\'s been sitting.'}`;
+    if(!bearSurvives) recText += `<br><br><span style="color:var(--red);">⚠ Doesn't survive bear case.</span> If ARV disappoints by 10%, you lose money. Get comps nailed down before offering.`;
+  } else if(netProfit >= 0){
+    recText = `<strong>⚠ MARGINAL.</strong> ${fmt(netProfit)} profit doesn't justify the risk. You need to buy at <strong>${fmt(maxOffer)}</strong> — that's ${fmt(offer - maxOffer)} below your current offer.`;
+    recText += listPrice ? ` Would be ${Math.round((1-maxOffer/listPrice)*100)}% off list price.` : '';
+    recText += `<br><br>Watch this one. Revisit if: price drops, DOM crosses 90 days, or you find comps supporting a higher ARV.`;
+  } else {
+    recText = `<strong>✗ PASS.</strong> You'd lose ${fmt(Math.abs(netProfit))} at current numbers. Max offer is ${fmt(maxOffer)} — that's ${fmt(offer-maxOffer)} gap from where you are.`;
+    recText += `<br><br>${offer - maxOffer > offer * 0.25 ? 'Gap is too wide. Move on to the next deal.' : 'Close enough to watch. If price drops significantly, re-run the numbers.'}`;
+  }
+
+  // Render
+  renderScore(score,criteria);
+  set('maxOffer',fmt(maxOffer));
+  set('totalIn',fmt(totalIn));
+  set('arvDisplay',fmt(arv));
+  const npEl=document.getElementById('netProfit');
+  npEl.textContent=fmt(netProfit);
+  npEl.className=`num-value ${netProfit>=25000?'green':netProfit>=0?'yellow':'red'}`;
+  set('roiDisplay',fmtPct(roi)+' ROI');
+  set('ppsf',ppsf?fmt(ppsf)+'/sf':'—');
+  set('arvpsf',arvpsf?fmt(arvpsf)+'/sf':'—');
+  const esEl=document.getElementById('equitySpread');
+  esEl.textContent=fmt(equitySpread);
+  esEl.className=`num-value ${equitySpread>0?'green':'red'}`;
+  set('equityPct',fmtPct(equitySpread/arv*100)+' of ARV');
+  set('bOffer',fmt(offer));
+  set('bRehab',rehabRangeStr);
+  set('bContingency',fmt(contingency));
+  set('bFinancing',finType==='cash'?'$0 (cash)':fmt(finCost));
+  set('bHolding',fmt(holdingCosts));
+  set('bTotal',fmt(totalIn));
+  set('bArv',fmt(arv));
+  set('bAgent','-'+fmt(agentFees));
+  set('bClosing','-'+fmt(closing));
+  const bNetEl=document.getElementById('bNet');
+  bNetEl.textContent=fmt(netProfit);
+  bNetEl.style.color=netProfit>=25000?'var(--green)':netProfit>=0?'var(--yellow)':'var(--red)';
+  set('f-totalIn',fmt(totalIn));
+  const fnEl=document.getElementById('f-netProfit');
+  fnEl.textContent=fmt(netProfit);
+  fnEl.style.color=netProfit>=25000?'var(--green)':netProfit>=0?'var(--yellow)':'var(--red)';
+  set('f-roi',fmtPct(roi));
+  set('f-annualRoi',fmtPct(annualRoi));
+  set('f-emx',fmtX(arv/totalIn));
+  set('f-finType',finLabel);
+  set('f-interest',fmt(interestCost));
+  set('f-points',fmt(pointsCost));
+  set('f-hold',holdMos+' months');
+  set('f-finTotal',fmt(finCost));
+  if(brrrr){
+    document.getElementById('brrrrNoRent').style.display='none';
+    document.getElementById('brrrrContent').style.display='block';
+    set('b-arv',fmt(arv));
+    set('b-refi',fmt(brrrr.refiAmt)+' ('+Math.round(refiLtv*100)+'% LTV)');
+    const ciEl=document.getElementById('b-cashIn');
+    ciEl.textContent=fmt(brrrr.cashLeft);
+    ciEl.style.color=brrrr.cashLeft<5000?'var(--green)':brrrr.cashLeft<20000?'var(--yellow)':'var(--white)';
+    set('b-piti',fmt(brrrr.piti)+'/mo');
+    const cfEl=document.getElementById('b-cashflow');
+    cfEl.textContent=fmt(brrrr.cashflow)+'/mo';
+    cfEl.style.color=brrrr.cashflow>0?'var(--green)':'var(--red)';
+    set('b-gry',fmtPct(brrrr.grY));
+    set('b-coc',brrrr.cashLeft<1000?'∞ (infinite)':fmtPct(brrrr.cocRoi));
+    const acfEl=document.getElementById('b-annualCF');
+    acfEl.textContent=fmt(brrrr.annualCF)+'/yr';
+    acfEl.style.color=brrrr.annualCF>0?'var(--green)':'var(--red)';
+    set('b-cap',fmtPct(brrrr.capRate));
+    const bvEl=document.getElementById('b-verdict');
+    bvEl.textContent=brrrr.cashflow>200?'✓ Cash flows well':brrrr.cashflow>0?'⚠ Marginal':'✗ Negative cash flow';
+    bvEl.style.color=brrrr.cashflow>200?'var(--green)':brrrr.cashflow>0?'var(--yellow)':'var(--red)';
+  }else{
+    document.getElementById('brrrrNoRent').style.display='block';
+    document.getElementById('brrrrContent').style.display='none';
+  }
+  document.getElementById('flagsBox').innerHTML=flags.map(f=>{
+    const borderColor = f.cls==='warn'?'var(--red)':f.cls==='good'?'var(--green)':'var(--blue)';
+    return`<div class="flag" style="border-left:3px solid ${borderColor};"><span class="flag-icon">${f.icon}</span><span>${f.text}</span></div>`;
+  }).join('');
+  document.getElementById('recText').innerHTML=recText;
+  lastResult={
+    id:Date.now(),
+    address:document.getElementById('address').value||'Unnamed',
+    listPrice,
+    offer,arv,netProfit,roi,score,totalIn,maxOffer,rehab:rehabMid,
+    rehabLow,rehabHigh,
+    bedBath:document.getElementById('bedBath').value,
+    sqft,
+    bearArv,bullArv,bearNet,
+    flags:flags.map(f=>f.text.replace(/<[^>]*>/g,'')),
+    stage:'Lead',savedAt:new Date().toLocaleDateString()
+  };
+  document.getElementById('results').classList.add('show');
+  setTimeout(()=>document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'}),50);
+}
+
+// ════════════════════════════════════════════
+// SAVE / PIPELINE
+// ════════════════════════════════════════════
+function saveDeal(){
+  if(!lastResult){alert('Run the numbers first.');return;}
+  const idx=savedDeals.findIndex(d=>d.id===lastResult.id);
+  if(idx>=0)savedDeals[idx]=lastResult;else savedDeals.unshift(lastResult);
+  localStorage.setItem('pecos_deals',JSON.stringify(savedDeals));
+  alert('Deal saved! ✓');
+}
+function renderSaved(){
+  const el=document.getElementById('savedList');
+  if(!savedDeals.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div>No saved deals yet.<br>Run the analyzer and hit Save Deal.</div>`;
+    return;
+  }
+  el.innerHTML=`<div class="saved-list">${savedDeals.map((d,i)=>{
+    const c=d.netProfit>=25000?'var(--green)':d.netProfit>=0?'var(--yellow)':'var(--red)';
+    return`<div class="saved-deal">
+      <div>
+        <div class="saved-deal-address">${d.address}</div>
+        <div class="saved-deal-meta">Offer: ${fmt(d.offer)} · ARV: ${fmt(d.arv)} · Score: ${d.score}/100 · ${d.savedAt}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="saved-deal-profit" style="color:${c}">${fmt(d.netProfit)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${d.stage||'Lead'}</div>
+      </div>
+      <div class="saved-deal-actions">
+        <select class="stage-select" onchange="updateStage(${i},this.value)">
+          ${PIPELINE_STAGES.map(s=>`<option ${d.stage===s?'selected':''} value="${s}">${s}</option>`).join('')}
+        </select>
+        <button class="saved-deal-btn" onclick="generatePDF(savedDeals[${i}])">PDF</button>
+        <button class="saved-deal-btn danger" onclick="deleteDeal(${i})">✕</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+function updateStage(i,stage){
+  savedDeals[i].stage=stage;
+  localStorage.setItem('pecos_deals',JSON.stringify(savedDeals));
+}
+function deleteDeal(i){
+  if(!confirm('Delete this deal?'))return;
+  savedDeals.splice(i,1);
+  localStorage.setItem('pecos_deals',JSON.stringify(savedDeals));
+  renderSaved();
+}
+function renderPipeline(){
+  document.getElementById('pipelineCols').innerHTML=PIPELINE_STAGES.map(stage=>{
+    const deals=savedDeals.filter(d=>(d.stage||'Lead')===stage);
+    return`<div class="pipeline-col">
+      <div class="pipeline-col-title">${stage}<span class="p-count">${deals.length}</span></div>
+      ${deals.map(d=>{
+        const c=d.netProfit>=25000?'var(--green)':d.netProfit>=0?'var(--yellow)':'var(--red)';
+        return`<div class="pipeline-card"><div class="pc-addr">${d.address}</div><div class="pc-profit" style="color:${c}">${fmt(d.netProfit)} net</div></div>`;
+      }).join('')||`<div style="color:var(--muted);font-size:11px;font-family:'Space Mono',monospace">—</div>`}
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════
+// RESET
+// ════════════════════════════════════════════
+function reset(){
+  document.getElementById('results').classList.remove('show');
+  document.querySelectorAll('input[type=number],input[type=text]').forEach(i=>{
+    if(!['holdingMonths','loanRate','loanPoints','refiLtv','refiRate','refiTerm'].includes(i.id))i.value='';
+  });
+  document.querySelectorAll('.rehab-btn').forEach(b=>b.classList.remove('active'));
+  rehabSelected={};fetchedComps=[];lastResult=null;buildRehabGrid();updateRehabDisplay();
+  document.getElementById('compCardsList').innerHTML='';
+  document.getElementById('compArvSuggest').style.display='none';
+  document.getElementById('fetchStatus').className='fetch-status';
+  document.getElementById('fetchStatus').textContent='';
+  document.getElementById('fetchCompsBtn').textContent='⚡ PROFILE AREA';
+  document.getElementById('fetchCompsBtn').disabled=false;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ════════════════════════════════════════════
+// NEIGHBORHOOD PROFILER
+// ════════════════════════════════════════════
+let savedProfiles = JSON.parse(localStorage.getItem('pecos_profiles') || '[]');
+
+async function profileNeighborhood() {
+  const location = document.getElementById('nbhd-input').value.trim();
+  if (!location) { alert('Enter a ZIP code or area name.'); return; }
+
+  const beds  = document.getElementById('nbhd-beds').value;
+  const baths = document.getElementById('nbhd-baths') ? document.getElementById('nbhd-baths').value : '';
+
+  const status = document.getElementById('nbhd-status');
   status.className   = 'fetch-status loading';
-  status.textContent = `Pulling rental market data for ${city}...`;
+  status.textContent = `Pulling market data for "${location}"${beds ? ' · '+beds+' bed' : ''}${baths ? ' · '+baths+' bath' : ''}...`;
   status.style.display = 'block';
 
   try {
-    const resp = await fetch(`${BACKEND_URL}/rental-trends?city=${encodeURIComponent(city)}`, {
-      signal: AbortSignal.timeout(20000)
+    const params = new URLSearchParams({ location });
+    if (beds)  params.set('beds', beds);
+    if (baths) params.set('baths', baths);
+    const resp   = await fetch(`${BACKEND_URL}/neighborhood?${params}`, {
+      signal: AbortSignal.timeout(25000)
     });
 
     if (!resp.ok) {
@@ -335,445 +1757,338 @@ async function fetchRentalData() {
     }
 
     const d = await resp.json();
-    liveRentalData = d;
-
-    let html = '';
-
-    // Median rent display
-    if (d.medianRent) {
-      const rentField = document.getElementById('monthlyRent');
-      const currentRent = parseFloat(rentField.value) || 0;
-
-      html += `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
-        <div style="background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.2);border-radius:4px;padding:8px 14px;min-width:120px;">
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;">Area Median Rent</div>
-          <div style="font-family:'Space Mono',monospace;font-size:22px;color:var(--green);font-weight:700;">$${d.medianRent.toLocaleString()}</div>
-        </div>`;
-
-      if (d.rentGrowthYoY !== null && d.rentGrowthYoY !== undefined) {
-        const gColor = d.rentGrowthYoY >= 0 ? 'var(--green)' : 'var(--red)';
-        html += `<div style="background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.2);border-radius:4px;padding:8px 14px;min-width:100px;">
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;">YoY Rent Growth</div>
-          <div style="font-family:'Space Mono',monospace;font-size:22px;color:${gColor};font-weight:700;">${d.rentGrowthYoY > 0 ? '+' : ''}${d.rentGrowthYoY}%</div>
-          <div style="font-size:9px;color:var(--muted);">${d.rentTrend || ''}</div>
-        </div>`;
-      }
-
-      if (d.rentalInventory) {
-        html += `<div style="background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.2);border-radius:4px;padding:8px 14px;min-width:80px;">
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;">Rentals Listed</div>
-          <div style="font-family:'Space Mono',monospace;font-size:22px;color:var(--white);font-weight:700;">${d.rentalInventory}</div>
-        </div>`;
-      }
-      html += '</div>';
-
-      // Rent by bedroom
-      if (d.rentByBedroom && Object.keys(d.rentByBedroom).length > 0) {
-        html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">';
-        for (const [beds, rent] of Object.entries(d.rentByBedroom)) {
-          if (rent) {
-            html += `<div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:3px;padding:5px 10px;font-size:11px;">
-              <span style="color:var(--muted);">${beds}:</span> <span style="color:var(--gold);font-family:'Space Mono',monospace;">$${Math.round(rent).toLocaleString()}</span>
-            </div>`;
-          }
-        }
-        html += '</div>';
-      }
-
-      // Auto-fill rent if empty or show comparison
-      if (!currentRent && d.medianRent) {
-        rentField.value = d.medianRent;
-        rentField.style.borderColor = 'var(--green)';
-        setTimeout(() => rentField.style.borderColor = '', 2000);
-        html += `<div style="font-size:11px;color:var(--green);margin-top:4px;">→ Auto-filled rent with area median $${d.medianRent.toLocaleString()}</div>`;
-      } else if (currentRent) {
-        const diff = currentRent - d.medianRent;
-        const diffPct = Math.round(diff / d.medianRent * 100);
-        const diffColor = Math.abs(diffPct) > 15 ? 'var(--red)' : diffPct > 0 ? 'var(--green)' : 'var(--yellow)';
-        html += `<div style="font-size:11px;color:${diffColor};margin-top:4px;">
-          Your $${currentRent.toLocaleString()} is ${Math.abs(diffPct)}% ${diff > 0 ? 'above' : 'below'} area median.
-          ${Math.abs(diffPct) > 15 ? ' ⚠ Verify with local comps.' : ' ✓ Reasonable.'}
-        </div>`;
-      }
-
-      html += `<button onclick="document.getElementById('monthlyRent').value=${d.medianRent}" style="margin-top:6px;background:rgba(46,204,113,0.15);border:1px solid rgba(46,204,113,0.3);border-radius:3px;color:var(--green);font-family:'Space Mono',monospace;font-size:10px;padding:6px 12px;cursor:pointer;">
-        → Use $${d.medianRent.toLocaleString()} as rent
-      </button>`;
-    }
-
-    display.innerHTML = html;
-    display.style.display = 'block';
+    if (d.error) throw new Error(d.error);
 
     status.className   = 'fetch-status success';
-    status.textContent = `✓ Rental data loaded${d.cached ? ' (cached)' : ''} · Median: $${d.medianRent || '—'}/mo · Growth: ${d.rentGrowthYoY !== null ? d.rentGrowthYoY + '%' : '—'}`;
+    status.textContent = `✓ Profile loaded for "${location}"${d.cached ? ' (cached)' : ''} — ${d.activeCount || 0} active listings analyzed`;
 
-  } catch (err) {
+    renderNeighborhoodProfile(d);
+    document.getElementById('nbhd-results').style.display = 'block';
+
+    // Auto-save profile
+    saveProfile(d);
+
+  } catch(err) {
     status.className   = 'fetch-status error';
     status.textContent = '✗ ' + err.message;
-    display.style.display = 'none';
   }
-
-  btn.textContent = 'PULL RENTS';
-  btn.disabled = false;
 }
 
+function renderNeighborhoodProfile(d) {
+  // ── Headline stat cards ──────────────────────────────────────────────────
+  const trendColor = d.zhviPctChange >= 2 ? 'green' : d.zhviPctChange >= -1 ? 'yellow' : 'red';
+  const domColor   = d.medianDom && d.medianDom <= 30 ? 'green' : d.medianDom && d.medianDom <= 60 ? 'yellow' : 'red';
 
-// ════════════════════════════════════════════
-// BRRRR STRESS TEST RENDERER
-// ════════════════════════════════════════════
-function renderBrrrrStressTest(baseRate, baseRent, arv, refiLtv, refiTerm, totalIn, vacancyPct, opexPct) {
-  const scenarios = [
-    { name: '⚖️ Base Case',        rate: baseRate,     rent: baseRent },
-    { name: '📈 Rate +1.5%',       rate: baseRate + 1.5, rent: baseRent },
-    { name: '📉 Rent −15%',        rate: baseRate,     rent: Math.round(baseRent * 0.85) },
-    { name: '💀 Worst Case',       rate: baseRate + 2,   rent: Math.round(baseRent * 0.80) },
+  const stats = [
+    {
+      label: 'City Median Home Value',
+      value: d.zhviCurrent ? fmt(d.zhviCurrent) : '—',
+      sub:   d.zhviYearAgo ? `Was ${fmt(d.zhviYearAgo)} 1yr ago · City-wide, not this street` : 'Zillow city-wide median (not this street)',
+      color: 'gold'
+    },
+    {
+      label: '1yr Appreciation',
+      value: d.zhviPctChange !== null && d.zhviPctChange !== undefined ? (d.zhviPctChange > 0 ? '+' : '') + d.zhviPctChange + '%' : '—',
+      sub:   d.zhviTrend || '—',
+      color: trendColor
+    },
+    {
+      label: 'Avg $/sqft (Active)',
+      value: d.avgPpsf ? fmt(d.avgPpsf) + '/sf' : '—',
+      sub:   'ARV benchmark — active listings',
+      color: 'green'
+    },
+    {
+      label: 'Median DOM',
+      value: d.medianDom ? d.medianDom + 'd' : '—',
+      sub:   d.velocity || '—',
+      color: domColor
+    },
+    {
+      label: 'Active Inventory',
+      value: d.activeCount || '—',
+      sub:   d.inventory || '—',
+      color: d.activeCount <= 10 ? 'red' : d.activeCount <= 25 ? 'yellow' : 'green'
+    },
+    {
+      label: 'Distressed %',
+      value: d.distressedPct + '%',
+      sub:   'of active listings',
+      color: d.distressedPct >= 15 ? 'green' : 'white'
+    },
   ];
 
-  const rows = scenarios.map(s => {
-    const refiAmt = arv * refiLtv;
-    const r = (s.rate / 100) / 12;
-    const n = refiTerm * 12;
-    const mortgage = refiAmt * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-    const piti = mortgage + arv * 0.0013 / 12;
+  document.getElementById('nbhd-stats-grid').style.gridTemplateColumns = 'repeat(3,1fr)';
+  document.getElementById('nbhd-stats-grid').innerHTML = stats.map(s => `
+    <div class="num-card">
+      <div class="num-label">${s.label}</div>
+      <div class="num-value ${s.color}">${s.value}</div>
+      <div class="num-sub">${s.sub}</div>
+    </div>`).join('');
 
-    const vacancyLoss = s.rent * (vacancyPct / 100);
-    const opex        = s.rent * (opexPct / 100);
-    const effectiveIncome = s.rent - vacancyLoss - opex;
-    const cashflow = effectiveIncome - piti;
-    const dscr = piti > 0 ? (effectiveIncome / piti) : 0;
+  // ── Market health ────────────────────────────────────────────────────────
+  const healthItems = [
+    { label: 'Market Direction', value: d.zhviTrend || '—' },
+    { label: 'Velocity (DOM)',   value: d.velocity  || '—' },
+    { label: 'Inventory',        value: d.inventory  || '—' },
+    { label: 'Distressed Ratio', value: d.distressedPct + '% of active listings' },
+    { label: 'Avg Active Price', value: d.avgActivePrice ? fmt(d.avgActivePrice) : '—' },
+  ];
 
-    const isBase   = s.rate === baseRate && s.rent === baseRent;
-    const cfColor  = cashflow >= 200 ? 'var(--green)' : cashflow >= 0 ? 'var(--yellow)' : 'var(--red)';
-    const dscrColor = dscr >= 1.25 ? 'var(--green)' : dscr >= 1.0 ? 'var(--yellow)' : 'var(--red)';
-    const verdict  = cashflow >= 200 ? '✓ Cash flows' : cashflow >= 0 ? '⚠ Break-even' : '✗ Negative';
-    const vColor   = cashflow >= 200 ? 'var(--green)' : cashflow >= 0 ? 'var(--yellow)' : 'var(--red)';
+  document.getElementById('nbhd-health').innerHTML = healthItems.map(h => `
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span style="color:var(--muted2);">${h.label}</span>
+      <span style="font-family:'Space Mono',monospace;font-size:12px;color:var(--white);text-align:right;max-width:55%;">${h.value}</span>
+    </div>`).join('');
 
-    return `<tr style="${isBase ? 'background:rgba(46,204,113,0.06);' : ''}">
-      <td style="font-family:'Space Mono',monospace;font-size:11px;padding:10px 12px;border-bottom:1px solid var(--border);color:var(--white);">${s.name}</td>
-      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 12px;border-bottom:1px solid var(--border);color:var(--white);text-align:right;">${s.rate.toFixed(1)}%</td>
-      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 12px;border-bottom:1px solid var(--border);color:var(--white);text-align:right;">${fmt(s.rent)}</td>
-      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 12px;border-bottom:1px solid var(--border);color:${cfColor};text-align:right;font-weight:700;">${fmt(cashflow)}/mo</td>
-      <td style="font-family:'Space Mono',monospace;font-size:12px;padding:10px 12px;border-bottom:1px solid var(--border);color:${dscrColor};text-align:right;">${dscr.toFixed(2)}x</td>
-      <td style="font-family:'Space Mono',monospace;font-size:11px;padding:10px 12px;border-bottom:1px solid var(--border);color:${vColor};font-weight:700;">${verdict}</td>
-    </tr>`;
-  });
+  // ── ARV benchmark box ─────────────────────────────────────────────────────
+  const arvBox = document.getElementById('nbhd-arv-box');
+  const ppsf   = d.avgPpsf;
+  const zhvi   = d.zhviCurrent;
 
-  document.getElementById('brrrrStressBody').innerHTML = rows.join('');
+  if (ppsf || zhvi) {
+    let benchmarkHtml = '';
 
-  // Find break-even rent
-  const refiAmt = arv * refiLtv;
-  const r = (baseRate / 100) / 12;
-  const n = refiTerm * 12;
-  const mortgage = refiAmt * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-  const piti = mortgage + arv * 0.0013 / 12;
-  const expenseRatio = (vacancyPct + opexPct) / 100;
-  const breakEvenRent = Math.ceil(piti / (1 - expenseRatio));
+    if (ppsf) {
+      const sqftExamples = [900, 1200, 1500].map(s =>
+        `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
+          <span style="color:var(--muted2);">${s.toLocaleString()} sqft</span>
+          <span style="font-family:'Space Mono',monospace;color:var(--gold);">${fmt(s * ppsf)} est. ARV</span>
+        </div>`).join('');
 
-  const worstScenario = scenarios[3];
-  const worstR = (worstScenario.rate / 100) / 12;
-  const worstMortgage = refiAmt * (worstR * Math.pow(1 + worstR, n)) / (Math.pow(1 + worstR, n) - 1);
-  const worstPiti = worstMortgage + arv * 0.0013 / 12;
-  const worstEffective = worstScenario.rent - worstScenario.rent * expenseRatio;
-  const worstCF = worstEffective - worstPiti;
-
-  document.getElementById('brrrrStressNote').innerHTML =
-    `Break-even rent at ${baseRate}%: <strong style="color:var(--gold);">${fmt(breakEvenRent)}/mo</strong> · ` +
-    (worstCF >= 0 ?
-      `<span style="color:var(--green);">✓ Survives worst case (rate +2%, rent −20%)</span>` :
-      `<span style="color:var(--red);">✗ Fails worst case — loses ${fmt(Math.abs(worstCF))}/mo if rates spike + rents drop</span>`);
-
-  document.getElementById('brrrrStressTest').style.display = 'block';
-}
-
-
-// ════════════════════════════════════════════
-// 5-YEAR EQUITY PROJECTION
-// ════════════════════════════════════════════
-function render5YearProjection(arv, refiAmt, refiRate, refiTerm, annualCF, cashLeft, appreciation) {
-  const appRate = appreciation || 3; // default 3% annual appreciation
-  const r = (refiRate / 100) / 12;
-  const n = refiTerm * 12;
-  const monthlyPayment = refiAmt * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-
-  let html = '<div style="display:grid;grid-template-columns:60px 1fr 1fr 1fr 1fr;gap:4px;font-family:\'Space Mono\',monospace;font-size:11px;">';
-  html += `<div style="color:var(--muted);font-size:9px;padding:4px 0;">YEAR</div>
-           <div style="color:var(--muted);font-size:9px;padding:4px 0;">PROPERTY</div>
-           <div style="color:var(--muted);font-size:9px;padding:4px 0;">LOAN BAL</div>
-           <div style="color:var(--muted);font-size:9px;padding:4px 0;">EQUITY</div>
-           <div style="color:var(--muted);font-size:9px;padding:4px 0;">TOTAL ROI</div>`;
-
-  let balance = refiAmt;
-  let propValue = arv;
-  let totalCashFlow = 0;
-
-  for (let year = 0; year <= 5; year++) {
-    if (year > 0) {
-      // Appreciation
-      propValue *= (1 + appRate / 100);
-      // Loan paydown (12 months)
-      for (let m = 0; m < 12; m++) {
-        const interestPmt = balance * r;
-        const principalPmt = monthlyPayment - interestPmt;
-        balance = Math.max(0, balance - principalPmt);
-      }
-      totalCashFlow += annualCF;
-    }
-
-    const equity = propValue - balance;
-    const totalReturn = cashLeft > 0 ? ((equity - cashLeft + totalCashFlow) / cashLeft * 100) : 999;
-
-    const eqColor = equity > arv * 0.3 ? 'var(--green)' : 'var(--white)';
-    html += `<div style="padding:5px 0;border-bottom:1px solid var(--border);color:var(--muted);">${year === 0 ? 'Now' : 'Yr ' + year}</div>
-             <div style="padding:5px 0;border-bottom:1px solid var(--border);color:var(--white);">${fmt(propValue)}</div>
-             <div style="padding:5px 0;border-bottom:1px solid var(--border);color:var(--muted2);">${fmt(balance)}</div>
-             <div style="padding:5px 0;border-bottom:1px solid var(--border);color:${eqColor};font-weight:700;">${fmt(equity)}</div>
-             <div style="padding:5px 0;border-bottom:1px solid var(--border);color:${totalReturn > 50 ? 'var(--green)' : 'var(--white)'};">${year === 0 ? '—' : fmtPct(totalReturn)}</div>`;
-  }
-  html += '</div>';
-
-  if (liveRentalData && liveRentalData.rentGrowthYoY) {
-    html += `<div style="font-size:10px;color:var(--muted);margin-top:8px;">
-      Assumes ${appRate}% annual appreciation. Area rent growth: ${liveRentalData.rentGrowthYoY > 0 ? '+' : ''}${liveRentalData.rentGrowthYoY}%/yr.
-    </div>`;
-  } else {
-    html += `<div style="font-size:10px;color:var(--muted);margin-top:8px;">
-      Assumes ${appRate}% annual appreciation, flat rents. Pull rental data for growth-adjusted projection.
-    </div>`;
-  }
-
-  document.getElementById('equityProjectionBody').innerHTML = html;
-  document.getElementById('brrrrEquityProjection').style.display = 'block';
-}
-
-
-// ═══════════════════════════════════════════════════════════════════════════
-// SECTION E: REPLACEMENT BRRRR BLOCK for analyze() function
-//
-// In your existing analyze() function, REPLACE this block:
-//   // BRRRR
-//   let brrrr=null;
-//   if(monthlyRent>0){ ... }
-//
-// ...through all the BRRRR rendering code at the bottom (b-arv, b-refi etc.)
-// with the code below.
-// ═══════════════════════════════════════════════════════════════════════════
-
-// --- PASTE THIS IN analyze() replacing the old BRRRR section ---
-
-  // ── BRRRR ANALYSIS (UPGRADED) ──────────────────────────────────────────
-  const vacancyPct = parseFloat(document.getElementById('vacancyRate').value) || 8;
-  const opexPct    = parseFloat(document.getElementById('opexRate').value) || 25;
-
-  let brrrr = null;
-  if (monthlyRent > 0) {
-    const refiAmt  = arv * refiLtv;
-    const cashLeft = Math.max(0, totalIn - refiAmt);
-    const r = refiRate / 12 / 100;
-    const n = refiTerm * 12;
-    const mortgage = refiAmt * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-    const taxIns   = arv * 0.0013 / 12; // ~1.3% of ARV for tax+insurance
-    const piti     = mortgage + taxIns;
-
-    // Expense breakdown
-    const vacancyLoss     = monthlyRent * (vacancyPct / 100);
-    const opex            = monthlyRent * (opexPct / 100);
-    const effectiveIncome = monthlyRent - vacancyLoss - opex;
-    const cashflow        = effectiveIncome - piti;
-
-    // DSCR (Debt Service Coverage Ratio)
-    const dscr = piti > 0 ? (effectiveIncome / piti) : 0;
-
-    // NOI for cap rate (annual)
-    const noi = effectiveIncome * 12;
-
-    brrrr = {
-      refiAmt,
-      cashLeft,
-      piti,
-      mortgage,
-      taxIns,
-      vacancyLoss,
-      opex,
-      effectiveIncome,
-      cashflow,
-      annualCF: cashflow * 12,
-      dscr,
-      noi,
-      grY:     (monthlyRent * 12) / arv * 100,
-      nrY:     noi / arv * 100,
-      cocRoi:  cashLeft > 0 ? (cashflow * 12 / cashLeft) * 100 : 999,
-      capRate: noi / arv * 100,
-    };
-  }
-
-  // ── RENDER BRRRR ───────────────────────────────────────────────────────
-  if (brrrr) {
-    document.getElementById('brrrrNoRent').style.display  = 'none';
-    document.getElementById('brrrrContent').style.display  = 'block';
-    document.getElementById('brrrrSummaryCard').style.display = 'block';
-
-    // Core numbers
-    set('b-arv',  fmt(arv));
-    set('b-refi', fmt(brrrr.refiAmt) + ' (' + Math.round(refiLtv * 100) + '% LTV)');
-
-    const ciEl = document.getElementById('b-cashIn');
-    ciEl.textContent = fmt(brrrr.cashLeft);
-    ciEl.style.color = brrrr.cashLeft < 5000 ? 'var(--green)' : brrrr.cashLeft < 20000 ? 'var(--yellow)' : 'var(--white)';
-
-    set('b-piti', fmt(brrrr.piti) + '/mo');
-
-    const cfEl = document.getElementById('b-cashflow');
-    cfEl.textContent = fmt(brrrr.cashflow) + '/mo';
-    cfEl.style.color = brrrr.cashflow > 200 ? 'var(--green)' : brrrr.cashflow > 0 ? 'var(--yellow)' : 'var(--red)';
-
-    // DSCR
-    const dscrEl = document.getElementById('b-dscr');
-    dscrEl.textContent = brrrr.dscr.toFixed(2) + 'x';
-    dscrEl.style.color = brrrr.dscr >= 1.25 ? 'var(--green)' : brrrr.dscr >= 1.0 ? 'var(--yellow)' : 'var(--red)';
-
-    // Returns
-    set('b-gry', fmtPct(brrrr.grY));
-    set('b-nry', fmtPct(brrrr.nrY));
-    set('b-coc', brrrr.cashLeft < 1000 ? '∞ (infinite)' : fmtPct(brrrr.cocRoi));
-
-    const acfEl = document.getElementById('b-annualCF');
-    acfEl.textContent = fmt(brrrr.annualCF) + '/yr';
-    acfEl.style.color = brrrr.annualCF > 0 ? 'var(--green)' : 'var(--red)';
-
-    set('b-cap', fmtPct(brrrr.capRate));
-
-    const bvEl = document.getElementById('b-verdict');
-    if (brrrr.cashflow > 200 && brrrr.dscr >= 1.25) {
-      bvEl.textContent = '🔥 Strong BRRRR';
-      bvEl.style.color = 'var(--green)';
-    } else if (brrrr.cashflow > 0 && brrrr.dscr >= 1.0) {
-      bvEl.textContent = '⚠ Marginal';
-      bvEl.style.color = 'var(--yellow)';
-    } else {
-      bvEl.textContent = '✗ Negative cash flow';
-      bvEl.style.color = 'var(--red)';
-    }
-
-    // Expense breakdown
-    set('b-grossRent',      fmt(monthlyRent) + '/mo');
-    set('b-vacancy',        '-' + fmt(brrrr.vacancyLoss) + ' (' + vacancyPct + '%)');
-    set('b-opex',           '-' + fmt(brrrr.opex) + ' (' + opexPct + '%)');
-
-    const eiEl = document.getElementById('b-effectiveIncome');
-    eiEl.textContent = fmt(brrrr.effectiveIncome) + '/mo';
-    eiEl.style.color = 'var(--gold)';
-
-    set('b-pitiExpense',    '-' + fmt(brrrr.piti));
-
-    const ncfEl = document.getElementById('b-netCF');
-    ncfEl.textContent = fmt(brrrr.cashflow) + '/mo';
-    ncfEl.style.color = brrrr.cashflow > 0 ? 'var(--green)' : 'var(--red)';
-
-    // Market context (if rental data was pulled)
-    const ctxEl = document.getElementById('brrrrMarketContext');
-    if (liveRentalData && liveRentalData.medianRent) {
-      const mRent = liveRentalData.medianRent;
-      const diff  = monthlyRent - mRent;
-      const diffP = Math.round(diff / mRent * 100);
-      const rateInfo = liveRateData ? `Live 30yr: ${liveRateData.refi30yr || '—'}%` : '';
-
-      ctxEl.innerHTML = `<div style="background:rgba(74,158,255,0.06);border:1px solid rgba(74,158,255,0.15);border-radius:4px;padding:12px;">
-        <div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--blue);text-transform:uppercase;margin-bottom:8px;">Market Context</div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted2);">
-          <span>Area Median: <strong style="color:var(--white);">${fmt(mRent)}/mo</strong></span>
-          <span>Your Rent: <strong style="color:${Math.abs(diffP) > 15 ? 'var(--red)' : 'var(--green)'};">${fmt(monthlyRent)} (${diffP > 0 ? '+' : ''}${diffP}%)</strong></span>
-          ${liveRentalData.rentGrowthYoY !== null ? `<span>Rent Growth: <strong style="color:${liveRentalData.rentGrowthYoY >= 0 ? 'var(--green)' : 'var(--red)'};">${liveRentalData.rentGrowthYoY > 0 ? '+' : ''}${liveRentalData.rentGrowthYoY}% YoY</strong></span>` : ''}
-          ${rateInfo ? `<span>${rateInfo}</span>` : ''}
+      benchmarkHtml = `
+        <div style="font-family:'Space Mono',monospace;font-size:26px;color:var(--gold);margin-bottom:2px;">
+          ${fmt(ppsf)}<span style="font-size:13px;">/sqft</span>
         </div>
-      </div>`;
-      ctxEl.style.display = 'block';
-    } else {
-      ctxEl.style.display = 'none';
+        <div style="font-size:11px;color:var(--muted2);margin-bottom:10px;">avg asking $/sqft — use as ARV starting point</div>
+        ${sqftExamples}`;
     }
 
-    // BRRRR Stress Test
-    renderBrrrrStressTest(
-      parseFloat(document.getElementById('refiRate').value) || 7.5,
-      monthlyRent, arv, refiLtv, parseFloat(document.getElementById('refiTerm').value) || 30,
-      totalIn, vacancyPct, opexPct
-    );
-
-    // 5-Year Equity Projection
-    const appRate = (liveRentalData && liveRentalData.rentGrowthYoY) ? Math.max(2, liveRentalData.rentGrowthYoY) : 3;
-    render5YearProjection(arv, brrrr.refiAmt,
-      parseFloat(document.getElementById('refiRate').value) || 7.5,
-      parseFloat(document.getElementById('refiTerm').value) || 30,
-      brrrr.annualCF, brrrr.cashLeft, appRate
-    );
-
-    // Refi break-even
-    const beEl = document.getElementById('refiBreakevenText');
-    if (brrrr.cashLeft > 0 && brrrr.annualCF > 0) {
-      const breakEvenYrs = (brrrr.cashLeft / brrrr.annualCF).toFixed(1);
-      beEl.innerHTML = `Cash left in deal: <strong>${fmt(brrrr.cashLeft)}</strong>. At ${fmt(brrrr.annualCF)}/yr cash flow, ` +
-        `you recover your remaining capital in <strong style="color:var(--gold);">${breakEvenYrs} years</strong>.` +
-        (parseFloat(breakEvenYrs) <= 3 ? ' <span style="color:var(--green);">✓ Under 3 years — strong.</span>' :
-         parseFloat(breakEvenYrs) <= 5 ? ' <span style="color:var(--yellow);">Acceptable — under 5 years.</span>' :
-         ' <span style="color:var(--red);">⚠ Over 5 years — capital is tied up too long.</span>');
-    } else if (brrrr.cashLeft <= 0) {
-      beEl.innerHTML = `<span style="color:var(--green);font-weight:700;">♾️ Infinite BRRRR — All capital recovered at refi.</span> ` +
-        `Refi of ${fmt(brrrr.refiAmt)} covers your ${fmt(totalIn)} all-in. Cash out ${fmt(brrrr.refiAmt - totalIn)} at close.`;
-    } else {
-      beEl.innerHTML = `<span style="color:var(--red);">Negative cash flow — capital never recovered through rental income alone.</span>`;
+    if (zhvi) {
+      benchmarkHtml += `
+        <div style="margin-top:10px;padding:8px 0;border-top:1px solid var(--border);font-size:12px;color:var(--muted2);">
+          City-wide median (all homes): <strong style="color:var(--white);">${fmt(zhvi)}</strong>
+          <span style="font-size:10px;color:var(--muted);"> — not this street/neighborhood</span>
+          ${d.zhviPctChange !== null ? ` · <span style="color:${d.zhviPctChange>=0?'var(--green)':'var(--red)'};">${d.zhviPctChange>0?'+':''}${d.zhviPctChange}% YoY</span>` : ''}
+        </div>`;
     }
-    document.getElementById('brrrrRefiBreakeven').style.display = 'block';
 
-    // BRRRR Snapshot card (in main results)
-    document.getElementById('brrrrSnapGrid').innerHTML = `
-      <div style="text-align:center;">
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;">Cash Flow</div>
-        <div style="font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:${brrrr.cashflow > 200 ? 'var(--green)' : brrrr.cashflow > 0 ? 'var(--yellow)' : 'var(--red)'};">${fmt(brrrr.cashflow)}/mo</div>
-      </div>
-      <div style="text-align:center;">
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;">DSCR</div>
-        <div style="font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:${brrrr.dscr >= 1.25 ? 'var(--green)' : brrrr.dscr >= 1.0 ? 'var(--yellow)' : 'var(--red)'};">${brrrr.dscr.toFixed(2)}x</div>
-      </div>
-      <div style="text-align:center;">
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;">Cash Left</div>
-        <div style="font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:${brrrr.cashLeft < 5000 ? 'var(--green)' : 'var(--white)'};">${fmt(brrrr.cashLeft)}</div>
-      </div>
-      <div style="text-align:center;">
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;">CoC ROI</div>
-        <div style="font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:var(--gold);">${brrrr.cashLeft < 1000 ? '∞' : fmtPct(brrrr.cocRoi)}</div>
-      </div>`;
-
+    arvBox.innerHTML = benchmarkHtml + `
+      <button onclick="pushArvBenchmark(${ppsf || 0})" style="margin-top:12px;width:100%;background:var(--gold);border:none;border-radius:3px;color:var(--black);font-family:'Space Mono',monospace;font-size:11px;letter-spacing:1px;padding:10px;cursor:pointer;font-weight:700;">
+        → USE IN DEAL ANALYZER
+      </button>`;
   } else {
-    document.getElementById('brrrrNoRent').style.display  = 'block';
-    document.getElementById('brrrrContent').style.display  = 'none';
-    document.getElementById('brrrrSummaryCard').style.display = 'none';
+    arvBox.innerHTML = '<div style="color:var(--muted);font-size:13px;">No benchmark data available. Try city-state format e.g. springfield-mo</div>';
   }
 
-  // ── BRRRR FLAGS (add to existing flags array) ────────────────────────
-  if (brrrr) {
-    if (brrrr.dscr >= 1.25 && brrrr.cashflow > 200) {
-      flags.push({icon:'🏠', cls:'good', text:`<strong>Strong BRRRR — DSCR ${brrrr.dscr.toFixed(2)}x</strong>. ${fmt(brrrr.cashflow)}/mo cash flow after all expenses. Lenders want 1.25x+ DSCR — you're there.`});
-    } else if (brrrr.dscr >= 1.0 && brrrr.dscr < 1.25) {
-      flags.push({icon:'⚠️', cls:'warn', text:`<strong>BRRRR borderline — DSCR ${brrrr.dscr.toFixed(2)}x</strong>. Most DSCR lenders require 1.25x. You'd need to ${brrrr.dscr < 1.15 ? 'increase rent or lower purchase price' : 'bump rent ~$50-100/mo to hit 1.25x'}.`});
-    } else if (brrrr.dscr < 1.0) {
-      flags.push({icon:'🔴', cls:'warn', text:`<strong>BRRRR fails — DSCR ${brrrr.dscr.toFixed(2)}x</strong>. Property doesn't cover its debt service. This doesn't work as a hold at ${fmtPct(refiRate*100)}% rate unless rents increase significantly.`});
-    }
+  renderSavedProfiles();
+}
 
-    if (brrrr.cashLeft < 1000) {
-      flags.push({icon:'♾️', cls:'good', text:`<strong>Infinite BRRRR</strong> — refi at ${fmt(brrrr.refiAmt)} covers all ${fmt(totalIn)} in. All cash out + ${fmt(brrrr.refiAmt - totalIn)} in pocket. ${brrrr.cashflow > 0 ? 'Cash flows ' + fmt(brrrr.cashflow) + '/mo.' : ''}`});
-    } else if (brrrr.cashLeft < 15000) {
-      flags.push({icon:'📈', cls:'good', text:`<strong>Near-full BRRRR</strong> — only ${fmt(brrrr.cashLeft)} left in deal after refi. ${brrrr.cashflow > 0 ? 'Cash flows ' + fmt(brrrr.cashflow) + '/mo.' : ''}`});
-    }
-
-    if (liveRentalData && liveRentalData.medianRent) {
-      const rentDiff = monthlyRent - liveRentalData.medianRent;
-      const rentDiffPct = Math.round(rentDiff / liveRentalData.medianRent * 100);
-      if (rentDiffPct > 15) {
-        flags.push({icon:'⚠️', cls:'warn', text:`<strong>Rent ${rentDiffPct}% above market median</strong> — ${fmt(monthlyRent)} vs area median ${fmt(liveRentalData.medianRent)}. May face longer vacancy or need premium finish to justify.`});
-      } else if (rentDiffPct < -10) {
-        flags.push({icon:'💡', cls:'info', text:`<strong>Rent below market</strong> — ${fmt(monthlyRent)} is ${Math.abs(rentDiffPct)}% under median ${fmt(liveRentalData.medianRent)}. Room to increase rents, improving your cash flow.`});
-      }
-    }
+function pushArvBenchmark(ppsf) {
+  // Store for deal analyzer to pick up
+  localStorage.setItem('pecos_arv_benchmark', JSON.stringify({ ppsf, ts: Date.now() }));
+  // Switch to analyzer tab
+  switchTab('analyzer');
+  // Show a hint
+  const arvField = document.getElementById('arv');
+  if (arvField) {
+    arvField.style.borderColor = 'var(--gold)';
+    arvField.placeholder = `Enter sqft × ${ppsf} = your ARV`;
+    setTimeout(() => arvField.style.borderColor = '', 3000);
   }
+  // Show tip banner
+  const tipBanner = document.createElement('div');
+  tipBanner.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--black);font-family:"Space Mono",monospace;font-size:12px;padding:10px 20px;border-radius:4px;z-index:999;font-weight:700;';
+  tipBanner.textContent = `ARV benchmark: ${fmt(ppsf)}/sqft loaded — multiply by your sqft`;
+  document.body.appendChild(tipBanner);
+  setTimeout(() => tipBanner.remove(), 4000);
+}
 
-// --- END OF REPLACEMENT BRRRR BLOCK ---
+function saveProfile(d) {
+  const existing = savedProfiles.findIndex(p => p.location === d.location);
+  const profile  = { ...d, savedAt: new Date().toLocaleDateString() };
+  if (existing >= 0) savedProfiles[existing] = profile;
+  else savedProfiles.unshift(profile);
+  savedProfiles = savedProfiles.slice(0, 10); // keep last 10
+  localStorage.setItem('pecos_profiles', JSON.stringify(savedProfiles));
+  renderSavedProfiles();
+}
+
+function renderSavedProfiles() {
+  const el = document.getElementById('nbhd-saved');
+  if (!savedProfiles.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;">No saved profiles yet.</div>';
+    return;
+  }
+  el.innerHTML = savedProfiles.map((p, i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-bottom:8px;gap:12px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:14px;font-weight:500;color:var(--white);">${p.location}</div>
+        <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;">
+          ${p.activeCount || 0} active · ${p.avgPpsf ? fmt(p.avgPpsf)+'/sf' : 'no $/sf'} · DOM ${p.medianDom || '—'}d · ${p.savedAt}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="loadProfile(${i})" style="background:var(--border);border:none;border-radius:3px;color:var(--white);font-family:'Space Mono',monospace;font-size:9px;padding:7px 12px;cursor:pointer;">LOAD</button>
+        <button onclick="deleteProfile(${i})" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function loadProfile(i) {
+  const p = savedProfiles[i];
+  document.getElementById('nbhd-input').value = p.location;
+  renderNeighborhoodProfile(p);
+  document.getElementById('nbhd-results').style.display = 'block';
+  document.getElementById('nbhd-status').className   = 'fetch-status success';
+  document.getElementById('nbhd-status').textContent = `✓ Loaded saved profile for "${p.location}" (${p.savedAt})`;
+  document.getElementById('nbhd-status').style.display = 'block';
+}
+
+function deleteProfile(i) {
+  savedProfiles.splice(i, 1);
+  localStorage.setItem('pecos_profiles', JSON.stringify(savedProfiles));
+  renderSavedProfiles();
+}
+
+// ── INIT ──
+toggleFinanceFields();
+checkBackend();
+renderSavedProfiles();
+
+// ════════════════════════════════════════════
+// PDF OFFER SHEET GENERATOR
+// ════════════════════════════════════════════
+function generatePDF(deal) {
+  if (!deal) { alert('Run the numbers first.'); return; }
+
+  const date    = new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+  const roiPct  = deal.arv > 0 ? ((deal.netProfit / deal.totalIn) * 100).toFixed(1) : '—';
+  const margin  = deal.arv > 0 ? ((deal.netProfit / deal.arv) * 100).toFixed(1) : '—';
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Offer Sheet — ${deal.address}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Arial',sans-serif;background:#fff;color:#111;padding:40px;max-width:720px;margin:0 auto;}
+  .header{border-bottom:3px solid #c9a84c;padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .brand{font-size:28px;font-weight:900;letter-spacing:3px;color:#111;}
+  .brand span{color:#c9a84c;}
+  .doc-title{font-size:11px;letter-spacing:2px;color:#888;text-transform:uppercase;text-align:right;}
+  .doc-date{font-size:12px;color:#555;margin-top:3px;text-align:right;}
+  .address-block{background:#f8f6f2;border-left:4px solid #c9a84c;padding:14px 18px;margin-bottom:24px;border-radius:0 4px 4px 0;}
+  .address-block h2{font-size:18px;font-weight:700;color:#111;margin-bottom:4px;}
+  .address-block p{font-size:12px;color:#666;}
+  .section{margin-bottom:20px;}
+  .section-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c9a84c;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e0d8;}
+  .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0ede8;font-size:13px;}
+  .row:last-child{border-bottom:none;}
+  .row .label{color:#555;}
+  .row .value{font-weight:600;color:#111;font-family:monospace;}
+  .row.total{background:#f8f6f2;margin:0 -8px;padding:10px 8px;border-radius:3px;}
+  .row.total .label{font-weight:700;color:#111;font-size:14px;}
+  .row.total .value{font-size:15px;color:#c9a84c;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .verdict-box{padding:16px 20px;border-radius:4px;margin-bottom:20px;display:flex;align-items:center;gap:14px;}
+  .verdict-box.fire{background:#e8f8ef;border:1px solid #2ecc71;}
+  .verdict-box.good{background:#fef9ec;border:1px solid #f0b429;}
+  .verdict-box.pass{background:#fef0f0;border:1px solid #e03c3c;}
+  .verdict-score{font-size:36px;font-weight:900;font-family:monospace;}
+  .verdict-score.fire{color:#27ae60;}
+  .verdict-score.good{color:#e67e22;}
+  .verdict-score.pass{color:#e03c3c;}
+  .verdict-text h3{font-size:15px;font-weight:700;margin-bottom:3px;}
+  .verdict-text p{font-size:12px;color:#666;line-height:1.5;}
+  .flags{display:flex;flex-direction:column;gap:5px;}
+  .flag{font-size:12px;color:#444;padding:6px 10px;background:#f8f8f8;border-radius:3px;border-left:2px solid #ddd;}
+  .footer{margin-top:32px;padding-top:16px;border-top:1px solid #e5e0d8;display:flex;justify-content:space-between;font-size:10px;color:#999;}
+  .sig-line{margin-top:40px;padding-top:12px;border-top:1px solid #333;width:240px;font-size:11px;color:#555;}
+  @media print{body{padding:20px;}button{display:none;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="brand">PECOS <span>GRANT</span></div>
+    <div style="font-size:11px;color:#888;letter-spacing:1px;margin-top:2px;">DEVELOPMENT LLC</div>
+  </div>
+  <div>
+    <div class="doc-title">Investment Offer Sheet</div>
+    <div class="doc-date">${date}</div>
+  </div>
+</div>
+
+<div class="address-block">
+  <h2>${deal.address || 'Address Not Entered'}</h2>
+  <p>Prepared by Pecos Grant Development LLC · ${date}</p>
+</div>
+
+<div class="verdict-box ${deal.score >= 70 ? 'fire' : deal.score >= 40 ? 'good' : 'pass'}">
+  <div class="verdict-score ${deal.score >= 70 ? 'fire' : deal.score >= 40 ? 'good' : 'pass'}">${deal.score || 0}</div>
+  <div class="verdict-text">
+    <h3>${deal.score >= 70 ? '🔥 FIRE DEAL' : deal.score >= 40 ? '⚠ PROCEED WITH CAUTION' : '✗ DOES NOT PENCIL'}</h3>
+    <p>Deal score out of 100 · Based on ARV, rehab estimate, equity gap, and market flags</p>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="section">
+    <div class="section-title">Offer Details</div>
+    <div class="row"><span class="label">List Price</span><span class="value">${fmt(deal.listPrice || 0)}</span></div>
+    <div class="row"><span class="label">Your Offer</span><span class="value">${fmt(deal.offer || 0)}</span></div>
+    <div class="row"><span class="label">Discount to List</span><span class="value">${deal.listPrice > 0 ? (((deal.listPrice - deal.offer) / deal.listPrice) * 100).toFixed(1) + '%' : '—'}</span></div>
+    <div class="row"><span class="label">ARV (After Repair)</span><span class="value">${fmt(deal.arv || 0)}</span></div>
+    <div class="row"><span class="label">Rehab Estimate</span><span class="value">${fmt(deal.rehabMid || 0)}</span></div>
+  </div>
+  <div class="section">
+    <div class="section-title">Deal Economics</div>
+    <div class="row"><span class="label">Total In</span><span class="value">${fmt(deal.totalIn || 0)}</span></div>
+    <div class="row"><span class="label">Net Profit</span><span class="value" style="color:${(deal.netProfit||0) >= 0 ? '#27ae60' : '#e03c3c'}">${fmt(deal.netProfit || 0)}</span></div>
+    <div class="row"><span class="label">ROI</span><span class="value">${roiPct}%</span></div>
+    <div class="row"><span class="label">Profit Margin</span><span class="value">${margin}%</span></div>
+    <div class="row"><span class="label">Max Offer (70% Rule)</span><span class="value">${fmt(deal.maxOffer || 0)}</span></div>
+  </div>
+</div>
+
+${deal.flags && deal.flags.length ? `
+<div class="section">
+  <div class="section-title">Deal Signals</div>
+  <div class="flags">
+    ${deal.flags.map(f => `<div class="flag">${f}</div>`).join('')}
+  </div>
+</div>` : ''}
+
+<div class="grid-2" style="margin-top:8px;">
+  <div>
+    <div class="section-title" style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c9a84c;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e0d8;">Seller Signature</div>
+    <div class="sig-line">Signature · Date</div>
+  </div>
+  <div>
+    <div class="section-title" style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c9a84c;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e0d8;">Buyer Signature</div>
+    <div class="sig-line">Pecos Grant Development LLC · Date</div>
+  </div>
+</div>
+
+<div class="footer">
+  <span>Pecos Grant Development LLC · Springfield, MO</span>
+  <span>Generated by Deal Analyzer · ${date}</span>
+</div>
+
+</body>
+</html>`;
+
+  // Open in new tab and trigger print dialog
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 500);
+}
+
 </script>
+</body>
+</html>

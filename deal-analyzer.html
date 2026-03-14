@@ -1042,42 +1042,35 @@ function deleteProfile(i){ savedProfiles.splice(i,1); localStorage.setItem('peco
 function generateLenderPackage(deal){
   if(!deal) deal = lastResult;
   if(!deal){ alert('Run the numbers first.'); return; }
-
-  // ── Dynamic form overlay ──────────────────────────────────────────
   const hasBrrrr = deal.brrrr && deal.monthlyRent > 0 && deal.brrrr.cashflow > 0;
-
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
   overlay.innerHTML = `
     <div style="background:#161616;border:1px solid #2a6dd9;border-radius:8px;padding:32px;width:420px;max-width:95vw;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#c9a84c;margin-bottom:4px;">LENDER PACKAGE</div>
-      <div style="font-size:12px;color:#555;margin-bottom:24px;font-family:'Space Mono',monospace;">Customize before generating</div>
-
+      <div style="font-size:12px;color:#555;margin-bottom:24px;font-family:'Space Mono',monospace;">Fill in before generating</div>
       <div style="margin-bottom:16px;">
-        <label style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:#777;text-transform:uppercase;display:block;margin-bottom:8px;">Your Name / Contact</label>
+        <label style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:#777;text-transform:uppercase;display:block;margin-bottom:8px;">Your Name &amp; Phone</label>
         <input id="pkg-name" type="text" placeholder="Riley Huffman · (417) 555-0000" style="width:100%;background:#0d0d0d;border:1px solid #252525;border-radius:3px;color:#f0ede8;font-family:'Space Mono',monospace;font-size:13px;padding:10px 12px;outline:none;">
       </div>
-
       <div style="margin-bottom:16px;">
         <label style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:#777;text-transform:uppercase;display:block;margin-bottom:8px;">Loan Amount Requested ($)</label>
         <input id="pkg-loan" type="number" value="${deal.offer||0}" style="width:100%;background:#0d0d0d;border:1px solid #252525;border-radius:3px;color:#f0ede8;font-family:'Space Mono',monospace;font-size:13px;padding:10px 12px;outline:none;">
       </div>
-
       ${hasBrrrr ? `
       <div style="margin-bottom:20px;">
         <label style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:#777;text-transform:uppercase;display:block;margin-bottom:8px;">Exit Strategy</label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <label id="pkg-flip-btn" onclick="document.getElementById('pkg-flip').checked=true;document.getElementById('pkg-flip-btn').style.borderColor='#c9a84c';document.getElementById('pkg-flip-btn').style.color='#c9a84c';document.getElementById('pkg-hold-btn').style.borderColor='#252525';document.getElementById('pkg-hold-btn').style.color='#555';" style="border:1px solid #c9a84c;color:#c9a84c;border-radius:4px;padding:10px;text-align:center;cursor:pointer;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:1px;transition:all 0.15s;">
+          <label id="pkg-flip-btn" onclick="document.getElementById('pkg-flip').checked=true;document.getElementById('pkg-flip-btn').style.borderColor='#c9a84c';document.getElementById('pkg-flip-btn').style.color='#c9a84c';document.getElementById('pkg-hold-btn').style.borderColor='#252525';document.getElementById('pkg-hold-btn').style.color='#555';" style="border:1px solid #c9a84c;color:#c9a84c;border-radius:4px;padding:10px;text-align:center;cursor:pointer;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:1px;">
             <input type="radio" id="pkg-flip" name="pkg-strategy" value="flip" checked style="display:none;">
-            🔨 FLIP<br><span style="font-size:9px;opacity:0.7;">Sell in 90 days</span>
+            🔨 FLIP<br><span style="font-size:9px;opacity:0.7;">Sell ~90 days</span>
           </label>
-          <label id="pkg-hold-btn" onclick="document.getElementById('pkg-hold').checked=true;document.getElementById('pkg-hold-btn').style.borderColor='#c9a84c';document.getElementById('pkg-hold-btn').style.color='#c9a84c';document.getElementById('pkg-flip-btn').style.borderColor='#252525';document.getElementById('pkg-flip-btn').style.color='#555';" style="border:1px solid #252525;color:#555;border-radius:4px;padding:10px;text-align:center;cursor:pointer;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:1px;transition:all 0.15s;">
+          <label id="pkg-hold-btn" onclick="document.getElementById('pkg-hold').checked=true;document.getElementById('pkg-hold-btn').style.borderColor='#c9a84c';document.getElementById('pkg-hold-btn').style.color='#c9a84c';document.getElementById('pkg-flip-btn').style.borderColor='#252525';document.getElementById('pkg-flip-btn').style.color='#555';" style="border:1px solid #252525;color:#555;border-radius:4px;padding:10px;text-align:center;cursor:pointer;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:1px;">
             <input type="radio" id="pkg-hold" name="pkg-strategy" value="hold" style="display:none;">
             📈 HOLD<br><span style="font-size:9px;opacity:0.7;">Refi + rent</span>
           </label>
         </div>
       </div>` : ''}
-
       <div style="display:flex;gap:10px;margin-top:8px;">
         <button onclick="document.body.removeChild(this.closest('[style*=fixed]'));" style="flex:1;background:transparent;border:1px solid #252525;border-radius:3px;color:#555;font-family:'Space Mono',monospace;font-size:11px;padding:11px;cursor:pointer;">CANCEL</button>
         <button onclick="_buildLenderPDF('${deal.id||''}',this);" style="flex:2;background:#c9a84c;border:none;border-radius:3px;color:#000;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;padding:11px;cursor:pointer;">GENERATE PDF</button>
@@ -1089,110 +1082,139 @@ function generateLenderPackage(deal){
 function _buildLenderPDF(dealId, btn){
   const deal    = lastResult || savedDeals.find(d=>String(d.id)===String(dealId));
   if(!deal){ alert('Deal data missing.'); return; }
-  const nameVal = document.getElementById('pkg-name').value.trim() || 'Pecos Grant Development LLC';
-  const loanAmt = parseFloat(document.getElementById('pkg-loan').value)||deal.offer||0;
+  const nameVal = (document.getElementById('pkg-name')||{}).value||'Pecos Grant Development LLC';
+  const loanAmt = parseFloat((document.getElementById('pkg-loan')||{}).value||deal.offer||0);
   const strategy= document.getElementById('pkg-hold') && document.getElementById('pkg-hold').checked ? 'hold' : 'flip';
   document.body.removeChild(btn.closest('[style*=fixed]'));
 
-  const date    = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-  const arvVal  = deal.arv || 0;
-  const ltvPct  = arvVal > 0 ? ((loanAmt/arvVal)*100).toFixed(0) : '—';
-  const equityPct = arvVal > 0 ? ((1 - loanAmt/arvVal)*100).toFixed(0) : '—';
-  const bearArv = Math.round(arvVal * 0.90);
-  const bearLtv = bearArv > 0 ? ((loanAmt/bearArv)*100).toFixed(0) : '—';
-  const photo   = _pullData && _pullData.photo ? _pullData.photo : '';
+  const date   = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const arvVal = deal.arv || 0;
+  const ltvPct = arvVal > 0 ? ((loanAmt/arvVal)*100).toFixed(0) : '—';
+  const eqPct  = arvVal > 0 ? ((1-loanAmt/arvVal)*100).toFixed(0) : '—';
+  const bearArv= Math.round(arvVal*0.90);
+  const bearLtv= bearArv > 0 ? ((loanAmt/bearArv)*100).toFixed(0) : '—';
+  const photo  = _pullData && _pullData.photo ? _pullData.photo : '';
 
-  // ── Comps ─────────────────────────────────────────────────────────
-  let compsHtml = '<p style="color:#888;font-size:12px;font-style:italic;padding:12px 0;">No comp data — run PULL first for full ARV support.</p>';
-  let compNote  = 'Comparable sales on file';
-  let avgPpsf   = 0, compCount = 0;
-  if(_pullData && _pullData.comps){
-    const sc = _pullData.comps.filter(c=>c.price>0);
-    if(sc.length > 0){
-      compCount = sc.length;
-      const pp  = sc.filter(c=>c.ppsf>0);
-      avgPpsf   = pp.length ? Math.round(pp.reduce((s,c)=>s+c.ppsf,0)/pp.length) : 0;
-      const avgPrice = Math.round(sc.reduce((s,c)=>s+c.price,0)/sc.length);
-      compNote  = `${compCount} sold comps · avg $${avgPrice.toLocaleString()} · $${avgPpsf}/sf`;
-      compsHtml = `<table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <thead><tr style="background:#f0f2f5;"><th style="text-align:left;padding:7px 10px;border-bottom:2px solid #dde3ee;color:#666;font-size:10px;text-transform:uppercase;letter-spacing:1px;">Address</th><th style="text-align:right;padding:7px 10px;border-bottom:2px solid #dde3ee;color:#666;font-size:10px;text-transform:uppercase;">Sold</th><th style="text-align:right;padding:7px 10px;border-bottom:2px solid #dde3ee;color:#666;font-size:10px;text-transform:uppercase;">Sqft</th><th style="text-align:right;padding:7px 10px;border-bottom:2px solid #dde3ee;color:#666;font-size:10px;text-transform:uppercase;">$/sf</th><th style="text-align:right;padding:7px 10px;border-bottom:2px solid #dde3ee;color:#666;font-size:10px;text-transform:uppercase;">Bd/Ba</th></tr></thead><tbody>`;
-      sc.forEach(c => { compsHtml += `<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;">${c.address||'—'}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;font-weight:600;color:#1a7a4a;">$${(c.price||0).toLocaleString()}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;">${c.sqft||'—'}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;color:#2a6dd9;">${c.ppsf?'$'+c.ppsf:'—'}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;color:#888;">${c.beds||'?'}/${c.baths||'?'}</td></tr>`; });
-      const avgRow = Math.round(sc.reduce((s,c)=>s+c.price,0)/sc.length);
-      compsHtml += `<tr style="background:#f5f8f5;font-weight:700;"><td style="padding:7px 10px;color:#1a7a4a;">AVG (${sc.length} sold)</td><td style="padding:7px 10px;text-align:right;color:#1a7a4a;">$${avgRow.toLocaleString()}</td><td style="padding:7px 10px;text-align:right;">—</td><td style="padding:7px 10px;text-align:right;color:#2a6dd9;">${avgPpsf?'$'+avgPpsf:'—'}</td><td style="padding:7px 10px;text-align:right;">—</td></tr></tbody></table>`;
-      if(avgPpsf && deal.sqft){
-        const implied = avgPpsf * deal.sqft;
-        const diff    = ((arvVal/implied - 1)*100).toFixed(0);
-        const col     = Math.abs(diff) <= 10 ? '#1a7a4a' : '#e67e22';
-        compsHtml += `<div style="margin-top:8px;padding:9px 12px;background:#f0f7f0;border-left:3px solid #1a7a4a;font-size:12px;"><strong style="color:#1a7a4a;">Comp-implied value: $${implied.toLocaleString()}</strong> &nbsp;(${(deal.sqft||0).toLocaleString()} sf × $${avgPpsf}/sf) &nbsp;·&nbsp; <span style="color:${col};">Our ARV is ${Math.abs(diff)}% ${diff>0?'above':'below'} comp avg</span></div>`;
-      }
+  // ── Comps: try _pullData first, then similarHomes from deal ──────
+  let compsHtml = '<p style="color:#999;font-size:12px;margin:8px 0;">No comparable sales data — run PULL before generating for full ARV support.</p>';
+  let compNote  = 'Run PULL for comp data';
+  let compCount = 0;
+
+  let sourceComps = [];
+  if(_pullData && _pullData.comps && _pullData.comps.filter(c=>c.price>0).length > 0){
+    sourceComps = _pullData.comps.filter(c=>c.price>0);
+  } else if(_pullData && _pullData.similarHomes && _pullData.similarHomes.filter(s=>s.price>0).length > 0){
+    sourceComps = _pullData.similarHomes.filter(s=>s.price>0);
+  }
+
+  if(sourceComps.length > 0){
+    compCount   = sourceComps.length;
+    const avgP  = Math.round(sourceComps.reduce((s,c)=>s+c.price,0)/sourceComps.length);
+    const pp    = sourceComps.filter(c=>c.ppsf>0);
+    const avgSF = pp.length ? Math.round(pp.reduce((s,c)=>s+c.ppsf,0)/pp.length) : 0;
+    compNote    = `${compCount} comps · avg $${avgP.toLocaleString()} · $${avgSF}/sf`;
+
+    compsHtml = `<table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid #e0e0e0;border-radius:4px;overflow:hidden;">
+      <thead><tr style="background:#f7f7f7;"><th style="text-align:left;padding:8px 12px;border-bottom:1px solid #e0e0e0;color:#666;font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Address</th><th style="text-align:right;padding:8px 12px;border-bottom:1px solid #e0e0e0;color:#666;font-size:10px;text-transform:uppercase;">Sale Price</th><th style="text-align:right;padding:8px 12px;border-bottom:1px solid #e0e0e0;color:#666;font-size:10px;text-transform:uppercase;">Sqft</th><th style="text-align:right;padding:8px 12px;border-bottom:1px solid #e0e0e0;color:#666;font-size:10px;text-transform:uppercase;">$/sf</th><th style="text-align:right;padding:8px 12px;border-bottom:1px solid #e0e0e0;color:#666;font-size:10px;text-transform:uppercase;">Bed/Ba</th></tr></thead>
+      <tbody>`;
+    sourceComps.forEach((c,i) => {
+      compsHtml += `<tr style="background:${i%2===0?'#fff':'#fafafa'};">
+        <td style="padding:7px 12px;border-bottom:1px solid #f0f0f0;">${c.address||'—'}</td>
+        <td style="padding:7px 12px;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:600;color:#1a6b3a;">$${(c.price||0).toLocaleString()}</td>
+        <td style="padding:7px 12px;border-bottom:1px solid #f0f0f0;text-align:right;">${c.sqft||'—'}</td>
+        <td style="padding:7px 12px;border-bottom:1px solid #f0f0f0;text-align:right;color:#1a4a8a;">${c.ppsf?'$'+c.ppsf:'—'}</td>
+        <td style="padding:7px 12px;border-bottom:1px solid #f0f0f0;text-align:right;color:#888;">${c.beds||'?'}/${c.baths||'?'}</td>
+      </tr>`;
+    });
+    compsHtml += `<tr style="background:#f0f7f0;font-weight:700;border-top:2px solid #ccc;">
+      <td style="padding:8px 12px;color:#1a6b3a;">AVERAGE (${compCount} sales)</td>
+      <td style="padding:8px 12px;text-align:right;color:#1a6b3a;">$${avgP.toLocaleString()}</td>
+      <td style="padding:8px 12px;text-align:right;">—</td>
+      <td style="padding:8px 12px;text-align:right;color:#1a4a8a;">${avgSF?'$'+avgSF:'—'}</td>
+      <td style="padding:8px 12px;text-align:right;">—</td>
+    </tr></tbody></table>`;
+    if(avgSF && deal.sqft){
+      const imp   = avgSF * deal.sqft;
+      const diff  = ((arvVal/imp-1)*100).toFixed(0);
+      const col   = Math.abs(diff)<=12 ? '#1a6b3a' : '#b35a00';
+      compsHtml += `<div style="margin-top:8px;padding:9px 14px;background:#f0f7f0;border-left:3px solid #1a6b3a;font-size:12px;"><strong style="color:#1a6b3a;">Comp-implied value: $${imp.toLocaleString()}</strong> &nbsp;(${(deal.sqft||0).toLocaleString()} sf × $${avgSF}/sf avg) &nbsp;·&nbsp; <span style="color:${col};">Our ARV is ${Math.abs(diff)}% ${diff>0?'above':'below'} comp average</span></div>`;
     }
   }
 
-  // ── Tax line ──────────────────────────────────────────────────────
+  // ── Tax ───────────────────────────────────────────────────────────
   let taxLine = '';
   if(_pullData && _pullData.taxHistory && _pullData.taxHistory.length > 0){
     const t = _pullData.taxHistory[0];
-    taxLine = `Property tax $${(t.taxPaid||0).toLocaleString()}/yr &nbsp;·&nbsp; Assessed $${(t.assessment||0).toLocaleString()}`;
+    taxLine = `Annual tax: $${(t.taxPaid||0).toLocaleString()} (${t.year||''}) &nbsp;·&nbsp; Assessed value: $${(t.assessment||0).toLocaleString()}`;
   }
 
-  // ── Strategy block ────────────────────────────────────────────────
+  // ── Strategy ──────────────────────────────────────────────────────
   let stratHtml = '';
   if(strategy === 'flip'){
-    const net  = deal.netProfit || 0;
-    const roi  = deal.totalIn > 0 ? ((net/deal.totalIn)*100).toFixed(1) : '—';
+    const net = deal.netProfit||0;
+    const roi = deal.totalIn>0?((net/deal.totalIn)*100).toFixed(1):'—';
     stratHtml = `
-      <div class="strat-title">The Play — Buy, Rehab, Sell</div>
-      <div class="strat-grid">
-        <div class="strat-col">
-          <div class="strat-row"><span>Purchase Price</span><span>$${(deal.offer||0).toLocaleString()}</span></div>
-          <div class="strat-row"><span>Renovation Budget</span><span>$${(deal.rehabMid||deal.rehab||0).toLocaleString()}</span></div>
-          <div class="strat-row"><span>All-In (w/ costs)</span><span>$${(deal.totalIn||0).toLocaleString()}</span></div>
-          <div class="strat-row"><span>After Repair Value</span><span class="green">$${arvVal.toLocaleString()}</span></div>
-          <div class="strat-row total"><span>Net Profit</span><span class="${net>=0?'green':'red'}">$${net.toLocaleString()}</span></div>
-          <div class="strat-row"><span>ROI &nbsp;·&nbsp; Projected hold</span><span>${roi}% &nbsp;·&nbsp; ~90 days</span></div>
+    <div class="sec-title">The Play — Purchase, Renovate &amp; Sell</div>
+    <div class="two-col">
+      <div class="data-box">
+        <div class="data-row"><span>Purchase Price</span><span>$${(deal.offer||0).toLocaleString()}</span></div>
+        <div class="data-row"><span>Renovation Budget</span><span>$${(deal.rehabMid||deal.rehab||0).toLocaleString()}</span></div>
+        <div class="data-row"><span>Contingency (10%)</span><span>$${Math.round((deal.rehabMid||deal.rehab||0)*0.10).toLocaleString()}</span></div>
+        <div class="data-row"><span>Carrying Costs</span><span>$${Math.round((deal.totalIn||0)-(deal.offer||0)-(deal.rehabMid||deal.rehab||0)-((deal.rehabMid||deal.rehab||0)*0.10)).toLocaleString()}</span></div>
+        <div class="data-row total"><span>Total All-In</span><span>$${(deal.totalIn||0).toLocaleString()}</span></div>
+        <div class="data-row"><span>After Repair Value</span><span class="green">$${arvVal.toLocaleString()}</span></div>
+        <div class="data-row"><span>Agent &amp; Closing (8%)</span><span>-$${Math.round(arvVal*0.08).toLocaleString()}</span></div>
+        <div class="data-row total"><span>Net Profit</span><span class="${net>=0?'green':'red'}">$${net.toLocaleString()}</span></div>
+        <div class="data-row sm"><span>ROI &nbsp;·&nbsp; Projected Hold Period</span><span>${roi}% &nbsp;·&nbsp; ~90 days</span></div>
+      </div>
+      <div class="highlight-box">
+        <div class="hl-label">Loan Repayment</div>
+        <div class="hl-val green">At closing — ~90 days</div>
+        <div class="hl-sub">Sale proceeds pay off loan balance before we receive profit. Title company disburses directly.</div>
+        <div style="margin-top:18px;">
+          <div class="hl-label">ARV Validated By</div>
+          <div class="hl-val navy">${compNote}</div>
         </div>
-        <div class="strat-col insight-box">
-          <div class="insight-label">Your Money Back</div>
-          <div class="insight-val green">At closing, ~90 days</div>
-          <div class="insight-sub">Sale proceeds pay off the loan in full before we collect profit.</div>
-          <div style="margin-top:14px;">
-            <div class="insight-label">ARV Supported By</div>
-            <div class="insight-val" style="color:#2a6dd9;">${compNote}</div>
+        <div style="margin-top:18px;">
+          <div class="hl-label">Downside Protection</div>
+          <div class="hl-val" style="color:${parseInt(bearLtv)<=80?'#1a6b3a':'#b35a00'};">ARV -10% → ${bearLtv}% LTV</div>
+          <div class="hl-sub">${parseInt(bearLtv)<=80?'Still well-secured even in worst case.':'Tighter — ARV confidence critical.'}</div>
+        </div>
+      </div>
+    </div>`;
+  } else {
+    const b = deal.brrrr;
+    if(!b){ stratHtml='<p>No BRRRR data — enter rent in analyzer first.</p>'; }
+    else {
+      const dc = b.dscr>=1.25?'#1a6b3a':b.dscr>=1.0?'#b35a00':'#b30000';
+      const dl = b.dscr>=1.25?`Exceeds 1.25 minimum — lender ready. Rent covers payment at ${(b.dscr*100).toFixed(0)}%.`:b.dscr>=1.0?'Covers payment but below 1.25 threshold.':'Rent insufficient to cover payment.';
+      stratHtml = `
+      <div class="sec-title">The Play — Purchase, Renovate, Refinance &amp; Hold</div>
+      <div class="two-col">
+        <div class="data-box">
+          <div class="data-row"><span>Purchase + Rehab + Costs</span><span>$${(deal.totalIn||0).toLocaleString()}</span></div>
+          <div class="data-row"><span>Cash-Out Refinance (${deal.refiLtv||75}% LTV)</span><span class="navy">$${Math.round(b.refiAmt).toLocaleString()}</span></div>
+          <div class="data-row"><span>Capital Remaining in Deal</span><span>$${Math.round(b.cashLeft).toLocaleString()}</span></div>
+          <div class="data-row" style="margin-top:8px;padding-top:8px;border-top:1px solid #e0e0e0;"><span>Monthly Rent (market rate)</span><span>$${(deal.monthlyRent||0).toLocaleString()}/mo</span></div>
+          <div class="data-row"><span>Monthly PITI (P+I+Tax+Ins est.)</span><span>$${Math.round(b.piti).toLocaleString()}/mo</span></div>
+          <div class="data-row total"><span>Net Monthly Cash Flow</span><span class="${b.cashflow>0?'green':'red'}">$${Math.round(b.cashflow).toLocaleString()}/mo</span></div>
+          <div class="data-row sm"><span>Annual Cash Flow</span><span class="${b.annualCF>0?'green':'red'}">$${Math.round(b.annualCF).toLocaleString()}/yr</span></div>
+        </div>
+        <div class="highlight-box">
+          <div class="hl-label">Loan Repayment</div>
+          <div class="hl-val green">At refinance closing</div>
+          <div class="hl-sub">Refi proceeds retire the original loan in full. Property held as income-producing rental.</div>
+          <div style="margin-top:18px;">
+            <div class="hl-label">DSCR — Debt Service Coverage Ratio</div>
+            <div style="font-size:32px;font-weight:900;color:${dc};margin:4px 0;">${b.dscr.toFixed(2)} ${b.dscr>=1.25?'✓':b.dscr>=1.0?'⚠':'✗'}</div>
+            <div class="hl-sub">${dl}<br><span style="color:#999;">Lenders require ≥ 1.25. Above 1.0 = rent covers payment.</span></div>
           </div>
           <div style="margin-top:14px;">
-            <div class="insight-label">Worst Case (ARV -10%)</div>
-            <div class="insight-val" style="color:${parseInt(bearLtv)<=80?'#1a7a4a':'#e67e22'};">${bearLtv}% LTV &nbsp;·&nbsp; ${parseInt(bearLtv)<=80?'Still protected':'Monitor'}</div>
+            <div class="hl-label">Cap Rate (50% exp. ratio)</div>
+            <div class="hl-val navy">${b.capRate.toFixed(1)}%</div>
           </div>
         </div>
       </div>`;
-  } else {
-    const b = deal.brrrr;
-    if(!b){ stratHtml = '<p>No BRRRR data available.</p>'; }
-    else {
-      const dscrCol = b.dscr>=1.25?'#1a7a4a':b.dscr>=1.0?'#e67e22':'#c0392b';
-      stratHtml = `
-        <div class="strat-title">The Play — Buy, Rehab, Refinance, Hold</div>
-        <div class="strat-grid">
-          <div class="strat-col">
-            <div class="strat-row"><span>Purchase + Rehab + Costs</span><span>$${(deal.totalIn||0).toLocaleString()}</span></div>
-            <div class="strat-row"><span>Refinance at ${deal.refiLtv}% of ARV</span><span class="blue">$${Math.round(b.refiAmt).toLocaleString()}</span></div>
-            <div class="strat-row"><span>Capital Remaining in Deal</span><span style="color:${b.cashLeft<15000?'#1a7a4a':'#333'};">$${Math.round(b.cashLeft).toLocaleString()}</span></div>
-            <div class="strat-row"><span>Monthly Rent</span><span>$${(deal.monthlyRent||0).toLocaleString()}/mo</span></div>
-            <div class="strat-row"><span>Monthly PITI</span><span>$${Math.round(b.piti).toLocaleString()}/mo</span></div>
-            <div class="strat-row total"><span>Net Cash Flow</span><span class="${b.cashflow>0?'green':'red'}">$${Math.round(b.cashflow).toLocaleString()}/mo</span></div>
-            <div class="strat-row"><span>Annual Cash Flow</span><span class="${b.annualCF>0?'green':'red'}">$${Math.round(b.annualCF).toLocaleString()}/yr</span></div>
-          </div>
-          <div class="strat-col insight-box">
-            <div class="insight-label">Your Money Back</div>
-            <div class="insight-val green">At refi closing</div>
-            <div class="insight-sub">Refinance proceeds retire the original loan in full. We retain the property as a rental.</div>
-            <div style="margin-top:14px;">
-              <div class="insight-label">DSCR — Debt Service Coverage</div>
-              <div class="insight-val" style="color:${dscrCol};font-size:26px;">${b.dscr.toFixed(2)} ${b.dscr>=1.25?'✓':b.dscr>=1.0?'⚠':'✗'}</div>
-              <div class="insight-sub">${b.dscr>=1.25?'Exceeds 1.25 — lender ready. Rent covers payment at '+(b.dscr*100).toFixed(0)+'%.':b.dscr>=1.0?'Covers payment. Below 1.25 threshold.':'Rent does not cover payment.'}</div>
-            </div>
-          </div>
-        </div>`;
     }
   }
 
@@ -1200,49 +1222,55 @@ function _buildLenderPDF(dealId, btn){
 <html><head><meta charset="UTF-8"><title>Loan Request — ${deal.address}</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:'Arial',sans-serif;background:#fff;color:#1e2130;padding:40px;max-width:760px;margin:0 auto;font-size:13px;line-height:1.5;}
-  /* HEADER */
-  .hdr{background:#1e2130;border-radius:6px;padding:18px 24px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;}
-  .hdr-logo{font-size:24px;font-weight:900;letter-spacing:2px;color:#fff;}
+  body{font-family:Arial,Helvetica,sans-serif;background:#fff;color:#111;padding:36px;max-width:760px;margin:0 auto;font-size:13px;line-height:1.5;}
+  /* HEADER — only dark element */
+  .hdr{background:#1e2130;color:#fff;padding:16px 22px;border-radius:5px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;}
+  .hdr-logo{font-size:22px;font-weight:900;letter-spacing:2px;}
   .hdr-logo span{color:#2a6dd9;}
   .hdr-sub{font-size:9px;letter-spacing:2px;color:#8899bb;text-transform:uppercase;margin-top:2px;}
   .hdr-right{text-align:right;}
-  .hdr-title{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#fff;}
+  .hdr-title{font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
   .hdr-date{font-size:10px;color:#8899bb;margin-top:2px;}
-  .hdr-conf{font-size:9px;letter-spacing:2px;color:#2a6dd9;text-transform:uppercase;margin-top:3px;}
-  /* THE ASK */
-  .ask-box{background:#f0f2f8;border:2px solid #1e2130;border-radius:6px;padding:18px 22px;margin-bottom:18px;}
-  .ask-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#2a6dd9;font-weight:700;margin-bottom:12px;}
-  .ask-numbers{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
-  .ask-stat .av{font-size:20px;font-weight:900;font-family:monospace;}
-  .ask-stat .al{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
-  .protect-bar{background:#1e2130;border-radius:4px;padding:10px 16px;display:flex;gap:24px;flex-wrap:wrap;}
-  .pb-item .pl{font-size:9px;color:#8899bb;text-transform:uppercase;letter-spacing:1px;}
-  .pb-item .pv{font-size:13px;font-weight:700;font-family:monospace;margin-top:2px;}
+  .hdr-conf{font-size:9px;color:#60a5fa;letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
+  /* THE ASK BOX */
+  .ask{border:1.5px solid #1e2130;border-radius:5px;padding:16px 20px;margin-bottom:16px;}
+  .ask-lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#1a4a8a;font-weight:700;margin-bottom:10px;}
+  .ask-nums{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}
+  .ask-num .av{font-size:19px;font-weight:900;font-family:Georgia,serif;}
+  .ask-num .al{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-top:1px;}
+  .protect{background:#f7f8fa;border:1px solid #dde3ee;border-radius:4px;padding:10px 14px;display:flex;gap:28px;flex-wrap:wrap;}
+  .pb .pl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;}
+  .pb .pv{font-size:12px;font-weight:700;margin-top:2px;}
   /* PROPERTY */
-  .prop{border:1px solid #dde3ee;border-radius:6px;padding:14px 18px;margin-bottom:18px;display:grid;grid-template-columns:${photo?'160px 1fr':'1fr'};gap:14px;align-items:center;}
-  .prop-img{width:160px;height:110px;object-fit:cover;border-radius:4px;}
-  .prop-addr{font-size:17px;font-weight:900;color:#1e2130;margin-bottom:3px;}
-  .prop-meta{font-size:11px;color:#888;margin-bottom:3px;}
-  /* STRATEGY */
-  .strat-title{font-size:11px;font-weight:700;color:#1e2130;text-transform:uppercase;letter-spacing:1px;margin:18px 0 12px;}
-  .strat-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-  .strat-col{background:#f8f9fb;border:1px solid #dde3ee;border-radius:6px;padding:14px;}
-  .strat-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:12px;}
-  .strat-row:last-child{border-bottom:none;}
-  .strat-row.total{font-weight:700;font-size:13px;padding-top:9px;margin-top:3px;}
-  .strat-row .green{color:#1a7a4a;}.strat-row .red{color:#c0392b;}.strat-row .blue{color:#2a6dd9;}
-  .insight-box{background:#1e2130;border:none;color:#fff;}
-  .insight-label{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#8899bb;margin-bottom:4px;}
-  .insight-val{font-size:18px;font-weight:700;font-family:monospace;}
-  .insight-sub{font-size:11px;color:#8899bb;margin-top:3px;line-height:1.5;}
-  .insight-val.green{color:#4ade80;}
+  .prop{border:1px solid #dde3ee;border-radius:5px;padding:13px 16px;margin-bottom:16px;display:grid;grid-template-columns:${photo?'150px 1fr':'1fr'};gap:14px;align-items:center;}
+  .prop-img{width:150px;height:100px;object-fit:cover;border-radius:3px;display:block;}
+  .prop-addr{font-size:17px;font-weight:900;margin-bottom:3px;}
+  .prop-meta{font-size:11px;color:#666;margin-bottom:2px;}
   /* SECTION TITLE */
-  .sec{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#2a6dd9;font-weight:700;margin:18px 0 10px;padding-bottom:6px;border-bottom:2px solid #e8edf5;}
+  .sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1e2130;margin:16px 0 10px;padding-bottom:6px;border-bottom:2px solid #1e2130;}
+  /* TWO COL LAYOUT */
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+  /* DATA BOX */
+  .data-box{border:1px solid #dde3ee;border-radius:4px;padding:13px;}
+  .data-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:12px;}
+  .data-row:last-child{border-bottom:none;}
+  .data-row.total{font-weight:700;font-size:13px;border-top:1.5px solid #ccc;padding-top:8px;margin-top:3px;}
+  .data-row.sm{font-size:11px;color:#666;}
+  .green{color:#1a6b3a;}.red{color:#b30000;}.navy{color:#1a4a8a;}
+  /* HIGHLIGHT BOX — light not dark */
+  .highlight-box{background:#f7f8fa;border:1px solid #dde3ee;border-radius:4px;padding:16px;}
+  .hl-label{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+  .hl-val{font-size:16px;font-weight:700;}
+  .hl-sub{font-size:11px;color:#666;margin-top:3px;line-height:1.5;}
   /* FOOTER */
-  .ftr{margin-top:24px;padding-top:12px;border-top:1px solid #dde3ee;display:flex;justify-content:space-between;font-size:10px;color:#aaa;}
-  .ftr strong{color:#1e2130;}
-  @media print{body{padding:20px;}button{display:none;}}
+  .contact-bar{margin-top:16px;padding:10px 14px;background:#f7f8fa;border:1px solid #dde3ee;border-radius:4px;display:flex;justify-content:space-between;align-items:center;font-size:12px;flex-wrap:wrap;gap:8px;}
+  .ftr{margin-top:14px;padding-top:10px;border-top:1px solid #dde3ee;display:flex;justify-content:space-between;font-size:10px;color:#aaa;}
+  @media print{
+    body{padding:20px;}
+    button{display:none;}
+    .hdr{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .ask{border-color:#1e2130 !important;}
+  }
 </style></head><body>
 
 <div class="hdr">
@@ -1258,28 +1286,28 @@ function _buildLenderPDF(dealId, btn){
 </div>
 
 <!-- THE ASK -->
-<div class="ask-box">
-  <div class="ask-label">The Ask</div>
-  <div class="ask-numbers">
-    <div class="ask-stat"><div class="av">$${loanAmt.toLocaleString()}</div><div class="al">Loan Requested</div></div>
-    <div class="ask-stat"><div class="av">$${(deal.rehabMid||deal.rehab||0).toLocaleString()}</div><div class="al">Rehab Budget</div></div>
-    <div class="ask-stat"><div class="av" style="color:#2a6dd9;">$${arvVal.toLocaleString()}</div><div class="al">ARV (After Repair)</div></div>
-    <div class="ask-stat"><div class="av" style="color:#4ade80;">${ltvPct}%</div><div class="al">Loan-to-ARV</div></div>
+<div class="ask">
+  <div class="ask-lbl">Loan Request Summary</div>
+  <div class="ask-nums">
+    <div class="ask-num"><div class="av">$${loanAmt.toLocaleString()}</div><div class="al">Loan Requested</div></div>
+    <div class="ask-num"><div class="av">$${(deal.rehabMid||deal.rehab||0).toLocaleString()}</div><div class="al">Rehab Budget</div></div>
+    <div class="ask-num"><div class="av" style="color:#1a4a8a;">$${arvVal.toLocaleString()}</div><div class="al">After Repair Value</div></div>
+    <div class="ask-num"><div class="av" style="color:#1a6b3a;">${ltvPct}%</div><div class="al">Loan-to-ARV</div></div>
   </div>
-  <div class="protect-bar">
-    <div class="pb-item"><div class="pl">Your equity buffer</div><div class="pv" style="color:#4ade80;">${equityPct}% of ARV protected</div></div>
-    <div class="pb-item"><div class="pl">If ARV misses by 10%</div><div class="pv" style="color:${parseInt(bearLtv)<=80?'#4ade80':'#fbbf24'};">${bearLtv}% LTV — ${parseInt(bearLtv)<=80?'still safe':'tight'}</div></div>
-    <div class="pb-item"><div class="pl">ARV evidence</div><div class="pv" style="color:#60a5fa;">${compCount > 0 ? compCount+' sold comps' : 'See below'}</div></div>
+  <div class="protect">
+    <div class="pb"><div class="pl">Lender equity buffer</div><div class="pv" style="color:#1a6b3a;">${eqPct}% of ARV</div></div>
+    <div class="pb"><div class="pl">Worst case (ARV −10%)</div><div class="pv" style="color:${parseInt(bearLtv)<=80?'#1a6b3a':'#b35a00'};">${bearLtv}% LTV — ${parseInt(bearLtv)<=80?'protected':'tight'}</div></div>
+    <div class="pb"><div class="pl">ARV support</div><div class="pv" style="color:#1a4a8a;">${compNote}</div></div>
   </div>
 </div>
 
 <!-- PROPERTY -->
 <div class="prop">
-  ${photo ? `<img class="prop-img" src="${photo}" alt="">` : ''}
+  ${photo?`<img class="prop-img" src="${photo}" alt="">`:''}
   <div>
     <div class="prop-addr">${deal.address||'—'}</div>
-    <div class="prop-meta">${[deal.bedBath?deal.bedBath+' bd/ba':'', deal.sqft?deal.sqft.toLocaleString()+' sqft':''].filter(Boolean).join(' · ')}</div>
-    ${taxLine ? `<div class="prop-meta">${taxLine}</div>` : ''}
+    <div class="prop-meta">${[deal.bedBath?deal.bedBath+' bd/ba':'',deal.sqft?(deal.sqft).toLocaleString()+' sqft':''].filter(Boolean).join(' · ')}</div>
+    ${taxLine?`<div class="prop-meta">${taxLine}</div>`:''}
   </div>
 </div>
 
@@ -1287,18 +1315,18 @@ function _buildLenderPDF(dealId, btn){
 ${stratHtml}
 
 <!-- COMPS -->
-<div class="sec">ARV Support — Comparable Sales</div>
+<div class="sec-title">ARV Support — Comparable Sales</div>
 ${compsHtml}
 
 <!-- CONTACT -->
-<div style="margin-top:20px;padding:14px 18px;background:#f0f2f8;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:12px;">
-  <div><strong style="color:#1e2130;">Borrower:</strong> &nbsp; ${nameVal}</div>
-  <div><strong style="color:#1e2130;">Loan Requested:</strong> &nbsp; $${loanAmt.toLocaleString()} &nbsp;·&nbsp; <strong>LTV:</strong> ${ltvPct}% of ARV</div>
+<div class="contact-bar">
+  <div><strong>Borrower:</strong> &nbsp;${nameVal} &nbsp;·&nbsp; Pecos Grant Development LLC</div>
+  <div><strong>Loan:</strong> &nbsp;$${loanAmt.toLocaleString()} &nbsp;·&nbsp; <strong>LTV:</strong> ${ltvPct}% of ARV &nbsp;·&nbsp; <strong>ARV:</strong> $${arvVal.toLocaleString()}</div>
 </div>
 
 <div class="ftr">
-  <span><strong>Pecos Grant Development LLC</strong> · Springfield, MO · pecosgrantdevelopmentllc@gmail.com</span>
-  <span>v4.5.0 · ${date}</span>
+  <span>Pecos Grant Development LLC · Springfield, MO · pecosgrantdevelopmentllc@gmail.com</span>
+  <span>Deal Analyzer v4.5.0 · ${date}</span>
 </div>
 
 </body></html>`;
@@ -1307,7 +1335,7 @@ ${compsHtml}
   win.document.write(html);
   win.document.close();
   win.focus();
-  setTimeout(()=>win.print(), 500);
+  setTimeout(()=>win.print(),500);
 }
 
 // Init

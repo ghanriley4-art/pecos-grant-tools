@@ -1034,242 +1034,294 @@ function loadProfile(i){ const p=savedProfiles[i]; document.getElementById('nbhd
 function deleteProfile(i){ savedProfiles.splice(i,1); localStorage.setItem('pecos_profiles',JSON.stringify(savedProfiles)); renderSavedProfiles(); }
 
 // ═══════════════════════════════════════════════
-// LENDER PACKAGE PDF — rebuilt from scratch
+// LENDER PACKAGE PDF — lender language, no deal score
+// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// LENDER PACKAGE PDF — lender language, no deal score
 // ═══════════════════════════════════════════════
 function generateLenderPackage(deal){
   if(!deal) deal = lastResult;
   if(!deal){ alert('Run the numbers first.'); return; }
-  const date    = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-  const roiPct  = deal.totalIn > 0 ? ((deal.netProfit/deal.totalIn)*100).toFixed(1) : '—';
-  const margin  = deal.arv > 0 ? ((deal.netProfit/deal.arv)*100).toFixed(1) : '—';
-  const photo   = _pullData && _pullData.photo ? _pullData.photo : '';
+  const date  = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const photo = _pullData && _pullData.photo ? _pullData.photo : '';
 
-  // Build comps HTML for PDF
-  let compsHtml = '<p style="color:#999;font-style:italic;">No comps available — run PULL or Area Benchmark to add comp data.</p>';
-  if(_pullData && _pullData.comps && _pullData.comps.length > 0){
-    const soldComps = _pullData.comps.filter(c=>c.price>0);
-    if(soldComps.length > 0){
-      const avgSold = Math.round(soldComps.reduce((s,c)=>s+c.price,0)/soldComps.length);
-      const ppsfArr = soldComps.filter(c=>c.ppsf>0);
-      const avgPpsf = ppsfArr.length ? Math.round(ppsfArr.reduce((s,c)=>s+c.ppsf,0)/ppsfArr.length) : 0;
-      compsHtml = `<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#f5f2ed;"><th style="text-align:left;padding:6px 8px;border-bottom:1px solid #ddd;color:#888;font-size:10px;letter-spacing:1px;text-transform:uppercase;">Address</th><th style="text-align:right;padding:6px 8px;border-bottom:1px solid #ddd;color:#888;font-size:10px;text-transform:uppercase;">Sold</th><th style="text-align:right;padding:6px 8px;border-bottom:1px solid #ddd;color:#888;font-size:10px;text-transform:uppercase;">Sqft</th><th style="text-align:right;padding:6px 8px;border-bottom:1px solid #ddd;color:#888;font-size:10px;text-transform:uppercase;">$/sf</th><th style="text-align:right;padding:6px 8px;border-bottom:1px solid #ddd;color:#888;font-size:10px;text-transform:uppercase;">Bd/Ba</th></tr></thead><tbody>`;
-      soldComps.forEach(c => { compsHtml += `<tr><td style="padding:6px 8px;border-bottom:1px solid #f0ede8;">${c.address||'—'}</td><td style="padding:6px 8px;border-bottom:1px solid #f0ede8;text-align:right;color:#27ae60;font-weight:600;">$${(c.price||0).toLocaleString()}</td><td style="padding:6px 8px;border-bottom:1px solid #f0ede8;text-align:right;">${c.sqft||'—'}</td><td style="padding:6px 8px;border-bottom:1px solid #f0ede8;text-align:right;color:#c9a84c;">${c.ppsf?'$'+c.ppsf:'—'}</td><td style="padding:6px 8px;border-bottom:1px solid #f0ede8;text-align:right;color:#888;">${c.beds||'?'}/${c.baths||'?'}</td></tr>`; });
-      compsHtml += `<tr style="background:#fdf9f1;font-weight:700;"><td style="padding:6px 8px;color:#c9a84c;">AVG (${soldComps.length} sold)</td><td style="padding:6px 8px;text-align:right;color:#27ae60;">$${avgSold.toLocaleString()}</td><td style="padding:6px 8px;text-align:right;">—</td><td style="padding:6px 8px;text-align:right;color:#c9a84c;">${avgPpsf?'$'+avgPpsf:'—'}</td><td style="padding:6px 8px;text-align:right;">—</td></tr></tbody></table>`;
-      if(avgPpsf && deal.sqft){
-        compsHtml += `<div style="margin-top:8px;padding:10px;background:#f0faf4;border-left:3px solid #27ae60;font-size:12px;"><strong style="color:#27ae60;">Comp-implied ARV: $${(avgPpsf*deal.sqft).toLocaleString()}</strong> &nbsp;(${deal.sqft.toLocaleString()} sf × $${avgPpsf}/sf avg)</div>`;
+  // ── Loan request numbers ──────────────────────────────────────────
+  const loanAmt    = deal.offer || 0;
+  const arvVal     = deal.arv   || 0;
+  const ltvPct     = arvVal > 0 ? ((loanAmt / arvVal) * 100).toFixed(0) : '—';
+  const ltvProtect = arvVal > 0 && loanAmt > 0 ? ((1 - loanAmt/arvVal)*100).toFixed(0) : '—';
+  // Even if ARV misses by 10%, lender LTV at that level
+  const bearArv    = Math.round(arvVal * 0.90);
+  const bearLtv    = bearArv > 0 ? ((loanAmt / bearArv)*100).toFixed(0) : '—';
+
+  // ── Comps table ───────────────────────────────────────────────────
+  let compsHtml = '<p style="color:#888;font-style:italic;font-size:12px;">No comp data — run PULL before generating this package for full ARV support.</p>';
+  let avgSoldPrice = 0, avgSoldPpsf = 0, compCount = 0;
+  if(_pullData && _pullData.comps){
+    const sc = _pullData.comps.filter(c=>c.price>0);
+    if(sc.length > 0){
+      compCount    = sc.length;
+      avgSoldPrice = Math.round(sc.reduce((s,c)=>s+c.price,0)/sc.length);
+      const pp     = sc.filter(c=>c.ppsf>0);
+      avgSoldPpsf  = pp.length ? Math.round(pp.reduce((s,c)=>s+c.ppsf,0)/pp.length) : 0;
+      compsHtml = `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px;">
+        <thead><tr style="background:#f0f2f5;">
+          <th style="text-align:left;padding:7px 10px;border-bottom:2px solid #ddd;color:#666;font-size:10px;text-transform:uppercase;letter-spacing:1px;">Address</th>
+          <th style="text-align:right;padding:7px 10px;border-bottom:2px solid #ddd;color:#666;font-size:10px;text-transform:uppercase;">Sold Price</th>
+          <th style="text-align:right;padding:7px 10px;border-bottom:2px solid #ddd;color:#666;font-size:10px;text-transform:uppercase;">Sqft</th>
+          <th style="text-align:right;padding:7px 10px;border-bottom:2px solid #ddd;color:#666;font-size:10px;text-transform:uppercase;">$/sf</th>
+          <th style="text-align:right;padding:7px 10px;border-bottom:2px solid #ddd;color:#666;font-size:10px;text-transform:uppercase;">Bed/Ba</th>
+        </tr></thead><tbody>`;
+      sc.forEach(c => {
+        compsHtml += `<tr>
+          <td style="padding:6px 10px;border-bottom:1px solid #eee;">${c.address||'—'}</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;font-weight:600;color:#1a7a4a;">$${(c.price||0).toLocaleString()}</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;">${c.sqft||'—'}</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;color:#2a6dd9;">${c.ppsf?'$'+c.ppsf:'—'}</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;color:#888;">${c.beds||'?'}/${c.baths||'?'}</td>
+        </tr>`;
+      });
+      compsHtml += `<tr style="background:#f9f9f9;font-weight:700;">
+        <td style="padding:8px 10px;color:#2a6dd9;">AVG (${sc.length} sold comps)</td>
+        <td style="padding:8px 10px;text-align:right;color:#1a7a4a;">$${avgSoldPrice.toLocaleString()}</td>
+        <td style="padding:8px 10px;text-align:right;">—</td>
+        <td style="padding:8px 10px;text-align:right;color:#2a6dd9;">${avgSoldPpsf?'$'+avgSoldPpsf:'—'}</td>
+        <td style="padding:8px 10px;text-align:right;">—</td>
+      </tr></tbody></table>`;
+      if(avgSoldPpsf && deal.sqft){
+        const compImplied = avgSoldPpsf * deal.sqft;
+        const arvVsComp   = arvVal > 0 ? ((arvVal/compImplied - 1)*100).toFixed(0) : 0;
+        const arvColor    = Math.abs(arvVsComp) <= 10 ? '#1a7a4a' : '#e67e22';
+        compsHtml += `<div style="padding:10px 14px;background:#f0f7f0;border-left:3px solid #1a7a4a;border-radius:0 4px 4px 0;font-size:12px;">
+          <strong style="color:#1a7a4a;">Comp-implied ARV: $${compImplied.toLocaleString()}</strong>
+          &nbsp;(${deal.sqft.toLocaleString()} sf × $${avgSoldPpsf}/sf)
+          &nbsp;·&nbsp; Our ARV of $${arvVal.toLocaleString()} is <span style="color:${arvColor};font-weight:600;">${Math.abs(arvVsComp)}% ${arvVsComp > 0 ? 'above' : 'below'} comp avg</span>
+        </div>`;
       }
     }
   }
 
-  // Tax data for PDF
-  let taxHtml = '';
+  // ── Tax line ──────────────────────────────────────────────────────
+  let taxLine = '';
   if(_pullData && _pullData.taxHistory && _pullData.taxHistory.length > 0){
-    const latestTax = _pullData.taxHistory[0];
-    taxHtml = `<div style="font-size:11px;color:#888;margin-top:4px;">Property tax: $${(latestTax.taxPaid||0).toLocaleString()}/yr (${latestTax.year||'recent'}) · Assessed: $${(latestTax.assessment||0).toLocaleString()}</div>`;
+    const t = _pullData.taxHistory[0];
+    taxLine = `Property tax: $${(t.taxPaid||0).toLocaleString()}/yr (${t.year||'recent'}) · Assessed: $${(t.assessment||0).toLocaleString()}`;
   }
 
-  // BRRRR section for PDF
-  let brrrrPdfHtml = '';
+  // ── BRRRR / hold section ──────────────────────────────────────────
+  let holdHtml = '';
   if(deal.brrrr && deal.monthlyRent > 0){
     const b = deal.brrrr;
-    const dscrColor = b.dscr>=1.25?'#27ae60':b.dscr>=1.0?'#e67e22':'#e03c3c';
-    const dscrLabel = b.dscr>=1.25?'✓ Lender Ready':b.dscr>=1.0?'⚠ Below 1.25 Threshold':'✗ Sub-1.0';
-    brrrrPdfHtml = `
-      <div class="page-break" style="margin-top:28px;">
-        <div class="section-title">BRRRR / HOLD STRATEGY PROJECTION</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-          <div>
-            <table style="width:100%;border-collapse:collapse;font-size:12px;">
-              <tr><td style="padding:7px 0;border-bottom:1px solid #f0ede8;color:#555;">ARV</td><td style="padding:7px 0;border-bottom:1px solid #f0ede8;text-align:right;font-weight:600;font-family:monospace;">$${deal.arv.toLocaleString()}</td></tr>
-              <tr><td style="padding:7px 0;border-bottom:1px solid #f0ede8;color:#555;">Refi Amount (${deal.refiLtv}% LTV)</td><td style="padding:7px 0;border-bottom:1px solid #f0ede8;text-align:right;font-weight:600;font-family:monospace;">$${Math.round(b.refiAmt).toLocaleString()}</td></tr>
-              <tr><td style="padding:7px 0;border-bottom:1px solid #f0ede8;color:#555;">Cash Left In Deal</td><td style="padding:7px 0;border-bottom:1px solid #f0ede8;text-align:right;font-weight:600;font-family:monospace;color:${b.cashLeft<5000?'#27ae60':'#111'};">$${Math.round(b.cashLeft).toLocaleString()}</td></tr>
-              <tr><td style="padding:7px 0;border-bottom:1px solid #f0ede8;color:#555;">Monthly Rent</td><td style="padding:7px 0;border-bottom:1px solid #f0ede8;text-align:right;font-weight:600;font-family:monospace;">$${deal.monthlyRent.toLocaleString()}/mo</td></tr>
-              <tr><td style="padding:7px 0;border-bottom:1px solid #f0ede8;color:#555;">Monthly PITI</td><td style="padding:7px 0;border-bottom:1px solid #f0ede8;text-align:right;font-family:monospace;">$${Math.round(b.piti).toLocaleString()}/mo</td></tr>
-              <tr style="background:#f5f2ed;"><td style="padding:7px 0;font-weight:700;color:#111;padding-left:4px;">Net Monthly Cash Flow</td><td style="padding:7px 0;text-align:right;font-weight:700;font-family:monospace;color:${b.cashflow>0?'#27ae60':'#e03c3c'};">$${Math.round(b.cashflow).toLocaleString()}/mo</td></tr>
-            </table>
-          </div>
-          <div>
-            <table style="width:100%;border-collapse:collapse;font-size:12px;">
-              <tr><td style="padding:7px 0;border-bottom:1px solid #f0ede8;color:#555;">Gross Rent Yield</td><td style="padding:7px 0;border-bottom:1px solid #f0ede8;text-align:right;font-family:monospace;">${b.grY.toFixed(1)}%</td></tr>
-              <tr><td style="padding:7px 0;border-bottom:1px solid #f0ede8;color:#555;">Cash-on-Cash ROI</td><td style="padding:7px 0;border-bottom:1px solid #f0ede8;text-align:right;font-family:monospace;">${b.cashLeft<1000?'∞ (infinite)':b.cocRoi.toFixed(1)+'%'}</td></tr>
-              <tr><td style="padding:7px 0;border-bottom:1px solid #f0ede8;color:#555;">Annual Cash Flow</td><td style="padding:7px 0;border-bottom:1px solid #f0ede8;text-align:right;font-family:monospace;color:${b.annualCF>0?'#27ae60':'#e03c3c'};">$${Math.round(b.annualCF).toLocaleString()}/yr</td></tr>
-              <tr><td style="padding:7px 0;border-bottom:1px solid #f0ede8;color:#555;">Cap Rate (est.)</td><td style="padding:7px 0;border-bottom:1px solid #f0ede8;text-align:right;font-family:monospace;">${b.capRate.toFixed(1)}%</td></tr>
-              <tr style="background:#eef5ff;"><td style="padding:7px 0;font-weight:700;color:#1a5276;padding-left:4px;">DSCR</td><td style="padding:7px 0;text-align:right;font-weight:700;font-family:monospace;color:${dscrColor};">${b.dscr.toFixed(2)} — ${dscrLabel}</td></tr>
-            </table>
-            <div style="margin-top:10px;padding:8px;background:#eef5ff;border-left:3px solid #4a9eff;font-size:11px;color:#1a5276;">DSCR = Monthly Rent ÷ PITI · Lenders require ≥1.25 for DSCR financing. Values above 1.0 indicate rent covers the payment.</div>
-          </div>
+    const dscrColor = b.dscr>=1.25?'#1a7a4a':b.dscr>=1.0?'#e67e22':'#c0392b';
+    const dscrLabel = b.dscr>=1.25?'✓ Lender Ready — exceeds 1.25 threshold':b.dscr>=1.0?'⚠ Covers payment but below 1.25 threshold':'✗ Below 1.0 — rent does not cover payment';
+    holdHtml = `
+    <div class="section-title" style="margin-top:24px;">EXIT STRATEGY 2 — HOLD &amp; REFINANCE</div>
+    <p style="font-size:12px;color:#555;margin-bottom:14px;line-height:1.6;">
+      If market conditions don't favor an immediate sale, we refinance at ${deal.refiLtv}% LTV post-renovation.
+      This returns the majority of capital while generating monthly cash flow. Loan serviced by rental income.
+    </p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <tr><td style="padding:7px 0;border-bottom:1px solid #eee;color:#555;">ARV (post-renovation)</td><td style="padding:7px 0;border-bottom:1px solid #eee;text-align:right;font-weight:600;">$${arvVal.toLocaleString()}</td></tr>
+        <tr><td style="padding:7px 0;border-bottom:1px solid #eee;color:#555;">Refinance Amount (${deal.refiLtv}% LTV)</td><td style="padding:7px 0;border-bottom:1px solid #eee;text-align:right;font-weight:600;color:#2a6dd9;">$${Math.round(b.refiAmt).toLocaleString()}</td></tr>
+        <tr><td style="padding:7px 0;border-bottom:1px solid #eee;color:#555;">Capital Remaining in Deal</td><td style="padding:7px 0;border-bottom:1px solid #eee;text-align:right;font-weight:600;color:${b.cashLeft<10000?'#1a7a4a':'#333'};">$${Math.round(b.cashLeft).toLocaleString()}</td></tr>
+        <tr><td style="padding:7px 0;border-bottom:1px solid #eee;color:#555;">Monthly Rent</td><td style="padding:7px 0;border-bottom:1px solid #eee;text-align:right;font-weight:600;">$${(deal.monthlyRent||0).toLocaleString()}/mo</td></tr>
+        <tr><td style="padding:7px 0;border-bottom:1px solid #eee;color:#555;">Monthly PITI (P+I+Tax)</td><td style="padding:7px 0;border-bottom:1px solid #eee;text-align:right;">$${Math.round(b.piti).toLocaleString()}/mo</td></tr>
+        <tr style="background:#f9f9f9;"><td style="padding:8px 4px;font-weight:700;color:#111;">Net Monthly Cash Flow</td><td style="padding:8px 4px;text-align:right;font-weight:700;color:${b.cashflow>0?'#1a7a4a':'#c0392b'};">$${Math.round(b.cashflow).toLocaleString()}/mo</td></tr>
+      </table>
+      <div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;">
+          <tr><td style="padding:7px 0;border-bottom:1px solid #eee;color:#555;">Annual Cash Flow</td><td style="padding:7px 0;border-bottom:1px solid #eee;text-align:right;color:${b.annualCF>0?'#1a7a4a':'#c0392b'};font-weight:600;">$${Math.round(b.annualCF).toLocaleString()}/yr</td></tr>
+          <tr><td style="padding:7px 0;border-bottom:1px solid #eee;color:#555;">Gross Rent Yield</td><td style="padding:7px 0;border-bottom:1px solid #eee;text-align:right;">${b.grY.toFixed(1)}%</td></tr>
+          <tr><td style="padding:7px 0;border-bottom:1px solid #eee;color:#555;">Cap Rate (50% expense ratio)</td><td style="padding:7px 0;border-bottom:1px solid #eee;text-align:right;">${b.capRate.toFixed(1)}%</td></tr>
+          <tr style="background:#e8f4ff;border-radius:4px;"><td style="padding:8px 6px;font-weight:700;color:#1e2130;">DSCR</td><td style="padding:8px 6px;text-align:right;font-weight:700;color:${dscrColor};font-family:monospace;font-size:13px;">${b.dscr.toFixed(2)}</td></tr>
+        </table>
+        <div style="padding:10px 12px;background:#e8f4ff;border-left:3px solid #2a6dd9;border-radius:0 4px 4px 0;font-size:11px;color:#1e2130;line-height:1.6;">
+          <strong>${dscrLabel}</strong><br>
+          DSCR = Monthly Rent ÷ PITI. Most DSCR lenders require ≥ 1.25. Above 1.0 means rent covers the full payment.
         </div>
-      </div>`;
+      </div>
+    </div>`;
   }
 
-  // Score verdict
-  const sVerdict = deal.score>=75?'🔥 FIRE DEAL':deal.score>=55?'✓ SOLID DEAL':deal.score>=35?'⚠ MARGINAL':'✗ PASS';
-  const sColor   = deal.score>=75?'#27ae60':deal.score>=55?'#7ecb8d':deal.score>=35?'#e67e22':'#e03c3c';
+  // ── Stress test rows ──────────────────────────────────────────────
+  const stressRows = [{name:'Bear — ARV -10%',arv:Math.round(arvVal*0.90)},{name:'Base — Our estimate',arv:arvVal},{name:'Bull — ARV +8%',arv:Math.round(arvVal*1.08)}].map(s => {
+    const sNet = s.arv - (deal.totalIn||0) - s.arv*0.06 - s.arv*0.02;
+    const sLtv = loanAmt > 0 && s.arv > 0 ? ((loanAmt/s.arv)*100).toFixed(0) : '—';
+    const verd = sNet>=25000?'✓ Strong':sNet>=10000?'✓ Works':sNet>=0?'⚠ Thin':'✗ Loss';
+    const vc   = sNet>=25000?'#1a7a4a':sNet>=10000?'#27ae60':sNet>=0?'#e67e22':'#c0392b';
+    const base = s.arv === arvVal;
+    return `<tr style="${base?'background:#f5f8ff;font-weight:600;':''}">
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;">${s.name}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;font-family:monospace;">$${s.arv.toLocaleString()}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;font-family:monospace;color:${sNet>=0?'#1a7a4a':'#c0392b'};font-weight:600;">$${sNet.toLocaleString()}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;font-family:monospace;">${sLtv}% LTV</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;font-weight:700;color:${vc};">${verd}</td>
+    </tr>`;
+  }).join('');
 
   const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Lender Package — ${deal.address}</title>
+<html><head><meta charset="UTF-8"><title>Loan Request — ${deal.address}</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:'Arial',sans-serif;background:#fff;color:#111;padding:36px;max-width:780px;margin:0 auto;font-size:13px;line-height:1.5;}
-  .header{border-bottom:3px solid #c9a84c;padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;}
-  .brand{font-size:30px;font-weight:900;letter-spacing:3px;color:#111;}
-  .brand span{color:#c9a84c;}
-  .brand-sub{font-size:11px;letter-spacing:2px;color:#888;text-transform:uppercase;margin-top:2px;}
-  .doc-meta{text-align:right;font-size:11px;color:#888;}
-  .doc-meta .doc-title{font-size:14px;font-weight:700;color:#111;letter-spacing:1px;text-transform:uppercase;}
-  .doc-meta .doc-date{margin-top:3px;}
-  .property-block{display:grid;grid-template-columns:${photo?'200px 1fr':'1fr'};gap:18px;margin-bottom:24px;background:#f9f7f3;border-radius:6px;overflow:hidden;}
-  .property-photo{width:200px;height:140px;object-fit:cover;object-position:center;display:block;}
-  .property-info{padding:${photo?'16px':'16px 20px'};}
-  .property-address{font-size:20px;font-weight:900;color:#111;margin-bottom:4px;}
-  .property-meta{font-size:12px;color:#888;margin-bottom:10px;}
-  .property-stats{display:flex;gap:20px;flex-wrap:wrap;}
-  .prop-stat{text-align:center;}<br>
-  .prop-stat .sv{font-size:18px;font-weight:700;font-family:monospace;}.prop-stat .sl{font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:1px;}
-  .score-badge{display:flex;align-items:center;gap:16px;padding:14px 20px;border-radius:6px;margin-bottom:20px;}
-  .score-badge.fire{background:#e8f8ef;border:1px solid #2ecc71;}.score-badge.good{background:#fef9ec;border:1px solid #f0b429;}.score-badge.marginal{background:#fff9ed;border:1px solid #e67e22;}.score-badge.pass{background:#fef0f0;border:1px solid #e03c3c;}
-  .score-num{font-size:40px;font-weight:900;font-family:monospace;}
-  .score-label{font-size:18px;font-weight:700;}
-  .score-sub{font-size:12px;color:#888;margin-top:2px;}
-  .section-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c9a84c;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e0d8;margin-top:22px;}
-  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
-  table.fin-table{width:100%;border-collapse:collapse;}
-  table.fin-table tr td{padding:7px 0;border-bottom:1px solid #f0ede8;font-size:13px;}
-  table.fin-table tr:last-child td{border-bottom:none;}
-  table.fin-table td.label{color:#555;}
-  table.fin-table td.value{text-align:right;font-weight:600;font-family:monospace;}
-  table.fin-table tr.total td{background:#f8f6f2;font-weight:700;font-size:14px;padding:9px 4px;}
-  table.fin-table tr.profit td.value{color:#27ae60;font-size:15px;}
-  .stress-table{width:100%;border-collapse:collapse;font-size:12px;}
-  .stress-table th{text-align:left;padding:7px 10px;border-bottom:2px solid #e5e0d8;background:#f9f7f3;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#888;}
-  .stress-table td{padding:8px 10px;border-bottom:1px solid #f0ede8;}
-  .stress-table tr.base td{background:#fdf9f1;}
-  .flags-list{display:flex;flex-direction:column;gap:5px;}
-  .flag-item{padding:7px 12px;background:#f8f8f8;border-radius:3px;border-left:2px solid #ddd;font-size:12px;color:#444;line-height:1.5;}
-  .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:32px;}
-  .sig-block .sig-label{font-size:10px;letter-spacing:2px;color:#c9a84c;text-transform:uppercase;font-weight:700;margin-bottom:8px;}
-  .sig-line{border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555;margin-top:40px;}
-  .footer{margin-top:28px;padding-top:14px;border-top:1px solid #e5e0d8;display:flex;justify-content:space-between;font-size:10px;color:#aaa;}
-  .highlight-box{padding:12px 16px;border-radius:4px;margin-top:12px;}
-  .highlight-box.green{background:#e8f8ef;border-left:3px solid #27ae60;}
-  .highlight-box.gold{background:#fdf9f1;border-left:3px solid #c9a84c;}
-  @media print{body{padding:18px;}button{display:none;}.page-break{page-break-before:auto;}}
+  body{font-family:'Arial',sans-serif;background:#fff;color:#1e2130;padding:36px;max-width:800px;margin:0 auto;font-size:13px;line-height:1.5;}
+  .header{background:#1e2130;color:#fff;padding:20px 28px;border-radius:6px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;}
+  .logo-text{font-size:26px;font-weight:900;letter-spacing:2px;color:#fff;}
+  .logo-text span{color:#2a6dd9;}
+  .logo-sub{font-size:10px;letter-spacing:2px;color:#8899bb;text-transform:uppercase;margin-top:3px;}
+  .doc-meta{text-align:right;}
+  .doc-title{font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#fff;}
+  .doc-date{font-size:11px;color:#8899bb;margin-top:3px;}
+  .doc-conf{font-size:10px;color:#2a6dd9;letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
+  .loan-request-box{background:#f0f2f5;border:2px solid #1e2130;border-radius:6px;padding:20px 24px;margin-bottom:20px;}
+  .lr-title{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#2a6dd9;font-weight:700;margin-bottom:12px;}
+  .lr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .lr-stat .sv{font-size:22px;font-weight:900;font-family:monospace;color:#1e2130;}
+  .lr-stat .sl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+  .ltv-box{background:#1e2130;color:#fff;border-radius:4px;padding:12px 16px;margin-top:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .ltv-box .lbl{font-size:10px;letter-spacing:1px;color:#8899bb;text-transform:uppercase;}
+  .ltv-box .val{font-size:16px;font-weight:700;font-family:monospace;}
+  .property-block{border:1px solid #ddd;border-radius:6px;padding:16px 20px;margin-bottom:20px;display:grid;grid-template-columns:${photo?'180px 1fr':'1fr'};gap:16px;align-items:start;}
+  .prop-photo{width:180px;height:120px;object-fit:cover;border-radius:4px;display:block;}
+  .prop-address{font-size:18px;font-weight:900;color:#1e2130;margin-bottom:4px;}
+  .prop-meta{font-size:11px;color:#888;margin-bottom:6px;}
+  .prop-tax{font-size:11px;color:#888;margin-bottom:10px;}
+  .section-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#2a6dd9;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #e8edf5;margin-top:20px;}
+  .exit-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:16px;}
+  .exit-card{background:#f8f9fb;border:1px solid #dde3ee;border-radius:6px;padding:16px;}
+  .exit-card-title{font-size:12px;font-weight:700;color:#1e2130;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #dde3ee;}
+  .exit-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:12px;}
+  .exit-row:last-child{border-bottom:none;font-weight:700;padding-top:8px;}
+  .exit-row .el{color:#555;}
+  .exit-row .ev{font-family:monospace;font-weight:600;}
+  .about-box{background:#f0f2f5;border-radius:6px;padding:16px 20px;margin-top:20px;font-size:12px;color:#444;line-height:1.7;}
+  .about-box strong{color:#1e2130;}
+  .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:28px;}
+  .sig-label{font-size:10px;letter-spacing:2px;color:#2a6dd9;text-transform:uppercase;font-weight:700;margin-bottom:6px;}
+  .sig-line{border-top:1px solid #1e2130;padding-top:8px;font-size:11px;color:#555;margin-top:36px;}
+  .lender-row{margin-top:18px;padding:12px 16px;background:#f0f2f5;border-radius:4px;display:flex;gap:32px;font-size:12px;}
+  .lender-row strong{color:#1e2130;}
+  .footer{margin-top:24px;padding-top:12px;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:10px;color:#aaa;}
+  @media print{body{padding:18px;}button{display:none;}}
 </style></head><body>
 
 <!-- HEADER -->
 <div class="header">
   <div>
-    <div class="brand">PECOS <span>GRANT</span></div>
-    <div class="brand-sub">Development LLC · Springfield, MO</div>
+    <div class="logo-text">PGD <span>|</span> PECOS GRANT</div>
+    <div class="logo-sub">Development LLC · Springfield, Missouri</div>
   </div>
   <div class="doc-meta">
-    <div class="doc-title">Investment Lender Package</div>
-    <div class="doc-date">Prepared: ${date}</div>
-    <div style="margin-top:3px;color:#c9a84c;font-weight:600;">CONFIDENTIAL</div>
+    <div class="doc-title">Loan Request Package</div>
+    <div class="doc-date">${date}</div>
+    <div class="doc-conf">Confidential</div>
   </div>
 </div>
 
-<!-- PROPERTY BLOCK -->
+<!-- LOAN REQUEST BOX — lender sees this first -->
+<div class="loan-request-box">
+  <div class="lr-title">Loan Request Summary</div>
+  <div class="lr-grid">
+    <div class="lr-stat"><div class="sv">$${loanAmt.toLocaleString()}</div><div class="sl">Purchase Price</div></div>
+    <div class="lr-stat"><div class="sv">$${(deal.rehabMid||deal.rehab||0).toLocaleString()}</div><div class="sl">Rehab Budget</div></div>
+    <div class="lr-stat"><div class="sv" style="color:#2a6dd9;">$${arvVal.toLocaleString()}</div><div class="sl">After Repair Value</div></div>
+    <div class="lr-stat"><div class="sv" style="color:#1a7a4a;">${ltvPct}%</div><div class="sl">Loan-to-ARV</div></div>
+  </div>
+  <div class="ltv-box">
+    <div><div class="lbl">Lender Protection</div><div class="val" style="color:#2a6dd9;">${ltvProtect}% equity buffer at ARV</div></div>
+    <div style="width:1px;height:30px;background:#333;"></div>
+    <div><div class="lbl">Bear Case LTV (ARV -10%)</div><div class="val" style="color:${parseInt(bearLtv)<=80?'#4ade80':'#fbbf24'};">${bearLtv}% — ${parseInt(bearLtv)<=80?'still protected':'monitor closely'}</div></div>
+    <div style="width:1px;height:30px;background:#333;"></div>
+    <div><div class="lbl">Comps Supporting ARV</div><div class="val" style="color:#4ade80;">${compCount > 0 ? compCount+' sold comps' : 'See below'}</div></div>
+  </div>
+</div>
+
+<!-- PROPERTY -->
 <div class="property-block">
-  ${photo ? `<img class="property-photo" src="${photo}" alt="">` : ''}
-  <div class="property-info">
-    <div class="property-address">${deal.address || 'Address Not Entered'}</div>
-    <div class="property-meta">${[deal.bedBath?deal.bedBath+' bd/ba':'',deal.sqft?deal.sqft.toLocaleString()+' sqft':''].filter(Boolean).join(' · ')}${taxHtml?'':''}</div>
-    ${taxHtml}
-    <div class="property-stats">
-      <div class="prop-stat"><div class="sv" style="color:#e03c3c;">$${(deal.listPrice||deal.offer||0).toLocaleString()}</div><div class="sl">List Price</div></div>
-      <div class="prop-stat"><div class="sv" style="color:#c9a84c;">$${(deal.offer||0).toLocaleString()}</div><div class="sl">Our Offer</div></div>
-      <div class="prop-stat"><div class="sv" style="color:#27ae60;">$${(deal.arv||0).toLocaleString()}</div><div class="sl">ARV</div></div>
-      <div class="prop-stat"><div class="sv">$${(deal.rehab||0).toLocaleString()}</div><div class="sl">Rehab Est.</div></div>
+  ${photo ? `<img class="prop-photo" src="${photo}" alt="">` : ''}
+  <div>
+    <div class="prop-address">${deal.address||'Address Not Entered'}</div>
+    <div class="prop-meta">${[deal.bedBath?deal.bedBath+' bd/ba':'', deal.sqft?deal.sqft.toLocaleString()+' sqft':''].filter(Boolean).join(' · ')}</div>
+    ${taxLine ? `<div class="prop-tax">${taxLine}</div>` : ''}
+  </div>
+</div>
+
+<!-- EXIT STRATEGIES — two ways lender gets repaid -->
+<div class="section-title">Exit Strategies — Two Paths to Repayment</div>
+<div class="exit-grid">
+  <div class="exit-card">
+    <div class="exit-card-title">Exit 1 — Sell (Flip)</div>
+    <div class="exit-row"><span class="el">Purchase + Rehab + Costs</span><span class="ev">$${(deal.totalIn||0).toLocaleString()}</span></div>
+    <div class="exit-row"><span class="el">After Repair Value</span><span class="ev" style="color:#1a7a4a;">$${arvVal.toLocaleString()}</span></div>
+    <div class="exit-row"><span class="el">Agent &amp; Closing (8%)</span><span class="ev">-$${Math.round(arvVal*0.08).toLocaleString()}</span></div>
+    <div class="exit-row"><span class="el">Net Profit</span><span class="ev" style="color:${(deal.netProfit||0)>=0?'#1a7a4a':'#c0392b'};">$${(deal.netProfit||0).toLocaleString()}</span></div>
+    <div style="margin-top:10px;padding:8px;background:#f0f7f0;border-radius:4px;font-size:11px;color:#1a7a4a;">
+      ${compCount > 0 ? `ARV supported by ${compCount} sold comps, avg $${avgSoldPrice.toLocaleString()}` : 'Run PULL for comp support'}
     </div>
   </div>
-</div>
-
-<!-- SCORE BADGE -->
-<div class="score-badge ${deal.score>=75?'fire':deal.score>=55?'good':deal.score>=35?'marginal':'pass'}">
-  <div class="score-num" style="color:${sColor};">${deal.score || 0}</div>
-  <div>
-    <div class="score-label" style="color:${sColor};">${sVerdict}</div>
-    <div class="score-sub">Deal Score out of 100 · ARV support, rehab risk, margin, equity gap</div>
+  <div class="exit-card">
+    <div class="exit-card-title">Exit 2 — Refinance &amp; Hold</div>
+    ${deal.brrrr && deal.monthlyRent > 0 ? `
+    <div class="exit-row"><span class="el">Refi Amount (${deal.refiLtv}% of ARV)</span><span class="ev" style="color:#2a6dd9;">$${Math.round(deal.brrrr.refiAmt).toLocaleString()}</span></div>
+    <div class="exit-row"><span class="el">Loan Repaid in Full</span><span class="ev" style="color:#1a7a4a;">✓ YES</span></div>
+    <div class="exit-row"><span class="el">Monthly Rent</span><span class="ev">$${(deal.monthlyRent||0).toLocaleString()}/mo</span></div>
+    <div class="exit-row"><span class="el">Monthly PITI</span><span class="ev">$${Math.round(deal.brrrr.piti).toLocaleString()}/mo</span></div>
+    <div class="exit-row"><span class="el" style="color:#1e2130;font-weight:700;">DSCR</span><span class="ev" style="color:${deal.brrrr.dscr>=1.25?'#1a7a4a':deal.brrrr.dscr>=1.0?'#e67e22':'#c0392b'};font-size:15px;">${deal.brrrr.dscr.toFixed(2)} ${deal.brrrr.dscr>=1.25?'✓':'⚠'}</span></div>
+    ` : '<div style="color:#888;font-size:12px;padding:10px 0;">Enter rent in BRRRR section to show hold strategy numbers.</div>'}
   </div>
 </div>
 
-<!-- COST BREAKDOWN + RETURNS -->
-<div class="grid-2">
-  <div>
-    <div class="section-title">Cost Breakdown</div>
-    <table class="fin-table">
-      <tr><td class="label">Purchase Price</td><td class="value">$${(deal.offer||0).toLocaleString()}</td></tr>
-      <tr><td class="label">Estimated Rehab</td><td class="value">$${(deal.rehabMid||deal.rehab||0).toLocaleString()}</td></tr>
-      <tr><td class="label">Contingency (10%)</td><td class="value">$${Math.round((deal.rehabMid||deal.rehab||0)*0.10).toLocaleString()}</td></tr>
-      <tr><td class="label">Financing &amp; Holding</td><td class="value">$${Math.round((deal.totalIn||0)-(deal.offer||0)-(deal.rehabMid||deal.rehab||0)-((deal.rehabMid||deal.rehab||0)*0.10)).toLocaleString()}</td></tr>
-      <tr class="total"><td class="label">Total All-In</td><td class="value">$${(deal.totalIn||0).toLocaleString()}</td></tr>
-    </table>
-  </div>
-  <div>
-    <div class="section-title">Flip Returns</div>
-    <table class="fin-table">
-      <tr><td class="label">ARV (Sale Price)</td><td class="value" style="color:#27ae60;">$${(deal.arv||0).toLocaleString()}</td></tr>
-      <tr><td class="label">Agent Fees (6%)</td><td class="value">-$${Math.round((deal.arv||0)*0.06).toLocaleString()}</td></tr>
-      <tr><td class="label">Closing Costs (2%)</td><td class="value">-$${Math.round((deal.arv||0)*0.02).toLocaleString()}</td></tr>
-      <tr><td class="label">Max Offer (65% Rule)</td><td class="value" style="color:#c9a84c;">$${Math.round((deal.arv||0)*0.65-(deal.rehabMid||deal.rehab||0)).toLocaleString()}</td></tr>
-      <tr class="total profit"><td class="label">Net Profit</td><td class="value" style="color:${(deal.netProfit||0)>=0?'#27ae60':'#e03c3c'};">$${(deal.netProfit||0).toLocaleString()}</td></tr>
-      <tr><td class="label" style="font-size:11px;">ROI</td><td class="value" style="font-size:12px;">${roiPct}% &nbsp;·&nbsp; Margin ${margin}%</td></tr>
-    </table>
-  </div>
-</div>
-
-<!-- COMPS / ARV SUPPORT -->
+<!-- ARV SUPPORT -->
 <div class="section-title">ARV Support — Comparable Sales</div>
 ${compsHtml}
 
 <!-- STRESS TEST -->
-<div class="section-title">ARV Stress Test</div>
-<table class="stress-table">
-  <thead><tr><th>Scenario</th><th>ARV</th><th>Net Profit</th><th>ROI</th><th>Verdict</th></tr></thead>
-  <tbody>
-    ${[{name:'🔻 Bear (-10%)',arv:Math.round((deal.arv||0)*0.90)},{name:'⚖️ Base',arv:deal.arv||0},{name:'🔺 Bull (+8%)',arv:Math.round((deal.arv||0)*1.08)}].map(s=>{
-      const sNet = s.arv - (deal.totalIn||0) - s.arv*0.06 - s.arv*0.02;
-      const sRoi = deal.totalIn>0 ? (sNet/deal.totalIn*100).toFixed(1) : '—';
-      const verd = sNet>=25000?'✓ Strong':sNet>=10000?'✓ Works':sNet>=0?'⚠ Thin':'✗ Loss';
-      const vc   = sNet>=25000?'#27ae60':sNet>=10000?'#2ecc71':sNet>=0?'#e67e22':'#e03c3c';
-      return `<tr class="${s.arv===deal.arv?'base':''}"><td>${s.name}</td><td style="font-family:monospace;">$${s.arv.toLocaleString()}</td><td style="font-family:monospace;color:${sNet>=0?'#27ae60':'#e03c3c'};font-weight:600;">$${sNet.toLocaleString()}</td><td style="font-family:monospace;">${sRoi}%</td><td style="font-weight:700;color:${vc};">${verd}</td></tr>`;
-    }).join('')}
-  </tbody>
+<div class="section-title">Downside Protection — ARV Sensitivity</div>
+<p style="font-size:12px;color:#555;margin-bottom:10px;">Your loan is protected in all three scenarios. Even if ARV comes in 10% below our estimate, we still break even on the flip and the hold strategy remains cash flow positive.</p>
+<table style="width:100%;border-collapse:collapse;font-size:12px;">
+  <thead><tr style="background:#f0f2f5;">
+    <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #dde3ee;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#666;">Scenario</th>
+    <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #dde3ee;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#666;">ARV</th>
+    <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #dde3ee;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#666;">Net Profit</th>
+    <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #dde3ee;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#666;">Lender LTV</th>
+    <th style="text-align:left;padding:8px 10px;border-bottom:2px solid #dde3ee;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#666;">Verdict</th>
+  </tr></thead>
+  <tbody>${stressRows}</tbody>
 </table>
 
-<!-- BRRRR IF APPLICABLE -->
-${brrrrPdfHtml}
+${holdHtml}
 
-<!-- DEAL SIGNALS -->
-${deal.flags && deal.flags.length ? `<div class="section-title">Deal Signals</div><div class="flags-list">${deal.flags.slice(0,6).map(f=>`<div class="flag-item">${f}</div>`).join('')}</div>` : ''}
+<!-- ABOUT PECOS GRANT -->
+<div class="section-title" style="margin-top:24px;">About Pecos Grant Development LLC</div>
+<div class="about-box">
+  <strong>Pecos Grant Development LLC</strong> is a Springfield, Missouri-based residential real estate investment company focused on value-add single-family acquisitions in Greene, Christian, Webster, Lawrence, Stone, Taney, and Polk counties. Our strategy targets cosmetic rehab opportunities — properties requiring paint, flooring, fixtures, and light updates — where we can force appreciation and create equity without structural risk.<br><br>
+  We underwrite conservatively using the 65% ARV rule, maintain a 10% rehab contingency on every deal, and require comparable sale support before committing. Our exit strategies include both flip (6–12 week hold) and BRRRR/hold (refinance + long-term rental). This package was prepared using our proprietary deal analysis system with live market data.
+</div>
 
 <!-- SIGNATURES -->
 <div class="sig-grid">
-  <div class="sig-block">
-    <div class="sig-label">Seller / Agent</div>
+  <div>
+    <div class="sig-label">Lender</div>
     <div class="sig-line">Signature</div>
-    <div class="sig-line" style="margin-top:14px;">Print Name &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date</div>
+    <div class="sig-line" style="margin-top:14px;">Print Name &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date</div>
   </div>
-  <div class="sig-block">
-    <div class="sig-label">Buyer — Pecos Grant Development LLC</div>
+  <div>
+    <div class="sig-label">Borrower — Pecos Grant Development LLC</div>
     <div class="sig-line">Authorized Signature</div>
-    <div class="sig-line" style="margin-top:14px;">Print Name &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date</div>
+    <div class="sig-line" style="margin-top:14px;">Print Name &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date</div>
   </div>
 </div>
 
-<!-- LENDER LINE (optional) -->
-<div style="margin-top:20px;padding:12px 16px;background:#f9f7f3;border:1px solid #e5e0d8;border-radius:4px;font-size:12px;">
-  <strong>Lender / Hard Money Contact:</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <strong>Loan Amount Requested:</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <strong>Rate:</strong>
+<div class="lender-row">
+  <div><strong>Lender / Institution:</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+  <div><strong>Loan Amount:</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+  <div><strong>Rate / Points:</strong></div>
 </div>
 
 <div class="footer">
-  <span>Pecos Grant Development LLC · Springfield, MO · Real Estate Investment</span>
-  <span>Generated by Deal Analyzer v4.5.0 · ${date}</span>
+  <span>Pecos Grant Development LLC · Springfield, MO · pecosgrantdevelopmentllc@gmail.com</span>
+  <span>Deal Analyzer v4.5.0 · ${date}</span>
 </div>
-
 </body></html>`;
 
   const win = window.open('', '_blank');

@@ -701,13 +701,26 @@ async function doPull(){
   const btn = document.getElementById('pullBtn');
   const status = document.getElementById('pullStatus');
   btn.textContent = '...'; btn.disabled = true;
-  status.className = 'fetch-status loading'; status.textContent = 'Pulling property + comps + market data (15-30s)...';
+  status.className = 'fetch-status loading'; status.textContent = 'Pulling property data...';
+
+  // Progressive status — first pull takes longer (no cache); subsequent are faster
+  const phases = [
+    {at: 8000,  msg: 'Fetching photos + agent + tax history...'},
+    {at: 18000, msg: 'Pulling comps from 3 sources + price history...'},
+    {at: 35000, msg: 'Computing market context (first pull is slow, cached after)...'},
+    {at: 60000, msg: 'Almost there — final ARV calc + scoring...'},
+  ];
+  const startedAt = Date.now();
+  const phaseTimers = phases.map(p => setTimeout(() => {
+    if(btn.disabled) status.textContent = p.msg + ` (${Math.round((Date.now()-startedAt)/1000)}s)`;
+  }, p.at));
 
   try {
     const isUrl = input.includes('zillow.com') || input.includes('http');
     const params = new URLSearchParams();
     if(isUrl){ params.set('url', input.split('?')[0]); } else { params.set('address', input); }
-    const resp = await fetch(`${BACKEND_URL}/lookup?${params}`, {signal:AbortSignal.timeout(60000)});
+    const resp = await fetch(`${BACKEND_URL}/lookup?${params}`, {signal:AbortSignal.timeout(90000)});
+    phaseTimers.forEach(t => clearTimeout(t));
     if(!resp.ok){ const err=await resp.json().catch(()=>({})); throw new Error(err.error||`Error ${resp.status}`); }
     const d = await resp.json();
     if(d.error) throw new Error(d.error);
@@ -738,7 +751,12 @@ async function doPull(){
     status.textContent = `✓ Pulled ${d.address} · ${d.compCount||0} comps · ${d.photos?d.photos.length:0} photos · ARV ${fmt(d.arv)}`;
     btn.textContent = 'PULL'; btn.disabled = false;
   } catch(err) {
-    status.className = 'fetch-status error'; status.textContent = '✗ ' + err.message;
+    phaseTimers.forEach(t => clearTimeout(t));
+    const isTimeout = err.name === 'TimeoutError' || /timeout/i.test(err.message);
+    status.className = 'fetch-status error';
+    status.textContent = isTimeout
+      ? '✗ Signal timed out — Springfield market data is now cached, retry should be ~10-15s faster'
+      : '✗ ' + err.message;
     btn.textContent = 'PULL'; btn.disabled = false;
   }
 }
@@ -1475,7 +1493,7 @@ async function profileNbhd(){
   const status = document.getElementById('nbhd-status');
   status.className='fetch-status loading'; status.textContent=`Pulling data for "${loc}"...`;
   try{
-    const r = await fetch(`${BACKEND_URL}/neighborhood?location=${encodeURIComponent(loc)}`, {signal:AbortSignal.timeout(30000)});
+    const r = await fetch(`${BACKEND_URL}/neighborhood?location=${encodeURIComponent(loc)}`, {signal:AbortSignal.timeout(45000)});
     if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||`Error ${r.status}`);
     const d = await r.json();
     if(d.error)throw new Error(d.error);
